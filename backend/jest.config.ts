@@ -1,5 +1,5 @@
 module.exports = {
-  "preset": "ts-jest",
+  "preset": "ts-jest/presets/default-esm",
   "testEnvironment": "node",
   "roots": [
     "<rootDir>"
@@ -22,14 +22,13 @@ module.exports = {
       "statements": 80
     }
   },
-  "setupFilesAfterEnv": [
-    "<rootDir>/jest.setup.ts"
-  ],
   "moduleNameMapper": {
-    "^@/(.*)$": "<rootDir>/$1"
+    "^@/(.*)$": "<rootDir>/$1",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
   },
+  "extensionsToTreatAsEsm": [".ts"],
   "transform": {
-    "^.+\\.ts$": "ts-jest"
+    "^.+\\.ts$": ["ts-jest", { "useESM": true }]
   },
   "testTimeout": 30000,
   "verbose": true,

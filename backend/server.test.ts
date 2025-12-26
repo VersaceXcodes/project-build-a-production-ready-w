@@ -2792,9 +2792,11 @@ describe('Authorization', () => {
 
 describe('Performance', () => {
   let customerToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     customerToken = await loginUser('alice.johnson@example.com', 'password123', 'CUSTOMER');
+    adminToken = await loginUser('admin@printshop.com', 'admin123', 'ADMIN');
   });
 
   it('should respond to public endpoints quickly (< 1s)', async () => {

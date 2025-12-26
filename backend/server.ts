@@ -13,6 +13,15 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import * as schemas from './schema.js';
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+      file?: Express.Multer.File;
+    }
+  }
+}
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,9 +30,9 @@ const __dirname = path.dirname(__filename);
 const { DATABASE_URL, PGHOST, PGDATABASE, PGUSER, PGPASSWORD, PGPORT = 5432, JWT_SECRET = 'your-secret-key', PORT = 3000 } = process.env;
 
 const pool = new Pool(
-  DATABASE_URL
+  (DATABASE_URL
     ? { connectionString: DATABASE_URL, ssl: { require: true } }
-    : { host: PGHOST, database: PGDATABASE, user: PGUSER, password: PGPASSWORD, port: Number(PGPORT), ssl: { require: true } }
+    : { host: PGHOST, database: PGDATABASE, user: PGUSER, password: PGPASSWORD, port: Number(PGPORT), ssl: { require: true } }) as any
 );
 
 const app = express();
@@ -52,7 +61,7 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Access token required' });
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
     const result = await pool.query('SELECT id, email, name, role, is_active, created_at, updated_at FROM users WHERE id = $1', [decoded.user_id]);
     if (result.rows.length === 0 || !result.rows[0].is_active) return res.status(401).json({ message: 'Invalid token' });
     req.user = result.rows[0];
@@ -265,8 +274,10 @@ app.get('/api/public/tiers', async (req, res) => {
 
 app.get('/api/public/gallery', async (req, res) => {
   try {
-    const { category, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const category = req.query.category as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
+    const limit = parseInt((req.query.limit as string) || '20');
+    const offset = (page - 1) * limit;
     let query = 'SELECT * FROM gallery_images WHERE is_active = true';
     const params = [];
     if (category) {
@@ -276,10 +287,10 @@ app.get('/api/public/gallery', async (req, res) => {
     query += ' ORDER BY sort_order, created_at DESC';
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
-    params.push(parseInt(limit), offset);
+    params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
-    res.json({ images: result.rows, total: parseInt(totalRes.rows[0].count), page: parseInt(page), total_pages: Math.ceil(parseInt(totalRes.rows[0].count) / parseInt(limit)) });
+    res.json({ images: result.rows, total: parseInt(totalRes.rows[0].count), page: page, total_pages: Math.ceil(parseInt(totalRes.rows[0].count) / limit) });
   } catch (error) {
     console.error('List gallery error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -328,9 +339,10 @@ app.post('/api/public/contact-inquiry', async (req, res) => {
 
 app.get('/api/quotes', authenticateToken, requireRole(['CUSTOMER']), async (req, res) => {
   try {
-    const { status, page = 1 } = req.query;
+    const status = req.query.status as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
-    const offset = (parseInt(page) - 1) * limit;
+    const offset = (page - 1) * limit;
     let query = 'SELECT q.*, s.name as service_name, t.name as tier_name FROM quotes q JOIN services s ON q.service_id = s.id JOIN tier_packages t ON q.tier_id = t.id WHERE q.customer_id = $1';
     const params = [req.user.id];
     if (status) {
@@ -444,9 +456,12 @@ app.patch('/api/quotes/:quote_id', authenticateToken, async (req, res) => {
 
 app.get('/api/admin/quotes', authenticateToken, requireRole(['ADMIN', 'STAFF']), async (req, res) => {
   try {
-    const { status, customer, service_id, page = 1 } = req.query;
+    const status = req.query.status as string | undefined;
+    const customer = req.query.customer as string | undefined;
+    const service_id = req.query.service_id as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
-    const offset = (parseInt(page) - 1) * limit;
+    const offset = (page - 1) * limit;
     let query = 'SELECT q.*, u.name as customer_name, u.email as customer_email, s.name as service_name, t.name as tier_name FROM quotes q JOIN users u ON q.customer_id = u.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON q.tier_id = t.id WHERE 1=1';
     const params = [];
     if (status) {
@@ -558,7 +573,9 @@ app.delete('/api/uploads/:upload_id', authenticateToken, async (req, res) => {
 
 app.get('/api/calendar/availability', async (req, res) => {
   try {
-    const { start_date, end_date, service_id } = req.query;
+    const start_date = req.query.start_date as string;
+    const end_date = req.query.end_date as string;
+    const service_id = req.query.service_id as string;
     if (!start_date || !end_date) return res.status(400).json({ message: 'start_date and end_date required' });
     const settingsRes = await pool.query('SELECT * FROM calendar_settings LIMIT 1');
     const settings = settingsRes.rows[0] || { working_days: '[1,2,3,4,5]', start_hour: 9, end_hour: 18, slot_duration_minutes: 120, slots_per_day: 4, emergency_slots_per_day: 2 };
@@ -684,9 +701,10 @@ app.patch('/api/bookings/:booking_id', authenticateToken, async (req, res) => {
 
 app.get('/api/orders', authenticateToken, requireRole(['CUSTOMER']), async (req, res) => {
   try {
-    const { status, page = 1 } = req.query;
+    const status = req.query.status as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
-    const offset = (parseInt(page) - 1) * limit;
+    const offset = (page - 1) * limit;
     let query = 'SELECT o.*, s.name as service_name, t.name as tier_name FROM orders o JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id WHERE o.customer_id = $1';
     const params = [req.user.id];
     if (status) {
@@ -773,7 +791,8 @@ app.patch('/api/orders/:order_id', authenticateToken, async (req, res) => {
 
 app.get('/api/staff/jobs', authenticateToken, requireRole(['STAFF', 'ADMIN']), async (req, res) => {
   try {
-    const { status, assigned_to } = req.query;
+    const status = req.query.status as string | undefined;
+    const assigned_to = req.query.assigned_to as string | undefined;
     let query = 'SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name FROM orders o JOIN users u ON o.customer_id = u.id JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id WHERE 1=1';
     const params = [];
     if (req.user.role === 'STAFF' && !assigned_to) {
@@ -804,9 +823,13 @@ app.get('/api/staff/jobs', authenticateToken, requireRole(['STAFF', 'ADMIN']), a
 
 app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { status, assigned_to, payment_status, customer, page = 1 } = req.query;
+    const status = req.query.status as string | undefined;
+    const assigned_to = req.query.assigned_to as string | undefined;
+    const payment_status = req.query.payment_status as string | undefined;
+    const customer = req.query.customer as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
-    const offset = (parseInt(page) - 1) * limit;
+    const offset = (page - 1) * limit;
     let query = 'SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name FROM orders o JOIN users u ON o.customer_id = u.id JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id LEFT JOIN users staff ON o.assigned_staff_id = staff.id WHERE 1=1';
     const params = [];
     if (status) {
@@ -1144,9 +1167,11 @@ app.patch('/api/users/notification-preferences', authenticateToken, async (req, 
 
 app.get('/api/admin/users', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { role, search, page = 1 } = req.query;
+    const role = req.query.role as string | undefined;
+    const search = req.query.search as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
-    const offset = (parseInt(page) - 1) * limit;
+    const offset = (page - 1) * limit;
     let query = 'SELECT * FROM users WHERE 1=1';
     const params = [];
     if (role) {
@@ -1463,9 +1488,14 @@ app.patch('/api/admin/settings/:key', authenticateToken, requireRole(['ADMIN']),
 
 app.get('/api/admin/audit-logs', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { user_id, action, object_type, start_date, end_date, page = 1 } = req.query;
+    const user_id = req.query.user_id as string | undefined;
+    const action = req.query.action as string | undefined;
+    const object_type = req.query.object_type as string | undefined;
+    const start_date = req.query.start_date as string | undefined;
+    const end_date = req.query.end_date as string | undefined;
+    const page = parseInt((req.query.page as string) || '1');
     const limit = 100;
-    const offset = (parseInt(page) - 1) * limit;
+    const offset = (page - 1) * limit;
     let query = 'SELECT al.*, u.name as user_name FROM audit_logs al JOIN users u ON al.user_id = u.id WHERE 1=1';
     const params = [];
     if (user_id) {
@@ -1521,6 +1551,6 @@ io.on('connection', (socket) => {
 
 export { app, pool };
 
-httpServer.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Server running on port ${PORT} and listening on 0.0.0.0`);
 });
