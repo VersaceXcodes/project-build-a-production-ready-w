@@ -32,7 +32,14 @@ const { DATABASE_URL, PGHOST, PGDATABASE, PGUSER, PGPASSWORD, PGPORT = 5432, JWT
 const pool = new Pool(
   (DATABASE_URL
     ? { connectionString: DATABASE_URL, ssl: { require: true } }
-    : { host: PGHOST, database: PGDATABASE, user: PGUSER, password: PGPASSWORD, port: Number(PGPORT), ssl: { require: true } }) as any
+    : { 
+        host: PGHOST || "ep-ancient-dream-abbsot9k-pooler.eu-west-2.aws.neon.tech",
+        database: PGDATABASE || "neondb",
+        user: PGUSER || "neondb_owner",
+        password: PGPASSWORD || "npg_jAS3aITLC5DX",
+        port: Number(PGPORT), 
+        ssl: { require: true } 
+      }) as any
 );
 
 const app = express();
