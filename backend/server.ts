@@ -137,16 +137,17 @@ app.post('/api/auth/register', async (req, res) => {
       [uuidv4(), userId, true, true, true, false, new Date().toISOString()]
     );
     
-    await createAuditLog(userId, 'REGISTER', 'USER', userId, null, req.ip);
-    
     await client.query('COMMIT');
+    
+    // Create audit log after commit to ensure user exists for foreign key constraint
+    await createAuditLog(userId, 'REGISTER', 'USER', userId, null, req.ip);
 
     const token = jwt.sign({ user_id: userId, email: email.toLowerCase() }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ user: userResult.rows[0], customer_profile: profileResult.rows[0], token });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Register error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: `Internal server error: ${error.message}` });
   } finally {
     client.release();
   }
