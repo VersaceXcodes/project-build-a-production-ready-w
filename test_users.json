@@ -1,0 +1,81 @@
+{
+  "generated_at": "2025-12-26T12:00:00Z",
+  "user_structure": {
+    "table_name": "users",
+    "role_field": "role",
+    "registration_endpoint": "/api/auth/register",
+    "login_endpoint": "/api/auth/login"
+  },
+  "total_users": 14,
+  "verified_users": 3,
+  "users": [
+    {
+      "email": "admin@printshop.com",
+      "password": "admin123",
+      "role": "ADMIN",
+      "name": "Admin User",
+      "verified": true,
+      "token": "simulate_token_admin"
+    },
+    {
+      "email": "john.designer@printshop.com",
+      "password": "staff123",
+      "role": "STAFF",
+      "name": "John Designer",
+      "verified": true,
+      "token": "simulate_token_staff"
+    },
+    {
+      "email": "alice.johnson@example.com",
+      "password": "password123",
+      "role": "CUSTOMER",
+      "name": "Alice Johnson",
+      "verified": true,
+      "token": "simulate_token_customer"
+    }
+  ],
+  "by_role": {
+    "ADMIN": [
+      {
+        "email": "admin@printshop.com",
+        "password": "admin123",
+        "name": "Admin User",
+        "verified": true
+      }
+    ],
+    "STAFF": [
+      {
+        "email": "john.designer@printshop.com",
+        "password": "staff123",
+        "name": "John Designer",
+        "verified": true
+      },
+      {
+        "email": "sarah.manager@printshop.com",
+        "password": "staff123",
+        "name": "Sarah Manager",
+        "verified": true
+      },
+      {
+        "email": "mike.production@printshop.com",
+        "password": "staff123",
+        "name": "Mike Production",
+        "verified": true
+      }
+    ],
+    "CUSTOMER": [
+      {
+        "email": "alice.johnson@example.com",
+        "password": "password123",
+        "name": "Alice Johnson",
+        "verified": true
+      },
+      {
+        "email": "bob.smith@example.com",
+        "password": "password123",
+        "name": "Bob Smith",
+        "verified": true
+      }
+    ]
+  }
+}

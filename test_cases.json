@@ -1,0 +1,83 @@
+{
+  "testCases": [
+    {
+      "id": "functional-auth-login",
+      "name": "User Login Functionality",
+      "category": "authentication",
+      "priority": "critical",
+      "description": "Verify that users with different roles (Admin, Staff, Customer) can log in successfully.",
+      "steps": [
+        "Navigate to the login page",
+        "Enter valid Admin credentials (admin@printshop.com / admin123)",
+        "Verify redirection to Admin Dashboard",
+        "Log out",
+        "Enter valid Customer credentials (alice.johnson@example.com / password123)",
+        "Verify redirection to Customer Portal"
+      ],
+      "expectedOutcome": "Users are authenticated and redirected to their respective dashboards based on role.",
+      "failureCondition": "Login fails with valid credentials or user is redirected to the wrong dashboard."
+    },
+    {
+      "id": "functional-service-browsing",
+      "name": "Service Catalog Browsing",
+      "category": "functionality",
+      "priority": "high",
+      "description": "Verify that services are displayed correctly from the database.",
+      "steps": [
+        "Navigate to the Services page",
+        "Check if categories (e.g., Business Printing, Signage) are visible",
+        "Click on a category to filter services",
+        "Select a specific service (e.g., Business Cards)",
+        "Verify service details, options (Quantity, Finish), and pricing are displayed"
+      ],
+      "expectedOutcome": "Service catalog is populated with data from the 'services' table and options are interactive.",
+      "failureCondition": "Services page is empty or service details do not match the seed data."
+    },
+    {
+      "id": "functional-quote-creation",
+      "name": "Quote Request Process",
+      "category": "workflow",
+      "priority": "high",
+      "description": "Test the end-to-end flow of a customer requesting a quote.",
+      "steps": [
+        "Log in as a Customer",
+        "Select a service",
+        "Configure service options (e.g., 500 count, Matte finish)",
+        "Submit the quote request",
+        "Navigate to 'My Quotes' section",
+        "Verify the new quote appears with status 'SUBMITTED'"
+      ],
+      "expectedOutcome": "Quote is successfully created in the 'quotes' table and visible in the customer dashboard.",
+      "failureCondition": "Quote submission fails or the created quote is not listed."
+    },
+    {
+      "id": "ui-responsive-design",
+      "name": "Responsive UI Test",
+      "category": "interface",
+      "priority": "medium",
+      "description": "Ensure the application layout adapts to mobile and desktop screens.",
+      "steps": [
+        "Open application on desktop view",
+        "Resize browser window to mobile width (< 768px)",
+        "Verify navigation menu collapses into a hamburger menu",
+        "Check that product cards stack vertically",
+        "Ensure no horizontal scrolling is required for content"
+      ],
+      "expectedOutcome": "UI adapts fluidly between breakpoints without breaking layout or functionality."
+    },
+    {
+      "id": "content-gallery-check",
+      "name": "Gallery Content Verification",
+      "category": "content",
+      "priority": "medium",
+      "description": "Verify that the gallery displays images and descriptions.",
+      "steps": [
+        "Navigate to the Gallery page",
+        "Verify that multiple images are loaded",
+        "Check for titles and descriptions (e.g., 'Premium Business Cards')",
+        "Click on an image to view details or larger version"
+      ],
+      "expectedOutcome": "Gallery is populated with seed data images and text."
+    }
+  ]
+}

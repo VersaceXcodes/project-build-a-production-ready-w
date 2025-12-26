@@ -1,0 +1,113 @@
+{
+  "tech_stack": [
+    "React",
+    "Vite",
+    "TypeScript",
+    "Tailwind CSS",
+    "Redux Toolkit",
+    "React Query",
+    "Express",
+    "PostgreSQL",
+    "Node.js",
+    "Stripe"
+  ],
+  "features": [
+    {
+      "name": "User Authentication",
+      "description": "Login, registration, password management, and role-based access control (Admin, Staff, Customer).",
+      "files": [
+        "vitereact/src/components/views/GV_HeaderAuth.tsx",
+        "backend/server.ts"
+      ]
+    },
+    {
+      "name": "Service Catalog",
+      "description": "Browsing printing services, categories, and viewing details.",
+      "files": [
+        "vitereact/src/components/payment/ProductCard.tsx",
+        "backend/db.sql"
+      ]
+    },
+    {
+      "name": "Order Management",
+      "description": "Creating quotes, converting to orders, tracking status, and history.",
+      "files": [
+        "backend/db.sql"
+      ]
+    },
+    {
+      "name": "Proofing System",
+      "description": "Staff uploads proofs, customers approve or request changes.",
+      "files": [
+        "backend/db.sql"
+      ]
+    },
+    {
+      "name": "Gallery & Portfolio",
+      "description": "Showcase of past work and case studies.",
+      "files": [
+        "backend/db.sql"
+      ]
+    },
+    {
+      "name": "Inventory Management",
+      "description": "Tracking stock levels, purchase orders, and material consumption.",
+      "files": [
+        "backend/db.sql"
+      ]
+    }
+  ],
+  "database_tables": [
+    "users",
+    "customer_profiles",
+    "staff_profiles",
+    "service_categories",
+    "services",
+    "service_options",
+    "tier_packages",
+    "tier_features",
+    "b2b_accounts",
+    "b2b_locations",
+    "quotes",
+    "quote_answers",
+    "orders",
+    "uploads",
+    "bookings",
+    "proof_versions",
+    "invoices",
+    "payments",
+    "message_threads",
+    "messages",
+    "settings",
+    "audit_logs",
+    "gallery_images",
+    "case_studies",
+    "marketing_content",
+    "tier_checklist_items",
+    "contact_inquiries",
+    "contract_pricing",
+    "inventory_items",
+    "material_consumption_rules",
+    "purchase_orders",
+    "purchase_order_items",
+    "inventory_transactions",
+    "calendar_settings",
+    "blackout_dates",
+    "notification_preferences",
+    "password_reset_tokens",
+    "sessions"
+  ],
+  "api_endpoints": [
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/auth/me",
+    "/api/public/services",
+    "/api/public/gallery",
+    "/api/quotes",
+    "/api/orders",
+    "/api/bookings",
+    "/api/admin/users",
+    "/api/admin/services",
+    "/api/admin/inventory"
+  ]
+}
