@@ -11,7 +11,6 @@ import { Server } from 'socket.io';
 import { createServer } from 'http';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
-import * as schemas from './schema.js';
 
 declare global {
   namespace Express {
@@ -28,6 +27,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const { DATABASE_URL, PGHOST, PGDATABASE, PGUSER, PGPASSWORD, PGPORT = 5432, JWT_SECRET = 'your-secret-key', PORT = 3000 } = process.env;
+
+console.log('DB Config:', { 
+  host: PGHOST, 
+  database: PGDATABASE, 
+  user: PGUSER, 
+  port: PGPORT,
+  ssl: true
+});
 
 const pool = new Pool(
   (DATABASE_URL
@@ -99,32 +106,49 @@ const emitEvent = (channel, data) => {
 };
 
 app.post('/api/auth/register', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { name, email, password, phone, company_name, address } = req.body;
     if (!name || !email || !password) return res.status(400).json({ message: 'Name, email, and password required' });
     if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
-    if (existing.rows.length > 0) return res.status(400).json({ message: 'Email already exists' });
+    
+    await client.query('BEGIN');
+
+    const existing = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
     const userId = uuidv4();
-    const userResult = await pool.query(
+    const userResult = await client.query(
       'INSERT INTO users (id, name, email, password_hash, role, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [userId, name.trim(), email.toLowerCase().trim(), password, 'CUSTOMER', true, new Date().toISOString(), new Date().toISOString()]
     );
+    
     const profileId = uuidv4();
-    const profileResult = await pool.query(
+    const profileResult = await client.query(
       'INSERT INTO customer_profiles (id, user_id, phone, company_name, address, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [profileId, userId, phone || null, company_name || null, address || null, new Date().toISOString(), new Date().toISOString()]
     );
-    await pool.query(
+    
+    await client.query(
       'INSERT INTO notification_preferences (id, user_id, email_order_updates, email_proof_ready, email_messages, email_marketing, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [uuidv4(), userId, true, true, true, false, new Date().toISOString()]
     );
-    const token = jwt.sign({ user_id: userId, email: email.toLowerCase() }, JWT_SECRET, { expiresIn: '7d' });
+    
     await createAuditLog(userId, 'REGISTER', 'USER', userId, null, req.ip);
+    
+    await client.query('COMMIT');
+
+    const token = jwt.sign({ user_id: userId, email: email.toLowerCase() }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ user: userResult.rows[0], customer_profile: profileResult.rows[0], token });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Register error:', error);
     res.status(500).json({ message: 'Internal server error' });
+  } finally {
+    client.release();
   }
 });
 
