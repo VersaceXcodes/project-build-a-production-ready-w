@@ -1,0 +1,557 @@
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { useAppStore } from '@/store/main';
+
+// =====================================================
+// TYPE DEFINITIONS (matching Zod schemas)
+// =====================================================
+
+interface Service {
+  id: string;
+  category_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  requires_booking: boolean;
+  requires_proof: boolean;
+  is_top_seller: boolean;
+  is_active: boolean;
+  slot_duration_hours: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ServiceCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface GalleryImage {
+  id: string;
+  title: string;
+  image_url: string;
+  thumbnail_url: string | null;
+  description: string | null;
+  alt_text: string | null;
+  categories: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface MarketingContent {
+  id: string;
+  page_key: string;
+  section_key: string;
+  content: string;
+  updated_at: string;
+}
+
+interface ServicesResponse {
+  services: Service[];
+  categories: ServiceCategory[];
+}
+
+interface GalleryResponse {
+  images: GalleryImage[];
+  total: number;
+  page: number;
+  total_pages: number;
+}
+
+// =====================================================
+// API FUNCTIONS
+// =====================================================
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+async function fetch_top_selling_services(): Promise<ServicesResponse> {
+  const { data } = await axios.get<ServicesResponse>(`${API_BASE_URL}/api/public/services`, {
+    params: {
+      is_top_seller: true,
+      limit: 6
+    }
+  });
+  return data;
+}
+
+async function fetch_gallery_preview(): Promise<GalleryResponse> {
+  const { data } = await axios.get<GalleryResponse>(`${API_BASE_URL}/api/public/gallery`, {
+    params: {
+      limit: 6,
+      page: 1
+    }
+  });
+  return data;
+}
+
+async function fetch_marketing_content(): Promise<MarketingContent[]> {
+  const { data } = await axios.get<MarketingContent[]>(`${API_BASE_URL}/api/public/marketing-content`, {
+    params: {
+      page_key: 'home'
+    }
+  });
+  return data;
+}
+
+// =====================================================
+// MAIN COMPONENT
+// =====================================================
+
+const UV_PUB_Landing: React.FC = () => {
+  const navigate = useNavigate();
+  
+  // CRITICAL: Individual selectors, no object destructuring
+  const is_authenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
+  const show_toast = useAppStore(state => state.show_toast);
+
+  // Data fetching with React Query
+  const { data: services_data, isLoading: is_loading_services, error: services_error } = useQuery({
+    queryKey: ['top_selling_services'],
+    queryFn: fetch_top_selling_services,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    onError: (error: any) => {
+      show_toast({
+        type: 'error',
+        message: 'Failed to load services',
+        duration: 5000
+      });
+    }
+  });
+
+  const { data: gallery_data, isLoading: is_loading_gallery, error: gallery_error } = useQuery({
+    queryKey: ['gallery_preview'],
+    queryFn: fetch_gallery_preview,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    onError: (error: any) => {
+      show_toast({
+        type: 'error',
+        message: 'Failed to load gallery images',
+        duration: 5000
+      });
+    }
+  });
+
+  const { data: content_data, isLoading: is_loading_content, error: content_error } = useQuery({
+    queryKey: ['marketing_content', 'home'],
+    queryFn: fetch_marketing_content,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    onError: (error: any) => {
+      show_toast({
+        type: 'error',
+        message: 'Failed to load page content',
+        duration: 5000
+      });
+    }
+  });
+
+  // Transform marketing content array into structured object
+  const marketing_content = React.useMemo(() => {
+    if (!content_data) {
+      return {
+        hero_headline: 'Disciplined Premium Print, Signage & Branding',
+        hero_subtext: 'Professional branding that is accessible and dependable',
+        hero_cta_text: 'Get a Quote'
+      };
+    }
+    const content_map: Record<string, string> = {};
+    content_data.forEach(item => {
+      content_map[item.section_key] = item.content;
+    });
+    return {
+      hero_headline: content_map.hero_headline || 'Disciplined Premium Print, Signage & Branding',
+      hero_subtext: content_map.hero_subtext || 'Professional branding that is accessible and dependable',
+      hero_cta_text: content_map.hero_cta_text || 'Get a Quote'
+    };
+  }, [content_data]);
+
+  const top_selling_services = services_data?.services || [];
+  const gallery_preview_images = gallery_data?.images || [];
+
+  // Navigation handlers
+  const navigate_to_quote_wizard = () => {
+    if (is_authenticated) {
+      navigate('/app/quotes/new');
+    } else {
+      navigate('/login?returnTo=/app/quotes/new');
+    }
+  };
+
+  const navigate_to_service_detail = (service_slug: string) => {
+    navigate(`/services/${service_slug}`);
+  };
+
+  const navigate_to_gallery = () => {
+    navigate('/gallery');
+  };
+
+  return (
+    <>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white py-20 lg:py-32">
+        <div className="absolute inset-0 bg-black opacity-40"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-4xl mx-auto">
+            {is_loading_content ? (
+              <>
+                <div className="h-16 bg-gray-700 rounded-lg mb-6 animate-pulse"></div>
+                <div className="h-24 bg-gray-700 rounded-lg mb-8 animate-pulse"></div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                  {marketing_content.hero_headline}
+                </h1>
+                <p className="text-xl md:text-2xl text-gray-200 leading-relaxed mb-8">
+                  {marketing_content.hero_subtext}
+                </p>
+              </>
+            )}
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={navigate_to_quote_wizard}
+                className="px-8 py-4 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                {marketing_content.hero_cta_text}
+              </button>
+              <button
+                onClick={navigate_to_gallery}
+                className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-black transition-all duration-200"
+              >
+                View Gallery
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Top Selling Services Section */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Our Top Services
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Explore our most popular printing, signage, and branding solutions
+            </p>
+          </div>
+
+          {is_loading_services ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-gray-100 rounded-xl p-6 animate-pulse">
+                  <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : services_error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">Failed to load services</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : top_selling_services.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No featured services available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {top_selling_services.map((service) => (
+                <div
+                  key={service.id}
+                  className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden group cursor-pointer"
+                  onClick={() => navigate_to_service_detail(service.slug)}
+                >
+                  <div className="p-6">
+                    <div className="h-12 w-12 bg-yellow-400 rounded-lg flex items-center justify-center mb-4">
+                      <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-yellow-600 transition-colors">
+                      {service.name}
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed mb-6 line-clamp-2">
+                      {service.description || 'Professional service with premium quality and reliable delivery'}
+                    </p>
+                    <span className="inline-block px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium group-hover:bg-yellow-400 transition-colors">
+                      Learn More →
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Gallery Preview Section */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              See Previous Work
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Explore our portfolio of completed projects and successful deliveries
+            </p>
+          </div>
+
+          {is_loading_gallery ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
+              ))}
+            </div>
+          ) : gallery_error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">Failed to load gallery images</p>
+            </div>
+          ) : gallery_preview_images.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Gallery images coming soon</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+              {gallery_preview_images.map((image) => (
+                <Link
+                  key={image.id}
+                  to="/gallery"
+                  className="relative aspect-square group overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <img
+                    src={image.thumbnail_url || image.image_url}
+                    alt={image.alt_text || image.title}
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-white font-medium text-sm">
+                        {image.title}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center">
+            <button
+              onClick={navigate_to_gallery}
+              className="px-8 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              View Full Gallery
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Process */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              How It Works
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Our streamlined process takes you from concept to completion
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+            {[
+              {
+                number: 1,
+                title: 'Choose Service',
+                description: 'Select from our range of printing, signage, and branding services',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                )
+              },
+              {
+                number: 2,
+                title: 'Configure Project',
+                description: 'Provide specifications and upload your design files',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )
+              },
+              {
+                number: 3,
+                title: 'Choose Tier',
+                description: 'Select your service level from Basic to Enterprise',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                  </svg>
+                )
+              },
+              {
+                number: 4,
+                title: 'Book & Pay Deposit',
+                description: 'Schedule your project and secure your slot with a deposit',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )
+              },
+              {
+                number: 5,
+                title: 'Track Your Order',
+                description: 'Monitor progress from production to delivery',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                )
+              }
+            ].map((step) => (
+              <div key={step.number} className="text-center">
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 mx-auto bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xl shadow-lg">
+                    {step.number}
+                  </div>
+                  {step.number < 5 && (
+                    <div className="hidden lg:block absolute top-1/2 left-full w-full h-1 bg-gray-200 transform -translate-y-1/2"></div>
+                  )}
+                </div>
+                <div className="lg:hidden w-16 h-16 mx-auto mb-4 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg">
+                  {step.icon}
+                </div>
+                <div className="hidden lg:block mb-4 text-yellow-600">
+                  {step.icon}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust/Value Proposition Blocks */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Why Choose SultanStamp
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Our commitment to excellence sets us apart
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Consistent Quality',
+                description: 'High standards maintained across every project. No compromises on materials, processes, or final output.',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )
+              },
+              {
+                title: 'Disciplined Timelines',
+                description: 'Tier-based turnarounds that are respected. From express delivery to standard timelines, we honor our commitments.',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )
+              },
+              {
+                title: 'Transparent Pricing',
+                description: 'Clear tier structure with no hidden fees. You know exactly what you\'re paying for before you commit.',
+                icon: (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )
+              }
+            ].map((block, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl p-8 shadow-lg border border-gray-100 text-center"
+              >
+                <div className="w-16 h-16 mx-auto bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 mb-6 shadow-lg">
+                  {block.icon}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  {block.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {block.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section className="py-16 lg:py-24 bg-gradient-to-br from-yellow-400 to-yellow-500">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            Ready to Get Started?
+          </h2>
+          <p className="text-xl text-gray-800 mb-8">
+            Let's bring your vision to life with professional branding solutions
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={navigate_to_quote_wizard}
+              className="px-8 py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Get a Quote
+            </button>
+            <Link
+              to="/contact"
+              className="px-8 py-4 bg-white text-gray-900 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl border-2 border-gray-900 inline-block"
+            >
+              Contact Us
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default UV_PUB_Landing;

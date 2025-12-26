@@ -1,0 +1,21 @@
+{
+  "timestamp": 1766775429077,
+  "operation": {
+    "id": "backend:tests:main"
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/server.test.ts",
+      "type": "text",
+      "size": 90330,
+      "dependencies": false
+    },
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/jest.config.ts",
+      "type": "text",
+      "size": 728,
+      "dependencies": false
+    }
+  ]
+}

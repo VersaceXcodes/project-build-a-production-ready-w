@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776628507,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_CUST_QuotesList",
+      "version": "1766776483583"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_CUST_QuotesList.tsx",
+      "type": "text",
+      "size": 27701,
+      "dependencies": false
+    }
+  ]
+}

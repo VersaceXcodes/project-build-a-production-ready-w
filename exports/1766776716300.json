@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776716300,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_ADMIN_TiersManager",
+      "version": "latest"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_ADMIN_TiersManager.tsx",
+      "type": "text",
+      "size": 44507,
+      "dependencies": false
+    }
+  ]
+}

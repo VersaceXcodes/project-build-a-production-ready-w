@@ -1,0 +1,21 @@
+{
+  "timestamp": 1766775047167,
+  "operation": {
+    "id": "settings:config:package"
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/package.json",
+      "type": "text",
+      "size": 1447,
+      "dependencies": true
+    },
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/.env",
+      "type": "text",
+      "size": 379,
+      "dependencies": false
+    }
+  ]
+}

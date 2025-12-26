@@ -1,0 +1,4265 @@
+openapi: 3.0.0
+info:
+  title: SultanStamp API
+  description: Comprehensive API for SultanStamp print, branding, and signage web
+    application
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+paths:
+  /api/auth/register:
+    post:
+      operationId: registerUser
+      summary: Register new customer account
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                phone:
+                  type: string
+                  nullable: true
+                company_name:
+                  type: string
+                  nullable: true
+                address:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    type: string
+                  customer_profile:
+                    $ref: "#/components/schemas/CustomerProfile"
+        "400":
+          description: Invalid input or email already exists
+  /api/auth/login:
+    post:
+      operationId: loginUser
+      summary: User login with role-based authentication
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - CUSTOMER
+                    - STAFF
+                    - ADMIN
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    type: string
+                  profile:
+                    oneOf:
+                      - $ref: "#/components/schemas/CustomerProfile"
+                      - $ref: "#/components/schemas/StaffProfile"
+        "401":
+          description: Invalid credentials or role mismatch
+  /api/auth/forgot-password:
+    post:
+      operationId: requestPasswordReset
+      summary: Request password reset email
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Password reset email sent
+  /api/auth/reset-password:
+    post:
+      operationId: resetPassword
+      summary: Reset password with token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password reset successful
+        "400":
+          description: Invalid or expired token
+  /api/auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current authenticated user
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  profile:
+                    oneOf:
+                      - $ref: "#/components/schemas/CustomerProfile"
+                      - $ref: "#/components/schemas/StaffProfile"
+        "401":
+          description: Unauthorized
+  /api/public/services:
+    get:
+      operationId: listPublicServices
+      summary: Get all active services with filtering
+      tags:
+        - Public Content
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: is_top_seller
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Service"
+                  categories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ServiceCategory"
+  /api/public/services/{service_slug}:
+    get:
+      operationId: getPublicServiceDetail
+      summary: Get service details by slug
+      tags:
+        - Public Content
+      parameters:
+        - name: service_slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Service details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    $ref: "#/components/schemas/Service"
+                  category:
+                    $ref: "#/components/schemas/ServiceCategory"
+                  service_options:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ServiceOption"
+                  examples:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GalleryImage"
+  /api/public/service-categories:
+    get:
+      operationId: listServiceCategories
+      summary: Get all active service categories
+      tags:
+        - Public Content
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceCategory"
+  /api/public/tiers:
+    get:
+      operationId: listPublicTiers
+      summary: Get all active tier packages with features
+      tags:
+        - Public Content
+      responses:
+        "200":
+          description: List of tiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tier:
+                      $ref: "#/components/schemas/TierPackage"
+                    features:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/TierFeature"
+  /api/public/gallery:
+    get:
+      operationId: listGalleryImages
+      summary: Get gallery images with filtering
+      tags:
+        - Public Content
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Gallery images
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  images:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GalleryImage"
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  total_pages:
+                    type: integer
+  /api/public/case-studies/{case_study_slug}:
+    get:
+      operationId: getCaseStudyDetail
+      summary: Get case study details by slug
+      tags:
+        - Public Content
+      parameters:
+        - name: case_study_slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Case study details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseStudy"
+  /api/public/marketing-content:
+    get:
+      operationId: getMarketingContent
+      summary: Get marketing page content
+      tags:
+        - Public Content
+      parameters:
+        - name: page_key
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Marketing content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingContent"
+  /api/public/contact-inquiry:
+    post:
+      operationId: submitContactInquiry
+      summary: Submit contact form inquiry
+      tags:
+        - Public Content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - message
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                  nullable: true
+                service_interested_in:
+                  type: string
+                  nullable: true
+                message:
+                  type: string
+      responses:
+        "201":
+          description: Inquiry submitted successfully
+  /api/quotes:
+    get:
+      operationId: listCustomerQuotes
+      summary: Get all quotes for authenticated customer
+      tags:
+        - Quotes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - SUBMITTED
+              - IN_REVIEW
+              - APPROVED
+              - REJECTED
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: List of quotes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quotes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        quote:
+                          $ref: "#/components/schemas/Quote"
+                        service:
+                          $ref: "#/components/schemas/Service"
+                        tier:
+                          $ref: "#/components/schemas/TierPackage"
+                  total:
+                    type: integer
+    post:
+      operationId: createQuote
+      summary: Create new quote from wizard
+      tags:
+        - Quotes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_id
+                - tier_id
+              properties:
+                service_id:
+                  type: string
+                tier_id:
+                  type: string
+                project_details:
+                  type: object
+                  additionalProperties: true
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Quote created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quote:
+                    $ref: "#/components/schemas/Quote"
+                  quote_answers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/QuoteAnswer"
+  /api/quotes/{quote_id}:
+    get:
+      operationId: getQuoteDetail
+      summary: Get detailed quote information
+      tags:
+        - Quotes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quote_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Quote details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quote:
+                    $ref: "#/components/schemas/Quote"
+                  service:
+                    $ref: "#/components/schemas/Service"
+                  tier:
+                    $ref: "#/components/schemas/TierPackage"
+                  quote_answers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/QuoteAnswer"
+                  uploads:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Upload"
+                  message_thread:
+                    $ref: "#/components/schemas/MessageThread"
+    patch:
+      operationId: updateQuote
+      summary: Update quote details
+      tags:
+        - Quotes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quote_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - SUBMITTED
+                    - IN_REVIEW
+                    - APPROVED
+                    - REJECTED
+                final_subtotal:
+                  type: number
+                  nullable: true
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Quote updated successfully
+  /api/admin/quotes:
+    get:
+      operationId: listAllQuotes
+      summary: Get all quotes for admin with filtering
+      tags:
+        - Admin - Quotes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: customer
+          in: query
+          schema:
+            type: string
+        - name: service_id
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: List of all quotes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quotes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        quote:
+                          $ref: "#/components/schemas/Quote"
+                        customer:
+                          $ref: "#/components/schemas/User"
+                        service:
+                          $ref: "#/components/schemas/Service"
+                        tier:
+                          $ref: "#/components/schemas/TierPackage"
+                  total:
+                    type: integer
+  /api/admin/quotes/{quote_id}/finalize:
+    post:
+      operationId: finalizeQuote
+      summary: Finalize quote with pricing and create invoice
+      tags:
+        - Admin - Quotes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quote_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - final_subtotal
+              properties:
+                final_subtotal:
+                  type: number
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Quote finalized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quote:
+                    $ref: "#/components/schemas/Quote"
+                  invoice:
+                    $ref: "#/components/schemas/Invoice"
+  /api/uploads:
+    post:
+      operationId: uploadFile
+      summary: Upload file for quote or order
+      tags:
+        - Uploads
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                quote_id:
+                  type: string
+                  nullable: true
+                order_id:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+  /api/uploads/{upload_id}:
+    get:
+      operationId: getUploadDetail
+      summary: Get upload file details or download URL
+      tags:
+        - Uploads
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Upload details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Upload"
+    delete:
+      operationId: deleteUpload
+      summary: Delete uploaded file
+      tags:
+        - Uploads
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: File deleted successfully
+  /api/calendar/availability:
+    get:
+      operationId: getCalendarAvailability
+      summary: Get calendar availability for booking
+      tags:
+        - Bookings
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: service_id
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Calendar availability
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available_dates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        available_slots:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              start_at:
+                                type: string
+                                format: date-time
+                              end_at:
+                                type: string
+                                format: date-time
+                        is_full:
+                          type: boolean
+                        emergency_slots_available:
+                          type: integer
+                  calendar_settings:
+                    $ref: "#/components/schemas/CalendarSettings"
+  /api/bookings:
+    get:
+      operationId: listCustomerBookings
+      summary: Get all bookings for customer
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - CONFIRMED
+              - CANCELLED
+              - COMPLETED
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    booking:
+                      $ref: "#/components/schemas/Booking"
+                    quote:
+                      $ref: "#/components/schemas/Quote"
+                    service:
+                      $ref: "#/components/schemas/Service"
+    post:
+      operationId: createBooking
+      summary: Create new booking for quote
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quote_id
+                - start_at
+                - end_at
+              properties:
+                quote_id:
+                  type: string
+                start_at:
+                  type: string
+                  format: date-time
+                end_at:
+                  type: string
+                  format: date-time
+                is_emergency:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+  /api/bookings/{booking_id}:
+    get:
+      operationId: getBookingDetail
+      summary: Get booking details
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking:
+                    $ref: "#/components/schemas/Booking"
+                  quote:
+                    $ref: "#/components/schemas/Quote"
+                  service:
+                    $ref: "#/components/schemas/Service"
+    patch:
+      operationId: updateBooking
+      summary: Update booking status or reschedule
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_at:
+                  type: string
+                  format: date-time
+                end_at:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+                  enum:
+                    - PENDING
+                    - CONFIRMED
+                    - CANCELLED
+                    - COMPLETED
+      responses:
+        "200":
+          description: Booking updated successfully
+  /api/orders:
+    get:
+      operationId: listCustomerOrders
+      summary: Get all orders for authenticated customer
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        order:
+                          $ref: "#/components/schemas/Order"
+                        service:
+                          $ref: "#/components/schemas/Service"
+                        tier:
+                          $ref: "#/components/schemas/TierPackage"
+                        payment_status:
+                          type: object
+                          properties:
+                            deposit_paid:
+                              type: boolean
+                            balance_due:
+                              type: number
+                  total:
+                    type: integer
+  /api/orders/{order_id}:
+    get:
+      operationId: getOrderDetail
+      summary: Get detailed order information
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: "#/components/schemas/Order"
+                  quote:
+                    $ref: "#/components/schemas/Quote"
+                  service:
+                    $ref: "#/components/schemas/Service"
+                  tier:
+                    $ref: "#/components/schemas/TierPackage"
+                  booking:
+                    $ref: "#/components/schemas/Booking"
+                  proof_versions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProofVersion"
+                  invoice:
+                    $ref: "#/components/schemas/Invoice"
+                  payments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Payment"
+                  message_thread:
+                    $ref: "#/components/schemas/MessageThread"
+                  status_timeline:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+    patch:
+      operationId: updateOrderStatus
+      summary: Update order status (staff/admin)
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - QUOTE_REQUESTED
+                    - APPROVED
+                    - IN_PRODUCTION
+                    - PROOF_SENT
+                    - AWAITING_APPROVAL
+                    - READY_FOR_PICKUP
+                    - COMPLETED
+                    - CANCELLED
+                assigned_staff_id:
+                  type: string
+                  nullable: true
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Order updated successfully
+  /api/staff/jobs:
+    get:
+      operationId: listStaffJobs
+      summary: Get job queue for staff member
+      tags:
+        - Staff - Jobs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: assigned_to
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    order:
+                      $ref: "#/components/schemas/Order"
+                    customer:
+                      $ref: "#/components/schemas/User"
+                    service:
+                      $ref: "#/components/schemas/Service"
+                    tier:
+                      $ref: "#/components/schemas/TierPackage"
+                    is_overdue:
+                      type: boolean
+                    priority_level:
+                      type: string
+  /api/admin/orders:
+    get:
+      operationId: listAllOrders
+      summary: Get all orders with filtering (admin)
+      tags:
+        - Admin - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: assigned_to
+          in: query
+          schema:
+            type: string
+        - name: payment_status
+          in: query
+          schema:
+            type: string
+        - name: customer
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: List of all orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        order:
+                          $ref: "#/components/schemas/Order"
+                        customer:
+                          $ref: "#/components/schemas/User"
+                        service:
+                          $ref: "#/components/schemas/Service"
+                        tier:
+                          $ref: "#/components/schemas/TierPackage"
+                        assigned_staff:
+                          $ref: "#/components/schemas/User"
+                  total:
+                    type: integer
+  /api/orders/{order_id}/proofs:
+    get:
+      operationId: listOrderProofs
+      summary: Get all proof versions for order
+      tags:
+        - Proofs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of proof versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProofVersion"
+    post:
+      operationId: uploadProof
+      summary: Upload new proof version (staff)
+      tags:
+        - Proofs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - file_url
+              properties:
+                file_url:
+                  type: string
+                internal_notes:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Proof uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofVersion"
+  /api/proofs/{proof_id}/approve:
+    post:
+      operationId: approveProof
+      summary: Customer approves proof version
+      tags:
+        - Proofs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: proof_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proof approved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofVersion"
+  /api/proofs/{proof_id}/request-changes:
+    post:
+      operationId: requestProofChanges
+      summary: Customer requests changes to proof
+      tags:
+        - Proofs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: proof_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_comment
+              properties:
+                customer_comment:
+                  type: string
+                reference_file_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Change request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofVersion"
+  /api/orders/{order_id}/payments:
+    get:
+      operationId: listOrderPayments
+      summary: Get all payments for order
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+    post:
+      operationId: recordPayment
+      summary: Record payment (manual or admin)
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - method
+              properties:
+                amount:
+                  type: number
+                method:
+                  type: string
+                  enum:
+                    - STRIPE
+                    - CHECK
+                    - WIRE
+                    - CASH
+                transaction_ref:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Payment recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+  /api/payments/stripe/create-intent:
+    post:
+      operationId: createStripePaymentIntent
+      summary: Create Stripe payment intent for deposit
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order_id
+                - amount
+              properties:
+                order_id:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        "200":
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  client_secret:
+                    type: string
+                  payment_intent_id:
+                    type: string
+  /api/invoices/{invoice_id}:
+    get:
+      operationId: getInvoiceDetail
+      summary: Get invoice details
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: "#/components/schemas/Invoice"
+                  order:
+                    $ref: "#/components/schemas/Order"
+                  customer:
+                    $ref: "#/components/schemas/User"
+  /api/invoices/{invoice_id}/download:
+    get:
+      operationId: downloadInvoicePDF
+      summary: Download invoice as PDF
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  /api/message-threads/{thread_id}/messages:
+    get:
+      operationId: listThreadMessages
+      summary: Get all messages in thread
+      tags:
+        - Messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: thread_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    message:
+                      $ref: "#/components/schemas/Message"
+                    sender:
+                      $ref: "#/components/schemas/User"
+    post:
+      operationId: sendMessage
+      summary: Send message in thread
+      tags:
+        - Messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: thread_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - body
+              properties:
+                body:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "201":
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /api/messages/{message_id}/mark-read:
+    patch:
+      operationId: markMessageAsRead
+      summary: Mark message as read
+      tags:
+        - Messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Message marked as read
+  /api/users/profile:
+    get:
+      operationId: getUserProfile
+      summary: Get current user's profile
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  profile:
+                    oneOf:
+                      - $ref: "#/components/schemas/CustomerProfile"
+                      - $ref: "#/components/schemas/StaffProfile"
+    patch:
+      operationId: updateUserProfile
+      summary: Update current user's profile
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                  nullable: true
+                company_name:
+                  type: string
+                  nullable: true
+                address:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Profile updated successfully
+  /api/users/change-password:
+    post:
+      operationId: changePassword
+      summary: Change current user password
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - current_password
+                - new_password
+              properties:
+                current_password:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password changed successfully
+  /api/users/notification-preferences:
+    get:
+      operationId: getNotificationPreferences
+      summary: Get user notification preferences
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+    patch:
+      operationId: updateNotificationPreferences
+      summary: Update notification preferences
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email_order_updates:
+                  type: boolean
+                email_proof_ready:
+                  type: boolean
+                email_messages:
+                  type: boolean
+                email_marketing:
+                  type: boolean
+      responses:
+        "200":
+          description: Preferences updated successfully
+  /api/admin/users:
+    get:
+      operationId: listAllUsers
+      summary: Get all users with filtering (admin)
+      tags:
+        - Admin - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum:
+              - CUSTOMER
+              - STAFF
+              - ADMIN
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user:
+                          $ref: "#/components/schemas/User"
+                        profile:
+                          oneOf:
+                            - $ref: "#/components/schemas/CustomerProfile"
+                            - $ref: "#/components/schemas/StaffProfile"
+                  total:
+                    type: integer
+    post:
+      operationId: createUser
+      summary: Create new user account (admin)
+      tags:
+        - Admin - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - role
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum:
+                    - CUSTOMER
+                    - STAFF
+                    - ADMIN
+                phone:
+                  type: string
+                  nullable: true
+                company_name:
+                  type: string
+                  nullable: true
+                department:
+                  type: string
+                  nullable: true
+                permissions:
+                  type: object
+      responses:
+        "201":
+          description: User created successfully
+  /api/admin/users/{user_id}:
+    patch:
+      operationId: updateUserAdmin
+      summary: Update user details (admin)
+      tags:
+        - Admin - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
+                is_active:
+                  type: boolean
+                permissions:
+                  type: object
+      responses:
+        "200":
+          description: User updated successfully
+    delete:
+      operationId: deleteUser
+      summary: Delete user account (admin)
+      tags:
+        - Admin - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: User deleted successfully
+  /api/admin/services:
+    get:
+      operationId: listAdminServices
+      summary: Get all services for admin management
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    service:
+                      $ref: "#/components/schemas/Service"
+                    category:
+                      $ref: "#/components/schemas/ServiceCategory"
+                    options:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/ServiceOption"
+    post:
+      operationId: createService
+      summary: Create new service
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category_id
+                - name
+                - slug
+              properties:
+                category_id:
+                  type: string
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                requires_booking:
+                  type: boolean
+                requires_proof:
+                  type: boolean
+                is_top_seller:
+                  type: boolean
+                slot_duration_hours:
+                  type: number
+      responses:
+        "201":
+          description: Service created successfully
+  /api/admin/services/{service_id}:
+    patch:
+      operationId: updateService
+      summary: Update service details
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: service_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                is_top_seller:
+                  type: boolean
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Service updated successfully
+    delete:
+      operationId: deleteService
+      summary: Delete service (soft delete)
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: service_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Service deleted successfully
+  /api/admin/service-categories:
+    get:
+      operationId: listAdminServiceCategories
+      summary: Get all service categories
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceCategory"
+    post:
+      operationId: createServiceCategory
+      summary: Create new service category
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                sort_order:
+                  type: integer
+      responses:
+        "201":
+          description: Category created successfully
+  /api/admin/service-options:
+    post:
+      operationId: createServiceOption
+      summary: Add configuration option to service
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_id
+                - key
+                - label
+                - type
+              properties:
+                service_id:
+                  type: string
+                key:
+                  type: string
+                label:
+                  type: string
+                type:
+                  type: string
+                  enum:
+                    - TEXT
+                    - SELECT
+                    - CHECKBOX
+                    - NUMBER
+                required:
+                  type: boolean
+                choices:
+                  type: string
+                  nullable: true
+                help_text:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Option created successfully
+  /api/admin/service-options/{option_id}:
+    patch:
+      operationId: updateServiceOption
+      summary: Update service option
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: option_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                required:
+                  type: boolean
+                choices:
+                  type: string
+                sort_order:
+                  type: integer
+      responses:
+        "200":
+          description: Option updated successfully
+    delete:
+      operationId: deleteServiceOption
+      summary: Delete service option
+      tags:
+        - Admin - Services
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: option_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Option deleted successfully
+  /api/admin/tiers:
+    get:
+      operationId: listAdminTiers
+      summary: Get all tier packages with features
+      tags:
+        - Admin - Tiers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of tiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tier:
+                      $ref: "#/components/schemas/TierPackage"
+                    features:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/TierFeature"
+    post:
+      operationId: createTierPackage
+      summary: Create new tier package
+      tags:
+        - Admin - Tiers
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                sort_order:
+                  type: integer
+      responses:
+        "201":
+          description: Tier created successfully
+  /api/admin/tiers/{tier_id}:
+    patch:
+      operationId: updateTierPackage
+      summary: Update tier package
+      tags:
+        - Admin - Tiers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tier_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Tier updated successfully
+  /api/admin/tier-features:
+    post:
+      operationId: createTierFeature
+      summary: Add feature to tier
+      tags:
+        - Admin - Tiers
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tier_id
+                - group_name
+                - feature_key
+                - feature_label
+              properties:
+                tier_id:
+                  type: string
+                group_name:
+                  type: string
+                feature_key:
+                  type: string
+                feature_label:
+                  type: string
+                feature_value:
+                  type: string
+                  nullable: true
+                is_included:
+                  type: boolean
+      responses:
+        "201":
+          description: Feature created successfully
+  /api/admin/tier-features/{feature_id}:
+    patch:
+      operationId: updateTierFeature
+      summary: Update tier feature
+      tags:
+        - Admin - Tiers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: feature_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                feature_value:
+                  type: string
+                is_included:
+                  type: boolean
+                sort_order:
+                  type: integer
+      responses:
+        "200":
+          description: Feature updated successfully
+    delete:
+      operationId: deleteTierFeature
+      summary: Delete tier feature
+      tags:
+        - Admin - Tiers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: feature_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Feature deleted successfully
+  /api/admin/calendar-settings:
+    get:
+      operationId: getCalendarSettings
+      summary: Get calendar configuration
+      tags:
+        - Admin - Calendar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Calendar settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarSettings"
+    patch:
+      operationId: updateCalendarSettings
+      summary: Update calendar configuration
+      tags:
+        - Admin - Calendar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                working_days:
+                  type: string
+                start_hour:
+                  type: integer
+                end_hour:
+                  type: integer
+                slot_duration_minutes:
+                  type: integer
+                emergency_slots_per_day:
+                  type: integer
+      responses:
+        "200":
+          description: Settings updated successfully
+  /api/admin/blackout-dates:
+    get:
+      operationId: listBlackoutDates
+      summary: Get all blackout dates
+      tags:
+        - Admin - Calendar
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of blackout dates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlackoutDate"
+    post:
+      operationId: createBlackoutDate
+      summary: Add blackout date
+      tags:
+        - Admin - Calendar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+              properties:
+                date:
+                  type: string
+                  format: date
+                reason:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Blackout date created
+  /api/admin/blackout-dates/{blackout_id}:
+    delete:
+      operationId: deleteBlackoutDate
+      summary: Remove blackout date
+      tags:
+        - Admin - Calendar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: blackout_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Blackout date removed
+  /api/admin/gallery-images:
+    get:
+      operationId: listAdminGalleryImages
+      summary: Get all gallery images for management
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categories
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of gallery images
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GalleryImage"
+    post:
+      operationId: createGalleryImage
+      summary: Upload new gallery image
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - image_url
+              properties:
+                title:
+                  type: string
+                image_url:
+                  type: string
+                thumbnail_url:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                alt_text:
+                  type: string
+                  nullable: true
+                categories:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Image created successfully
+  /api/admin/gallery-images/{image_id}:
+    patch:
+      operationId: updateGalleryImage
+      summary: Update gallery image
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: image_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                categories:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Image updated successfully
+    delete:
+      operationId: deleteGalleryImage
+      summary: Delete gallery image
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: image_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Image deleted successfully
+  /api/admin/case-studies:
+    get:
+      operationId: listAdminCaseStudies
+      summary: Get all case studies for management
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of case studies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CaseStudy"
+    post:
+      operationId: createCaseStudy
+      summary: Create new case study
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - slug
+                - title
+                - service_id
+                - tier_id
+                - gallery_image_id
+              properties:
+                slug:
+                  type: string
+                title:
+                  type: string
+                service_id:
+                  type: string
+                tier_id:
+                  type: string
+                gallery_image_id:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                client_testimonial:
+                  type: string
+                  nullable: true
+                is_published:
+                  type: boolean
+      responses:
+        "201":
+          description: Case study created successfully
+  /api/admin/marketing-content:
+    get:
+      operationId: listMarketingContent
+      summary: Get all marketing content sections
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page_key
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Marketing content
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketingContent"
+    post:
+      operationId: createMarketingContent
+      summary: Create marketing content section
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - page_key
+                - section_key
+                - content
+              properties:
+                page_key:
+                  type: string
+                section_key:
+                  type: string
+                content:
+                  type: string
+      responses:
+        "201":
+          description: Content created successfully
+  /api/admin/marketing-content/{content_id}:
+    patch:
+      operationId: updateMarketingContent
+      summary: Update marketing content
+      tags:
+        - Admin - Content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Content updated successfully
+  /api/admin/settings:
+    get:
+      operationId: listSettings
+      summary: Get all system settings
+      tags:
+        - Admin - Settings
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: System settings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setting"
+  /api/admin/settings/{key}:
+    get:
+      operationId: getSettingByKey
+      summary: Get specific setting by key
+      tags:
+        - Admin - Settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Setting value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+    patch:
+      operationId: updateSetting
+      summary: Update setting value
+      tags:
+        - Admin - Settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+      responses:
+        "200":
+          description: Setting updated successfully
+  /api/admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      summary: Get audit logs with filtering
+      tags:
+        - Admin - Settings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: object_type
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        log:
+                          $ref: "#/components/schemas/AuditLog"
+                        user:
+                          $ref: "#/components/schemas/User"
+                  total:
+                    type: integer
+  /api/admin/contact-inquiries:
+    get:
+      operationId: listContactInquiries
+      summary: Get all contact inquiries
+      tags:
+        - Admin - Inquiries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - NEW
+              - CONTACTED
+              - CONVERTED
+              - CLOSED
+      responses:
+        "200":
+          description: List of inquiries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContactInquiry"
+  /api/admin/contact-inquiries/{inquiry_id}:
+    patch:
+      operationId: updateContactInquiryStatus
+      summary: Update inquiry status
+      tags:
+        - Admin - Inquiries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: inquiry_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - NEW
+                    - CONTACTED
+                    - CONVERTED
+                    - CLOSED
+      responses:
+        "200":
+          description: Status updated successfully
+  /api/admin/b2b-accounts:
+    get:
+      operationId: listB2BAccounts
+      summary: Get all B2B accounts
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of B2B accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    account:
+                      $ref: "#/components/schemas/B2BAccount"
+                    main_contact:
+                      $ref: "#/components/schemas/User"
+                    locations_count:
+                      type: integer
+    post:
+      operationId: createB2BAccount
+      summary: Create new B2B account
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - company_name
+                - main_contact_user_id
+              properties:
+                company_name:
+                  type: string
+                main_contact_user_id:
+                  type: string
+                contract_start:
+                  type: string
+                  format: date
+                  nullable: true
+                contract_end:
+                  type: string
+                  format: date
+                  nullable: true
+                terms:
+                  type: string
+                  nullable: true
+                payment_terms:
+                  type: string
+                  enum:
+                    - NET_15
+                    - NET_30
+                    - NET_45
+                    - NET_60
+      responses:
+        "201":
+          description: B2B account created successfully
+  /api/admin/b2b-accounts/{account_id}:
+    get:
+      operationId: getB2BAccountDetail
+      summary: Get B2B account details
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: B2B account details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    $ref: "#/components/schemas/B2BAccount"
+                  main_contact:
+                    $ref: "#/components/schemas/User"
+                  locations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/B2BLocation"
+                  contract_pricing:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ContractPricing"
+    patch:
+      operationId: updateB2BAccount
+      summary: Update B2B account
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                company_name:
+                  type: string
+                contract_end:
+                  type: string
+                  format: date
+                terms:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Account updated successfully
+  /api/admin/b2b-locations:
+    post:
+      operationId: createB2BLocation
+      summary: Add location to B2B account
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+                - label
+                - address
+              properties:
+                account_id:
+                  type: string
+                label:
+                  type: string
+                address:
+                  type: string
+                contact_name:
+                  type: string
+                  nullable: true
+                contact_phone:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Location created successfully
+  /api/admin/b2b-locations/{location_id}:
+    patch:
+      operationId: updateB2BLocation
+      summary: Update B2B location
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                address:
+                  type: string
+                contact_name:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Location updated successfully
+    delete:
+      operationId: deleteB2BLocation
+      summary: Delete B2B location
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: location_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Location deleted successfully
+  /api/admin/contract-pricing:
+    post:
+      operationId: createContractPricing
+      summary: Set contract pricing for service
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+                - service_id
+                - pricing_json
+              properties:
+                account_id:
+                  type: string
+                service_id:
+                  type: string
+                pricing_json:
+                  type: string
+      responses:
+        "201":
+          description: Contract pricing created successfully
+  /api/admin/contract-pricing/{pricing_id}:
+    patch:
+      operationId: updateContractPricing
+      summary: Update contract pricing
+      tags:
+        - Phase 2 - B2B
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pricing_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pricing_json
+              properties:
+                pricing_json:
+                  type: string
+      responses:
+        "200":
+          description: Pricing updated successfully
+  /api/admin/inventory-items:
+    get:
+      operationId: listInventoryItems
+      summary: Get all inventory items
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sku
+          in: query
+          schema:
+            type: string
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: low_stock
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    item:
+                      $ref: "#/components/schemas/InventoryItem"
+                    stock_status:
+                      type: string
+                      enum:
+                        - in_stock
+                        - low_stock
+                        - out_of_stock
+    post:
+      operationId: createInventoryItem
+      summary: Add new inventory item
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sku
+                - name
+                - unit
+              properties:
+                sku:
+                  type: string
+                name:
+                  type: string
+                unit:
+                  type: string
+                qty_on_hand:
+                  type: number
+                reorder_point:
+                  type: number
+                reorder_qty:
+                  type: number
+                supplier_name:
+                  type: string
+                  nullable: true
+                cost_per_unit:
+                  type: number
+      responses:
+        "201":
+          description: Inventory item created successfully
+  /api/admin/inventory-items/{item_id}:
+    patch:
+      operationId: updateInventoryItem
+      summary: Update inventory item
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qty_on_hand:
+                  type: number
+                reorder_point:
+                  type: number
+                reorder_qty:
+                  type: number
+                cost_per_unit:
+                  type: number
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Item updated successfully
+  /api/admin/inventory-transactions:
+    get:
+      operationId: listInventoryTransactions
+      summary: Get inventory transaction history
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: inventory_item_id
+          in: query
+          schema:
+            type: string
+        - name: transaction_type
+          in: query
+          schema:
+            type: string
+            enum:
+              - ADDITION
+              - CONSUMPTION
+              - ADJUSTMENT
+      responses:
+        "200":
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryTransaction"
+  /api/admin/material-consumption-rules:
+    get:
+      operationId: listConsumptionRules
+      summary: Get all material consumption rules
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    rule:
+                      $ref: "#/components/schemas/MaterialConsumptionRule"
+                    service:
+                      $ref: "#/components/schemas/Service"
+                    inventory_item:
+                      $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createConsumptionRule
+      summary: Create material consumption rule
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_id
+                - inventory_item_id
+                - rule_json
+              properties:
+                service_id:
+                  type: string
+                inventory_item_id:
+                  type: string
+                rule_json:
+                  type: string
+      responses:
+        "201":
+          description: Rule created successfully
+  /api/admin/purchase-orders:
+    get:
+      operationId: listPurchaseOrders
+      summary: Get all purchase orders
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - DRAFT
+              - ORDERED
+              - RECEIVED
+              - CANCELLED
+      responses:
+        "200":
+          description: List of purchase orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    purchase_order:
+                      $ref: "#/components/schemas/PurchaseOrder"
+                    items:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/PurchaseOrderItem"
+    post:
+      operationId: createPurchaseOrder
+      summary: Create new purchase order
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - supplier_name
+              properties:
+                supplier_name:
+                  type: string
+                notes:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Purchase order created successfully
+  /api/admin/purchase-orders/{po_id}:
+    patch:
+      operationId: updatePurchaseOrder
+      summary: Update purchase order status
+      tags:
+        - Phase 2 - Inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: po_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - DRAFT
+                    - ORDERED
+                    - RECEIVED
+                    - CANCELLED
+                received_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+      responses:
+        "200":
+          description: Purchase order updated successfully
+  /api/admin/analytics/dashboard:
+    get:
+      operationId: getAnalyticsDashboard
+      summary: Get comprehensive analytics dashboard data
+      tags:
+        - Phase 2 - Analytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum:
+              - last_7_days
+              - last_30_days
+              - last_90_days
+              - this_year
+            default: last_30_days
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversion_funnel:
+                    type: object
+                    properties:
+                      visited_site:
+                        type: integer
+                      started_quote:
+                        type: integer
+                      submitted_quote:
+                        type: integer
+                      quote_finalized:
+                        type: integer
+                      deposit_paid:
+                        type: integer
+                      order_completed:
+                        type: integer
+                  revenue_metrics:
+                    type: object
+                    properties:
+                      total_revenue:
+                        type: number
+                      average_order_value:
+                        type: number
+                      revenue_by_service:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            service_name:
+                              type: string
+                            revenue:
+                              type: number
+                      revenue_by_tier:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tier_name:
+                              type: string
+                            revenue:
+                              type: number
+                  turnaround_performance:
+                    type: object
+                    properties:
+                      avg_turnaround_by_tier:
+                        type: object
+                      on_time_percentage:
+                        type: number
+                      delayed_percentage:
+                        type: number
+                  emergency_bookings:
+                    type: object
+                    properties:
+                      total_count:
+                        type: integer
+                      total_revenue:
+                        type: number
+                      percentage_of_total:
+                        type: number
+                  outstanding_payments:
+                    type: object
+                    properties:
+                      total_deposits_pending:
+                        type: number
+                      total_balance_due:
+                        type: number
+                      aging_report:
+                        type: object
+  /api/admin/analytics/sla:
+    get:
+      operationId: getSLADashboard
+      summary: Get SLA performance metrics
+      tags:
+        - Phase 2 - Analytics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: SLA metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sla_performance:
+                    type: object
+                    properties:
+                      meeting_sla_percentage:
+                        type: number
+                      breached_sla_percentage:
+                        type: number
+                      avg_completion_time:
+                        type: object
+                  at_risk_jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        order:
+                          $ref: "#/components/schemas/Order"
+                        hours_remaining:
+                          type: number
+                  breached_jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        order:
+                          $ref: "#/components/schemas/Order"
+                        days_overdue:
+                          type: integer
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+            - CUSTOMER
+            - STAFF
+            - ADMIN
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CustomerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        company_name:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    StaffProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        department:
+          type: string
+          nullable: true
+        permissions:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ServiceCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        sort_order:
+          type: integer
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+        category_id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        requires_booking:
+          type: boolean
+        requires_proof:
+          type: boolean
+        is_top_seller:
+          type: boolean
+        is_active:
+          type: boolean
+        slot_duration_hours:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ServiceOption:
+      type: object
+      properties:
+        id:
+          type: string
+        service_id:
+          type: string
+        key:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - TEXT
+            - SELECT
+            - CHECKBOX
+            - NUMBER
+        required:
+          type: boolean
+        choices:
+          type: string
+          nullable: true
+        pricing_impact:
+          type: string
+          nullable: true
+        help_text:
+          type: string
+          nullable: true
+        sort_order:
+          type: integer
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TierPackage:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TierFeature:
+      type: object
+      properties:
+        id:
+          type: string
+        tier_id:
+          type: string
+        group_name:
+          type: string
+        feature_key:
+          type: string
+        feature_label:
+          type: string
+        feature_value:
+          type: string
+          nullable: true
+        is_included:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Quote:
+      type: object
+      properties:
+        id:
+          type: string
+        customer_id:
+          type: string
+        service_id:
+          type: string
+        tier_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - SUBMITTED
+            - IN_REVIEW
+            - APPROVED
+            - REJECTED
+        estimate_subtotal:
+          type: number
+          nullable: true
+        final_subtotal:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    QuoteAnswer:
+      type: object
+      properties:
+        id:
+          type: string
+        quote_id:
+          type: string
+        option_key:
+          type: string
+        value:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Upload:
+      type: object
+      properties:
+        id:
+          type: string
+        owner_user_id:
+          type: string
+        quote_id:
+          type: string
+          nullable: true
+        order_id:
+          type: string
+          nullable: true
+        file_url:
+          type: string
+        file_type:
+          type: string
+        file_name:
+          type: string
+        file_size_bytes:
+          type: integer
+        dpi_warning:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - PENDING
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+        is_emergency:
+          type: boolean
+        urgent_fee_pct:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        tier_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - QUOTE_REQUESTED
+            - APPROVED
+            - IN_PRODUCTION
+            - PROOF_SENT
+            - AWAITING_APPROVAL
+            - READY_FOR_PICKUP
+            - COMPLETED
+            - CANCELLED
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        total_subtotal:
+          type: number
+        tax_amount:
+          type: number
+        total_amount:
+          type: number
+        deposit_pct:
+          type: number
+        deposit_amount:
+          type: number
+        revision_count:
+          type: integer
+        assigned_staff_id:
+          type: string
+          nullable: true
+        location_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProofVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+        version_number:
+          type: integer
+        file_url:
+          type: string
+        created_by_staff_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - SENT
+            - APPROVED
+            - REVISION_REQUESTED
+        customer_comment:
+          type: string
+          nullable: true
+        internal_notes:
+          type: string
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+        invoice_number:
+          type: string
+        amount_due:
+          type: number
+        issued_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+          enum:
+            - STRIPE
+            - CHECK
+            - WIRE
+            - CASH
+        status:
+          type: string
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+            - REFUNDED
+        transaction_ref:
+          type: string
+          nullable: true
+        recorded_by_admin_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MessageThread:
+      type: object
+      properties:
+        id:
+          type: string
+        quote_id:
+          type: string
+          nullable: true
+        order_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        thread_id:
+          type: string
+        sender_user_id:
+          type: string
+        body:
+          type: string
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    Setting:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        value:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        action:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        metadata:
+          type: string
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    GalleryImage:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        image_url:
+          type: string
+        thumbnail_url:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        alt_text:
+          type: string
+          nullable: true
+        categories:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CaseStudy:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        service_id:
+          type: string
+        tier_id:
+          type: string
+        gallery_image_id:
+          type: string
+        description:
+          type: string
+          nullable: true
+        client_testimonial:
+          type: string
+          nullable: true
+        additional_images:
+          type: string
+          nullable: true
+        is_published:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MarketingContent:
+      type: object
+      properties:
+        id:
+          type: string
+        page_key:
+          type: string
+        section_key:
+          type: string
+        content:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+    ContactInquiry:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        service_interested_in:
+          type: string
+          nullable: true
+        message:
+          type: string
+        status:
+          type: string
+          enum:
+            - NEW
+            - CONTACTED
+            - CONVERTED
+            - CLOSED
+        created_at:
+          type: string
+          format: date-time
+    B2BAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        company_name:
+          type: string
+        main_contact_user_id:
+          type: string
+        contract_start:
+          type: string
+          format: date
+          nullable: true
+        contract_end:
+          type: string
+          format: date
+          nullable: true
+        terms:
+          type: string
+          nullable: true
+        payment_terms:
+          type: string
+          enum:
+            - NET_15
+            - NET_30
+            - NET_45
+            - NET_60
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    B2BLocation:
+      type: object
+      properties:
+        id:
+          type: string
+        account_id:
+          type: string
+        label:
+          type: string
+        address:
+          type: string
+        contact_name:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ContractPricing:
+      type: object
+      properties:
+        id:
+          type: string
+        account_id:
+          type: string
+        service_id:
+          type: string
+        pricing_json:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+        qty_on_hand:
+          type: number
+        reorder_point:
+          type: number
+        reorder_qty:
+          type: number
+        supplier_name:
+          type: string
+          nullable: true
+        cost_per_unit:
+          type: number
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    MaterialConsumptionRule:
+      type: object
+      properties:
+        id:
+          type: string
+        service_id:
+          type: string
+        inventory_item_id:
+          type: string
+        rule_json:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PurchaseOrder:
+      type: object
+      properties:
+        id:
+          type: string
+        supplier_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ORDERED
+            - RECEIVED
+            - CANCELLED
+        ordered_at:
+          type: string
+          format: date-time
+          nullable: true
+        received_at:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PurchaseOrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+        purchase_order_id:
+          type: string
+        inventory_item_id:
+          type: string
+        qty:
+          type: number
+        unit_cost:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+    InventoryTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        inventory_item_id:
+          type: string
+        transaction_type:
+          type: string
+          enum:
+            - ADDITION
+            - CONSUMPTION
+            - ADJUSTMENT
+        qty:
+          type: number
+        reference_type:
+          type: string
+          nullable: true
+        reference_id:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    CalendarSettings:
+      type: object
+      properties:
+        id:
+          type: string
+        working_days:
+          type: string
+        start_hour:
+          type: integer
+        end_hour:
+          type: integer
+        slot_duration_minutes:
+          type: integer
+        slots_per_day:
+          type: integer
+        emergency_slots_per_day:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+    BlackoutDate:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    NotificationPreferences:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        email_order_updates:
+          type: boolean
+        email_proof_ready:
+          type: boolean
+        email_messages:
+          type: boolean
+        email_marketing:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time

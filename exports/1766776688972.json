@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776688972,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_ADMIN_PricingRules",
+      "version": "1766776484513"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_ADMIN_PricingRules.tsx",
+      "type": "text",
+      "size": 45379,
+      "dependencies": false
+    }
+  ]
+}

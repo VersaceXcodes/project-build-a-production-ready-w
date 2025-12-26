@@ -1,0 +1,2131 @@
+asyncapi: 2.6.0
+info:
+  title: SultanStamp Realtime Events API
+  version: 1.0.0
+  description: >
+    Realtime event streaming API for the SultanStamp print, branding, and
+    signage platform.
+
+    This API defines all WebSocket events for real-time updates across quotes,
+    orders, proofs,
+
+    messaging, bookings, payments, and notifications.
+  contact:
+    name: SultanStamp Development Team
+    email: dev@sultanstamp.com
+servers:
+  development:
+    url: ws://localhost:3000
+    protocol: ws
+    description: Local development WebSocket server
+channels:
+  quote/status_updated:
+    description: Emitted when a quote status changes (submitted, under review,
+      finalized, etc.)
+    subscribe:
+      summary: Subscribe to quote status updates
+      message:
+        $ref: "#/components/messages/QuoteStatusUpdated"
+  quote/finalized:
+    description: Emitted when admin finalizes a quote with final pricing
+    subscribe:
+      summary: Subscribe to quote finalization events
+      message:
+        $ref: "#/components/messages/QuoteFinalized"
+  quote/info_requested:
+    description: Emitted when admin requests additional information from customer
+    subscribe:
+      summary: Subscribe to quote info request events
+      message:
+        $ref: "#/components/messages/QuoteInfoRequested"
+  order/created:
+    description: Emitted when a new order is created from a finalized quote
+    subscribe:
+      summary: Subscribe to order creation events
+      message:
+        $ref: "#/components/messages/OrderCreated"
+  order/status_updated:
+    description: Emitted when order status changes throughout the lifecycle
+    subscribe:
+      summary: Subscribe to order status updates
+      message:
+        $ref: "#/components/messages/OrderStatusUpdated"
+  order/assigned:
+    description: Emitted when an order is assigned to a staff member
+    subscribe:
+      summary: Subscribe to order assignment events
+      message:
+        $ref: "#/components/messages/OrderAssigned"
+  order/due_date_approaching:
+    description: Emitted when an order is approaching its due date (SLA warning)
+    subscribe:
+      summary: Subscribe to order due date warnings
+      message:
+        $ref: "#/components/messages/OrderDueDateApproaching"
+  order/overdue:
+    description: Emitted when an order passes its due date without completion
+    subscribe:
+      summary: Subscribe to overdue order alerts
+      message:
+        $ref: "#/components/messages/OrderOverdue"
+  proof/uploaded:
+    description: Emitted when staff uploads a new proof version for customer review
+    subscribe:
+      summary: Subscribe to proof upload events
+      message:
+        $ref: "#/components/messages/ProofUploaded"
+  proof/approved:
+    description: Emitted when customer approves a proof version
+    subscribe:
+      summary: Subscribe to proof approval events
+      message:
+        $ref: "#/components/messages/ProofApproved"
+  proof/revision_requested:
+    description: Emitted when customer requests changes to a proof
+    subscribe:
+      summary: Subscribe to proof revision request events
+      message:
+        $ref: "#/components/messages/ProofRevisionRequested"
+  proof/revision_limit_reached:
+    description: Emitted when customer exhausts their tier revision limit
+    subscribe:
+      summary: Subscribe to revision limit alerts
+      message:
+        $ref: "#/components/messages/ProofRevisionLimitReached"
+  message/new:
+    description: Emitted when a new message is sent in a thread
+    publish:
+      summary: Send a new message
+      message:
+        $ref: "#/components/messages/NewMessage"
+    subscribe:
+      summary: Subscribe to new messages in threads
+      message:
+        $ref: "#/components/messages/MessageReceived"
+  message/thread_updated:
+    description: Emitted when message thread metadata changes (read status,
+      participant typing)
+    subscribe:
+      summary: Subscribe to thread metadata updates
+      message:
+        $ref: "#/components/messages/MessageThreadUpdated"
+  message/typing_indicator:
+    description: Emitted when a user is typing in a message thread
+    publish:
+      summary: Send typing indicator
+      message:
+        $ref: "#/components/messages/TypingIndicator"
+    subscribe:
+      summary: Subscribe to typing indicators
+      message:
+        $ref: "#/components/messages/TypingIndicatorReceived"
+  booking/created:
+    description: Emitted when a new booking is created on the calendar
+    subscribe:
+      summary: Subscribe to booking creation events
+      message:
+        $ref: "#/components/messages/BookingCreated"
+  booking/confirmed:
+    description: Emitted when a booking status changes to confirmed (after deposit paid)
+    subscribe:
+      summary: Subscribe to booking confirmation events
+      message:
+        $ref: "#/components/messages/BookingConfirmed"
+  booking/emergency_requested:
+    description: Emitted when customer requests an emergency booking on a full date
+    subscribe:
+      summary: Subscribe to emergency booking requests
+      message:
+        $ref: "#/components/messages/EmergencyBookingRequested"
+  booking/rescheduled:
+    description: Emitted when admin reschedules an existing booking
+    subscribe:
+      summary: Subscribe to booking reschedule events
+      message:
+        $ref: "#/components/messages/BookingRescheduled"
+  booking/cancelled:
+    description: Emitted when a booking is cancelled
+    subscribe:
+      summary: Subscribe to booking cancellation events
+      message:
+        $ref: "#/components/messages/BookingCancelled"
+  payment/initiated:
+    description: Emitted when a payment process starts (Stripe or manual)
+    subscribe:
+      summary: Subscribe to payment initiation events
+      message:
+        $ref: "#/components/messages/PaymentInitiated"
+  payment/completed:
+    description: Emitted when a payment is successfully completed
+    subscribe:
+      summary: Subscribe to payment completion events
+      message:
+        $ref: "#/components/messages/PaymentCompleted"
+  payment/failed:
+    description: Emitted when a payment attempt fails
+    subscribe:
+      summary: Subscribe to payment failure events
+      message:
+        $ref: "#/components/messages/PaymentFailed"
+  payment/manual_recorded:
+    description: Emitted when admin manually records a cash or bank transfer payment
+    subscribe:
+      summary: Subscribe to manual payment recording events
+      message:
+        $ref: "#/components/messages/PaymentManualRecorded"
+  invoice/generated:
+    description: Emitted when a new invoice is generated for an order
+    subscribe:
+      summary: Subscribe to invoice generation events
+      message:
+        $ref: "#/components/messages/InvoiceGenerated"
+  notification/new:
+    description: Emitted when a new notification is created for a user
+    subscribe:
+      summary: Subscribe to new notification events
+      message:
+        $ref: "#/components/messages/NotificationNew"
+  notification/read:
+    description: Emitted when user marks a notification as read
+    publish:
+      summary: Mark notification as read
+      message:
+        $ref: "#/components/messages/NotificationMarkRead"
+    subscribe:
+      summary: Subscribe to notification read status updates
+      message:
+        $ref: "#/components/messages/NotificationRead"
+  notification/count_updated:
+    description: Emitted when user's unread notification count changes
+    subscribe:
+      summary: Subscribe to unread count updates
+      message:
+        $ref: "#/components/messages/NotificationCountUpdated"
+  calendar/slot_availability_changed:
+    description: Emitted when calendar slot availability changes (booking added/removed)
+    subscribe:
+      summary: Subscribe to calendar availability updates
+      message:
+        $ref: "#/components/messages/CalendarSlotAvailabilityChanged"
+  calendar/blackout_date_added:
+    description: Emitted when admin adds a blackout date to the calendar
+    subscribe:
+      summary: Subscribe to blackout date additions
+      message:
+        $ref: "#/components/messages/BlackoutDateAdded"
+  calendar/blackout_date_removed:
+    description: Emitted when admin removes a blackout date
+    subscribe:
+      summary: Subscribe to blackout date removals
+      message:
+        $ref: "#/components/messages/BlackoutDateRemoved"
+  user/status_changed:
+    description: Emitted when user account status changes (activated, deactivated)
+    subscribe:
+      summary: Subscribe to user status changes
+      message:
+        $ref: "#/components/messages/UserStatusChanged"
+  user/profile_updated:
+    description: Emitted when user profile information is updated
+    subscribe:
+      summary: Subscribe to profile update events
+      message:
+        $ref: "#/components/messages/UserProfileUpdated"
+  checklist/item_updated:
+    description: Emitted when staff updates a tier checklist item status
+    subscribe:
+      summary: Subscribe to checklist item updates
+      message:
+        $ref: "#/components/messages/ChecklistItemUpdated"
+  upload/progress:
+    description: Emitted during file upload to report progress
+    subscribe:
+      summary: Subscribe to file upload progress
+      message:
+        $ref: "#/components/messages/UploadProgress"
+  upload/completed:
+    description: Emitted when file upload completes successfully
+    subscribe:
+      summary: Subscribe to upload completion events
+      message:
+        $ref: "#/components/messages/UploadCompleted"
+  upload/failed:
+    description: Emitted when file upload fails
+    subscribe:
+      summary: Subscribe to upload failure events
+      message:
+        $ref: "#/components/messages/UploadFailed"
+  inventory/low_stock_alert:
+    description: (Phase 2) Emitted when inventory item reaches reorder point
+    subscribe:
+      summary: Subscribe to low stock alerts
+      message:
+        $ref: "#/components/messages/InventoryLowStockAlert"
+  inventory/out_of_stock:
+    description: (Phase 2) Emitted when inventory item quantity reaches zero
+    subscribe:
+      summary: Subscribe to out of stock alerts
+      message:
+        $ref: "#/components/messages/InventoryOutOfStock"
+  inventory/restock_completed:
+    description: (Phase 2) Emitted when purchase order is received and inventory restocked
+    subscribe:
+      summary: Subscribe to restock completion events
+      message:
+        $ref: "#/components/messages/InventoryRestockCompleted"
+  purchase_order/status_updated:
+    description: (Phase 2) Emitted when purchase order status changes
+    subscribe:
+      summary: Subscribe to purchase order status updates
+      message:
+        $ref: "#/components/messages/PurchaseOrderStatusUpdated"
+  b2b/account_created:
+    description: (Phase 2) Emitted when new B2B account is created
+    subscribe:
+      summary: Subscribe to B2B account creation events
+      message:
+        $ref: "#/components/messages/B2BAccountCreated"
+  b2b/contract_pricing_updated:
+    description: (Phase 2) Emitted when B2B contract pricing rules are updated
+    subscribe:
+      summary: Subscribe to contract pricing updates
+      message:
+        $ref: "#/components/messages/B2BContractPricingUpdated"
+components:
+  messages:
+    QuoteStatusUpdated:
+      name: QuoteStatusUpdated
+      title: Quote Status Updated
+      summary: Notification that quote status has changed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/QuoteStatusUpdatedPayload"
+    QuoteFinalized:
+      name: QuoteFinalized
+      title: Quote Finalized
+      summary: Notification that quote has been finalized with final pricing
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/QuoteFinalizedPayload"
+    QuoteInfoRequested:
+      name: QuoteInfoRequested
+      title: Quote Info Requested
+      summary: Admin requested additional information from customer
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/QuoteInfoRequestedPayload"
+    OrderCreated:
+      name: OrderCreated
+      title: Order Created
+      summary: New order created from finalized quote
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderCreatedPayload"
+    OrderStatusUpdated:
+      name: OrderStatusUpdated
+      title: Order Status Updated
+      summary: Order status changed in lifecycle
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderStatusUpdatedPayload"
+    OrderAssigned:
+      name: OrderAssigned
+      title: Order Assigned
+      summary: Order assigned to staff member
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderAssignedPayload"
+    OrderDueDateApproaching:
+      name: OrderDueDateApproaching
+      title: Order Due Date Approaching
+      summary: Order approaching due date (SLA warning)
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderDueDateApproachingPayload"
+    OrderOverdue:
+      name: OrderOverdue
+      title: Order Overdue
+      summary: Order passed due date without completion
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/OrderOverduePayload"
+    ProofUploaded:
+      name: ProofUploaded
+      title: Proof Uploaded
+      summary: Staff uploaded new proof version
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProofUploadedPayload"
+    ProofApproved:
+      name: ProofApproved
+      title: Proof Approved
+      summary: Customer approved proof version
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProofApprovedPayload"
+    ProofRevisionRequested:
+      name: ProofRevisionRequested
+      title: Proof Revision Requested
+      summary: Customer requested changes to proof
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProofRevisionRequestedPayload"
+    ProofRevisionLimitReached:
+      name: ProofRevisionLimitReached
+      title: Proof Revision Limit Reached
+      summary: Customer exhausted tier revision limit
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ProofRevisionLimitReachedPayload"
+    NewMessage:
+      name: NewMessage
+      title: New Message
+      summary: User sends new message in thread
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/NewMessagePayload"
+    MessageReceived:
+      name: MessageReceived
+      title: Message Received
+      summary: New message received in thread
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/MessageReceivedPayload"
+    MessageThreadUpdated:
+      name: MessageThreadUpdated
+      title: Message Thread Updated
+      summary: Thread metadata updated (read status, etc.)
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/MessageThreadUpdatedPayload"
+    TypingIndicator:
+      name: TypingIndicator
+      title: Typing Indicator
+      summary: User started typing
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/TypingIndicatorPayload"
+    TypingIndicatorReceived:
+      name: TypingIndicatorReceived
+      title: Typing Indicator Received
+      summary: Another user is typing
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/TypingIndicatorReceivedPayload"
+    BookingCreated:
+      name: BookingCreated
+      title: Booking Created
+      summary: New booking created on calendar
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/BookingCreatedPayload"
+    BookingConfirmed:
+      name: BookingConfirmed
+      title: Booking Confirmed
+      summary: Booking confirmed after deposit paid
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/BookingConfirmedPayload"
+    EmergencyBookingRequested:
+      name: EmergencyBookingRequested
+      title: Emergency Booking Requested
+      summary: Customer requested emergency booking
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/EmergencyBookingRequestedPayload"
+    BookingRescheduled:
+      name: BookingRescheduled
+      title: Booking Rescheduled
+      summary: Admin rescheduled existing booking
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/BookingRescheduledPayload"
+    BookingCancelled:
+      name: BookingCancelled
+      title: Booking Cancelled
+      summary: Booking was cancelled
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/BookingCancelledPayload"
+    PaymentInitiated:
+      name: PaymentInitiated
+      title: Payment Initiated
+      summary: Payment process started
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/PaymentInitiatedPayload"
+    PaymentCompleted:
+      name: PaymentCompleted
+      title: Payment Completed
+      summary: Payment successfully completed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/PaymentCompletedPayload"
+    PaymentFailed:
+      name: PaymentFailed
+      title: Payment Failed
+      summary: Payment attempt failed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/PaymentFailedPayload"
+    PaymentManualRecorded:
+      name: PaymentManualRecorded
+      title: Payment Manual Recorded
+      summary: Admin manually recorded payment
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/PaymentManualRecordedPayload"
+    InvoiceGenerated:
+      name: InvoiceGenerated
+      title: Invoice Generated
+      summary: New invoice generated for order
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/InvoiceGeneratedPayload"
+    NotificationNew:
+      name: NotificationNew
+      title: Notification New
+      summary: New notification created for user
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/NotificationNewPayload"
+    NotificationMarkRead:
+      name: NotificationMarkRead
+      title: Notification Mark Read
+      summary: User marking notification as read
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/NotificationMarkReadPayload"
+    NotificationRead:
+      name: NotificationRead
+      title: Notification Read
+      summary: Notification marked as read
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/NotificationReadPayload"
+    NotificationCountUpdated:
+      name: NotificationCountUpdated
+      title: Notification Count Updated
+      summary: Unread notification count changed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/NotificationCountUpdatedPayload"
+    CalendarSlotAvailabilityChanged:
+      name: CalendarSlotAvailabilityChanged
+      title: Calendar Slot Availability Changed
+      summary: Calendar slot availability updated
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/CalendarSlotAvailabilityChangedPayload"
+    BlackoutDateAdded:
+      name: BlackoutDateAdded
+      title: Blackout Date Added
+      summary: Admin added blackout date
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/BlackoutDateAddedPayload"
+    BlackoutDateRemoved:
+      name: BlackoutDateRemoved
+      title: Blackout Date Removed
+      summary: Admin removed blackout date
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/BlackoutDateRemovedPayload"
+    UserStatusChanged:
+      name: UserStatusChanged
+      title: User Status Changed
+      summary: User account status changed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/UserStatusChangedPayload"
+    UserProfileUpdated:
+      name: UserProfileUpdated
+      title: User Profile Updated
+      summary: User profile information updated
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/UserProfileUpdatedPayload"
+    ChecklistItemUpdated:
+      name: ChecklistItemUpdated
+      title: Checklist Item Updated
+      summary: Tier checklist item status updated
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/ChecklistItemUpdatedPayload"
+    UploadProgress:
+      name: UploadProgress
+      title: Upload Progress
+      summary: File upload progress update
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/UploadProgressPayload"
+    UploadCompleted:
+      name: UploadCompleted
+      title: Upload Completed
+      summary: File upload completed successfully
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/UploadCompletedPayload"
+    UploadFailed:
+      name: UploadFailed
+      title: Upload Failed
+      summary: File upload failed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/UploadFailedPayload"
+    InventoryLowStockAlert:
+      name: InventoryLowStockAlert
+      title: Inventory Low Stock Alert
+      summary: Inventory item reached reorder point
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/InventoryLowStockAlertPayload"
+    InventoryOutOfStock:
+      name: InventoryOutOfStock
+      title: Inventory Out of Stock
+      summary: Inventory item quantity reached zero
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/InventoryOutOfStockPayload"
+    InventoryRestockCompleted:
+      name: InventoryRestockCompleted
+      title: Inventory Restock Completed
+      summary: Purchase order received and inventory restocked
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/InventoryRestockCompletedPayload"
+    PurchaseOrderStatusUpdated:
+      name: PurchaseOrderStatusUpdated
+      title: Purchase Order Status Updated
+      summary: Purchase order status changed
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/PurchaseOrderStatusUpdatedPayload"
+    B2BAccountCreated:
+      name: B2BAccountCreated
+      title: B2B Account Created
+      summary: New B2B account created
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/B2BAccountCreatedPayload"
+    B2BContractPricingUpdated:
+      name: B2BContractPricingUpdated
+      title: B2B Contract Pricing Updated
+      summary: B2B contract pricing rules updated
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/B2BContractPricingUpdatedPayload"
+  schemas:
+    QuoteStatusUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - quote_id
+        - customer_id
+        - old_status
+        - new_status
+      properties:
+        event_type:
+          type: string
+          enum:
+            - quote_status_updated
+        timestamp:
+          type: string
+          format: date-time
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        old_status:
+          type: string
+        new_status:
+          type: string
+        updated_by_user_id:
+          type: string
+        notes:
+          type: string
+    QuoteFinalizedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - quote_id
+        - customer_id
+        - final_subtotal
+        - tax_amount
+        - total_amount
+      properties:
+        event_type:
+          type: string
+          enum:
+            - quote_finalized
+        timestamp:
+          type: string
+          format: date-time
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        service_id:
+          type: string
+        tier_id:
+          type: string
+        final_subtotal:
+          type: number
+        tax_amount:
+          type: number
+        total_amount:
+          type: number
+        estimated_timeline_days:
+          type: integer
+        finalized_by_admin_id:
+          type: string
+        invoice_number:
+          type: string
+        notes:
+          type: string
+    QuoteInfoRequestedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - quote_id
+        - customer_id
+        - message
+      properties:
+        event_type:
+          type: string
+          enum:
+            - quote_info_requested
+        timestamp:
+          type: string
+          format: date-time
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        requested_by_admin_id:
+          type: string
+        message:
+          type: string
+        required_info_fields:
+          type: array
+          items:
+            type: string
+    OrderCreatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - quote_id
+        - customer_id
+        - tier_id
+        - total_amount
+      properties:
+        event_type:
+          type: string
+          enum:
+            - order_created
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        tier_id:
+          type: string
+        status:
+          type: string
+        total_amount:
+          type: number
+        deposit_amount:
+          type: number
+        due_at:
+          type: string
+          format: date-time
+        booking_id:
+          type: string
+    OrderStatusUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - customer_id
+        - old_status
+        - new_status
+      properties:
+        event_type:
+          type: string
+          enum:
+            - order_status_updated
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        old_status:
+          type: string
+        new_status:
+          type: string
+        updated_by_user_id:
+          type: string
+        updated_by_role:
+          type: string
+        notes:
+          type: string
+        tier_id:
+          type: string
+        assigned_staff_id:
+          type: string
+    OrderAssignedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - customer_id
+        - assigned_staff_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - order_assigned
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        assigned_staff_id:
+          type: string
+        assigned_staff_name:
+          type: string
+        assigned_by_admin_id:
+          type: string
+        previous_staff_id:
+          type: string
+    OrderDueDateApproachingPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - customer_id
+        - due_at
+        - hours_remaining
+      properties:
+        event_type:
+          type: string
+          enum:
+            - order_due_date_approaching
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        assigned_staff_id:
+          type: string
+        current_status:
+          type: string
+        due_at:
+          type: string
+          format: date-time
+        hours_remaining:
+          type: integer
+        tier_id:
+          type: string
+        is_priority:
+          type: boolean
+    OrderOverduePayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - customer_id
+        - due_at
+        - hours_overdue
+      properties:
+        event_type:
+          type: string
+          enum:
+            - order_overdue
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        assigned_staff_id:
+          type: string
+        current_status:
+          type: string
+        due_at:
+          type: string
+          format: date-time
+        hours_overdue:
+          type: integer
+        tier_id:
+          type: string
+    ProofUploadedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - proof_id
+        - order_id
+        - customer_id
+        - version_number
+        - file_url
+      properties:
+        event_type:
+          type: string
+          enum:
+            - proof_uploaded
+        timestamp:
+          type: string
+          format: date-time
+        proof_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        version_number:
+          type: integer
+        file_url:
+          type: string
+        file_type:
+          type: string
+        created_by_staff_id:
+          type: string
+        created_by_staff_name:
+          type: string
+        internal_notes:
+          type: string
+    ProofApprovedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - proof_id
+        - order_id
+        - customer_id
+        - version_number
+      properties:
+        event_type:
+          type: string
+          enum:
+            - proof_approved
+        timestamp:
+          type: string
+          format: date-time
+        proof_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        version_number:
+          type: integer
+        approved_at:
+          type: string
+          format: date-time
+        assigned_staff_id:
+          type: string
+    ProofRevisionRequestedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - proof_id
+        - order_id
+        - customer_id
+        - version_number
+        - customer_comment
+        - revision_count
+      properties:
+        event_type:
+          type: string
+          enum:
+            - proof_revision_requested
+        timestamp:
+          type: string
+          format: date-time
+        proof_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        version_number:
+          type: integer
+        customer_comment:
+          type: string
+        revision_count:
+          type: integer
+        tier_revision_limit:
+          type: integer
+        revisions_remaining:
+          type: integer
+        assigned_staff_id:
+          type: string
+        reference_file_urls:
+          type: array
+          items:
+            type: string
+    ProofRevisionLimitReachedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - customer_id
+        - tier_id
+        - revision_count
+        - revision_limit
+      properties:
+        event_type:
+          type: string
+          enum:
+            - proof_revision_limit_reached
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        tier_id:
+          type: string
+        tier_name:
+          type: string
+        revision_count:
+          type: integer
+        revision_limit:
+          type: integer
+        assigned_staff_id:
+          type: string
+    NewMessagePayload:
+      type: object
+      required:
+        - thread_id
+        - sender_user_id
+        - body
+      properties:
+        thread_id:
+          type: string
+        sender_user_id:
+          type: string
+        body:
+          type: string
+    MessageReceivedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - message_id
+        - thread_id
+        - sender_user_id
+        - body
+      properties:
+        event_type:
+          type: string
+          enum:
+            - message_received
+        timestamp:
+          type: string
+          format: date-time
+        message_id:
+          type: string
+        thread_id:
+          type: string
+        sender_user_id:
+          type: string
+        sender_name:
+          type: string
+        sender_role:
+          type: string
+        body:
+          type: string
+        quote_id:
+          type: string
+        order_id:
+          type: string
+        is_read:
+          type: boolean
+    MessageThreadUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - thread_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - message_thread_updated
+        timestamp:
+          type: string
+          format: date-time
+        thread_id:
+          type: string
+        unread_count:
+          type: integer
+        last_message_at:
+          type: string
+          format: date-time
+        participant_user_ids:
+          type: array
+          items:
+            type: string
+    TypingIndicatorPayload:
+      type: object
+      required:
+        - thread_id
+        - user_id
+        - is_typing
+      properties:
+        thread_id:
+          type: string
+        user_id:
+          type: string
+        is_typing:
+          type: boolean
+    TypingIndicatorReceivedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - thread_id
+        - user_id
+        - is_typing
+      properties:
+        event_type:
+          type: string
+          enum:
+            - typing_indicator_received
+        timestamp:
+          type: string
+          format: date-time
+        thread_id:
+          type: string
+        user_id:
+          type: string
+        user_name:
+          type: string
+        user_role:
+          type: string
+        is_typing:
+          type: boolean
+    BookingCreatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - booking_id
+        - quote_id
+        - customer_id
+        - start_at
+        - end_at
+      properties:
+        event_type:
+          type: string
+          enum:
+            - booking_created
+        timestamp:
+          type: string
+          format: date-time
+        booking_id:
+          type: string
+        quote_id:
+          type: string
+        customer_id:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        is_emergency:
+          type: boolean
+        urgent_fee_pct:
+          type: number
+        status:
+          type: string
+        service_id:
+          type: string
+    BookingConfirmedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - booking_id
+        - customer_id
+        - order_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - booking_confirmed
+        timestamp:
+          type: string
+          format: date-time
+        booking_id:
+          type: string
+        customer_id:
+          type: string
+        order_id:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        is_emergency:
+          type: boolean
+        confirmed_at:
+          type: string
+          format: date-time
+    EmergencyBookingRequestedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - customer_id
+        - requested_date
+        - urgent_fee_pct
+      properties:
+        event_type:
+          type: string
+          enum:
+            - emergency_booking_requested
+        timestamp:
+          type: string
+          format: date-time
+        customer_id:
+          type: string
+        quote_id:
+          type: string
+        requested_date:
+          type: string
+          format: date
+        requested_time_slot:
+          type: string
+        urgent_fee_pct:
+          type: number
+        original_total:
+          type: number
+        new_total_with_fee:
+          type: number
+        service_id:
+          type: string
+    BookingRescheduledPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - booking_id
+        - customer_id
+        - old_start_at
+        - new_start_at
+      properties:
+        event_type:
+          type: string
+          enum:
+            - booking_rescheduled
+        timestamp:
+          type: string
+          format: date-time
+        booking_id:
+          type: string
+        customer_id:
+          type: string
+        order_id:
+          type: string
+        old_start_at:
+          type: string
+          format: date-time
+        old_end_at:
+          type: string
+          format: date-time
+        new_start_at:
+          type: string
+          format: date-time
+        new_end_at:
+          type: string
+          format: date-time
+        rescheduled_by_admin_id:
+          type: string
+        reason:
+          type: string
+    BookingCancelledPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - booking_id
+        - customer_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - booking_cancelled
+        timestamp:
+          type: string
+          format: date-time
+        booking_id:
+          type: string
+        customer_id:
+          type: string
+        order_id:
+          type: string
+        cancelled_by_user_id:
+          type: string
+        cancelled_by_role:
+          type: string
+        reason:
+          type: string
+        refund_amount:
+          type: number
+        cancellation_fee:
+          type: number
+    PaymentInitiatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - payment_id
+        - order_id
+        - customer_id
+        - amount
+        - method
+      properties:
+        event_type:
+          type: string
+          enum:
+            - payment_initiated
+        timestamp:
+          type: string
+          format: date-time
+        payment_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+          enum:
+            - STRIPE
+            - CHECK
+            - WIRE
+            - CASH
+        payment_type:
+          type: string
+          enum:
+            - DEPOSIT
+            - BALANCE
+            - FULL
+        transaction_ref:
+          type: string
+    PaymentCompletedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - payment_id
+        - order_id
+        - customer_id
+        - amount
+        - method
+      properties:
+        event_type:
+          type: string
+          enum:
+            - payment_completed
+        timestamp:
+          type: string
+          format: date-time
+        payment_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+          enum:
+            - STRIPE
+            - CHECK
+            - WIRE
+            - CASH
+        payment_type:
+          type: string
+          enum:
+            - DEPOSIT
+            - BALANCE
+            - FULL
+        transaction_ref:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+        remaining_balance:
+          type: number
+        invoice_id:
+          type: string
+    PaymentFailedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - order_id
+        - customer_id
+        - amount
+        - method
+        - error_message
+      properties:
+        event_type:
+          type: string
+          enum:
+            - payment_failed
+        timestamp:
+          type: string
+          format: date-time
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+          enum:
+            - STRIPE
+            - CHECK
+            - WIRE
+            - CASH
+        payment_type:
+          type: string
+          enum:
+            - DEPOSIT
+            - BALANCE
+            - FULL
+        error_message:
+          type: string
+        error_code:
+          type: string
+        retry_allowed:
+          type: boolean
+    PaymentManualRecordedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - payment_id
+        - order_id
+        - customer_id
+        - amount
+        - method
+        - recorded_by_admin_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - payment_manual_recorded
+        timestamp:
+          type: string
+          format: date-time
+        payment_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        amount:
+          type: number
+        method:
+          type: string
+          enum:
+            - CHECK
+            - WIRE
+            - CASH
+        payment_type:
+          type: string
+          enum:
+            - DEPOSIT
+            - BALANCE
+            - FULL
+        transaction_ref:
+          type: string
+        recorded_by_admin_id:
+          type: string
+        recorded_by_admin_name:
+          type: string
+        notes:
+          type: string
+        remaining_balance:
+          type: number
+    InvoiceGeneratedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - invoice_id
+        - order_id
+        - customer_id
+        - invoice_number
+        - amount_due
+      properties:
+        event_type:
+          type: string
+          enum:
+            - invoice_generated
+        timestamp:
+          type: string
+          format: date-time
+        invoice_id:
+          type: string
+        order_id:
+          type: string
+        customer_id:
+          type: string
+        invoice_number:
+          type: string
+        amount_due:
+          type: number
+        issued_at:
+          type: string
+          format: date-time
+        pdf_url:
+          type: string
+        invoice_type:
+          type: string
+          enum:
+            - INITIAL
+            - CONSOLIDATED
+            - FINAL
+    NotificationNewPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - notification_id
+        - user_id
+        - type
+        - title
+        - message
+      properties:
+        event_type:
+          type: string
+          enum:
+            - notification_new
+        timestamp:
+          type: string
+          format: date-time
+        notification_id:
+          type: string
+        user_id:
+          type: string
+        type:
+          type: string
+          enum:
+            - ORDER_STATUS
+            - PROOF_READY
+            - MESSAGE
+            - PAYMENT
+            - BOOKING
+            - SYSTEM
+        title:
+          type: string
+        message:
+          type: string
+        action_url:
+          type: string
+        is_read:
+          type: boolean
+        priority:
+          type: string
+          enum:
+            - LOW
+            - NORMAL
+            - HIGH
+            - URGENT
+        related_object_type:
+          type: string
+        related_object_id:
+          type: string
+    NotificationMarkReadPayload:
+      type: object
+      required:
+        - notification_id
+        - user_id
+      properties:
+        notification_id:
+          type: string
+        user_id:
+          type: string
+    NotificationReadPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - notification_id
+        - user_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - notification_read
+        timestamp:
+          type: string
+          format: date-time
+        notification_id:
+          type: string
+        user_id:
+          type: string
+        read_at:
+          type: string
+          format: date-time
+    NotificationCountUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - user_id
+        - unread_count
+      properties:
+        event_type:
+          type: string
+          enum:
+            - notification_count_updated
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        unread_count:
+          type: integer
+        by_type:
+          type: object
+          properties:
+            order_status:
+              type: integer
+            proof_ready:
+              type: integer
+            message:
+              type: integer
+            payment:
+              type: integer
+            booking:
+              type: integer
+            system:
+              type: integer
+    CalendarSlotAvailabilityChangedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - date
+        - slots_available
+        - slots_total
+      properties:
+        event_type:
+          type: string
+          enum:
+            - calendar_slot_availability_changed
+        timestamp:
+          type: string
+          format: date-time
+        date:
+          type: string
+          format: date
+        slots_available:
+          type: integer
+        slots_total:
+          type: integer
+        emergency_slots_available:
+          type: integer
+        emergency_slots_total:
+          type: integer
+        is_fully_booked:
+          type: boolean
+        bookings:
+          type: array
+          items:
+            type: object
+            properties:
+              booking_id:
+                type: string
+              start_at:
+                type: string
+                format: date-time
+              end_at:
+                type: string
+                format: date-time
+              is_emergency:
+                type: boolean
+    BlackoutDateAddedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - blackout_date_id
+        - date
+      properties:
+        event_type:
+          type: string
+          enum:
+            - blackout_date_added
+        timestamp:
+          type: string
+          format: date-time
+        blackout_date_id:
+          type: string
+        date:
+          type: string
+          format: date
+        reason:
+          type: string
+        added_by_admin_id:
+          type: string
+    BlackoutDateRemovedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - blackout_date_id
+        - date
+      properties:
+        event_type:
+          type: string
+          enum:
+            - blackout_date_removed
+        timestamp:
+          type: string
+          format: date-time
+        blackout_date_id:
+          type: string
+        date:
+          type: string
+          format: date
+        removed_by_admin_id:
+          type: string
+    UserStatusChangedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - user_id
+        - old_status
+        - new_status
+      properties:
+        event_type:
+          type: string
+          enum:
+            - user_status_changed
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        old_status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        new_status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        changed_by_admin_id:
+          type: string
+        reason:
+          type: string
+    UserProfileUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - user_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - user_profile_updated
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        updated_fields:
+          type: array
+          items:
+            type: string
+        updated_by_user_id:
+          type: string
+    ChecklistItemUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - checklist_item_id
+        - order_id
+        - is_completed
+      properties:
+        event_type:
+          type: string
+          enum:
+            - checklist_item_updated
+        timestamp:
+          type: string
+          format: date-time
+        checklist_item_id:
+          type: string
+        order_id:
+          type: string
+        feature_id:
+          type: string
+        feature_label:
+          type: string
+        is_completed:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+        completed_by_staff_id:
+          type: string
+        completed_by_staff_name:
+          type: string
+        tier_id:
+          type: string
+        total_items:
+          type: integer
+        completed_items:
+          type: integer
+        completion_percentage:
+          type: number
+    UploadProgressPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - upload_id
+        - file_name
+        - progress_percentage
+      properties:
+        event_type:
+          type: string
+          enum:
+            - upload_progress
+        timestamp:
+          type: string
+          format: date-time
+        upload_id:
+          type: string
+        file_name:
+          type: string
+        file_size_bytes:
+          type: integer
+        uploaded_bytes:
+          type: integer
+        progress_percentage:
+          type: number
+        estimated_time_remaining_seconds:
+          type: integer
+    UploadCompletedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - upload_id
+        - file_url
+      properties:
+        event_type:
+          type: string
+          enum:
+            - upload_completed
+        timestamp:
+          type: string
+          format: date-time
+        upload_id:
+          type: string
+        file_url:
+          type: string
+        file_name:
+          type: string
+        file_type:
+          type: string
+        file_size_bytes:
+          type: integer
+        dpi_warning:
+          type: boolean
+        owner_user_id:
+          type: string
+        quote_id:
+          type: string
+        order_id:
+          type: string
+    UploadFailedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - upload_id
+        - error_message
+      properties:
+        event_type:
+          type: string
+          enum:
+            - upload_failed
+        timestamp:
+          type: string
+          format: date-time
+        upload_id:
+          type: string
+        file_name:
+          type: string
+        error_message:
+          type: string
+        error_code:
+          type: string
+        retry_allowed:
+          type: boolean
+    InventoryLowStockAlertPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - inventory_item_id
+        - sku
+        - name
+        - qty_on_hand
+        - reorder_point
+      properties:
+        event_type:
+          type: string
+          enum:
+            - inventory_low_stock_alert
+        timestamp:
+          type: string
+          format: date-time
+        inventory_item_id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        qty_on_hand:
+          type: number
+        reorder_point:
+          type: number
+        reorder_qty:
+          type: number
+        supplier_name:
+          type: string
+        unit:
+          type: string
+        auto_po_created:
+          type: boolean
+        purchase_order_id:
+          type: string
+    InventoryOutOfStockPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - inventory_item_id
+        - sku
+        - name
+      properties:
+        event_type:
+          type: string
+          enum:
+            - inventory_out_of_stock
+        timestamp:
+          type: string
+          format: date-time
+        inventory_item_id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+        affected_services:
+          type: array
+          items:
+            type: string
+        last_transaction_type:
+          type: string
+    InventoryRestockCompletedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - inventory_item_id
+        - purchase_order_id
+        - qty_added
+        - new_qty_on_hand
+      properties:
+        event_type:
+          type: string
+          enum:
+            - inventory_restock_completed
+        timestamp:
+          type: string
+          format: date-time
+        inventory_item_id:
+          type: string
+        purchase_order_id:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        qty_added:
+          type: number
+        new_qty_on_hand:
+          type: number
+        unit:
+          type: string
+        received_by_admin_id:
+          type: string
+    PurchaseOrderStatusUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - purchase_order_id
+        - old_status
+        - new_status
+      properties:
+        event_type:
+          type: string
+          enum:
+            - purchase_order_status_updated
+        timestamp:
+          type: string
+          format: date-time
+        purchase_order_id:
+          type: string
+        old_status:
+          type: string
+          enum:
+            - DRAFT
+            - ORDERED
+            - RECEIVED
+            - CANCELLED
+        new_status:
+          type: string
+          enum:
+            - DRAFT
+            - ORDERED
+            - RECEIVED
+            - CANCELLED
+        supplier_name:
+          type: string
+        item_count:
+          type: integer
+        total_cost:
+          type: number
+        updated_by_admin_id:
+          type: string
+        ordered_at:
+          type: string
+          format: date-time
+        received_at:
+          type: string
+          format: date-time
+    B2BAccountCreatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - account_id
+        - company_name
+        - main_contact_user_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - b2b_account_created
+        timestamp:
+          type: string
+          format: date-time
+        account_id:
+          type: string
+        company_name:
+          type: string
+        main_contact_user_id:
+          type: string
+        main_contact_name:
+          type: string
+        main_contact_email:
+          type: string
+        contract_start:
+          type: string
+          format: date
+        contract_end:
+          type: string
+          format: date
+        payment_terms:
+          type: string
+          enum:
+            - NET_15
+            - NET_30
+            - NET_45
+            - NET_60
+        created_by_admin_id:
+          type: string
+    B2BContractPricingUpdatedPayload:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - account_id
+        - service_id
+      properties:
+        event_type:
+          type: string
+          enum:
+            - b2b_contract_pricing_updated
+        timestamp:
+          type: string
+          format: date-time
+        account_id:
+          type: string
+        company_name:
+          type: string
+        service_id:
+          type: string
+        service_name:
+          type: string
+        pricing_json:
+          type: string
+        updated_by_admin_id:
+          type: string
+        effective_date:
+          type: string
+          format: date

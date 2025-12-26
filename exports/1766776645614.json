@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776645614,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_STAFF_JobQueue",
+      "version": "1766776484159"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_STAFF_JobQueue.tsx",
+      "type": "text",
+      "size": 26470,
+      "dependencies": false
+    }
+  ]
+}

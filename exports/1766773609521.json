@@ -1,0 +1,15 @@
+{
+  "timestamp": 1766773609521,
+  "operation": {
+    "id": "db:postgres"
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/db.sql",
+      "type": "text",
+      "size": 67085,
+      "dependencies": false
+    }
+  ]
+}

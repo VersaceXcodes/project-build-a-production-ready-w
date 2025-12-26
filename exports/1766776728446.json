@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776728446,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_CUST_AccountSettings",
+      "version": "1766776484043"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_CUST_AccountSettings.tsx",
+      "type": "text",
+      "size": 109,
+      "dependencies": false
+    }
+  ]
+}

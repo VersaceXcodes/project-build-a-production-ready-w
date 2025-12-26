@@ -1,0 +1,15 @@
+{
+  "timestamp": 1766773944265,
+  "operation": {
+    "id": "db:schemas:zod"
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/schema.ts",
+      "type": "text",
+      "size": 52900,
+      "dependencies": false
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776630599,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_STAFF_Dashboard",
+      "version": "1766776484103"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_STAFF_Dashboard.tsx",
+      "type": "text",
+      "size": 24166,
+      "dependencies": false
+    }
+  ]
+}

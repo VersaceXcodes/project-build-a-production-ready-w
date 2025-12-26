@@ -1,0 +1,15 @@
+{
+  "timestamp": 1766774234664,
+  "operation": {
+    "id": "backend:specifications:asyncapi"
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/backend/asyncapi.yaml",
+      "type": "text",
+      "size": 56240,
+      "dependencies": false
+    }
+  ]
+}

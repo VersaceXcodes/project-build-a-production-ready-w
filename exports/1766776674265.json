@@ -1,0 +1,15 @@
+{
+  "timestamp": 1766776674265,
+  "operation": {
+    "id": "settings:config:package"
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/package.json",
+      "type": "text",
+      "size": 3015,
+      "dependencies": true
+    }
+  ]
+}

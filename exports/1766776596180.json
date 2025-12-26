@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776596180,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_AUTH_Login",
+      "version": "1766776483264"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_AUTH_Login.tsx",
+      "type": "text",
+      "size": 19493,
+      "dependencies": false
+    }
+  ]
+}

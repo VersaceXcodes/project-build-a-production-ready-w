@@ -1,0 +1,19 @@
+{
+  "timestamp": 1766776597838,
+  "operation": {
+    "id": "webapp:react:views",
+    "refs": {
+      "id": "UV_PUB_CaseStudy",
+      "version": "1766776482860"
+    }
+  },
+  "projectId": "project-build-a-production-ready-w",
+  "files": [
+    {
+      "path": "/mnt/data/project-build-a-production-ready-w/vitereact/src/components/views/UV_PUB_CaseStudy.tsx",
+      "type": "text",
+      "size": 17317,
+      "dependencies": false
+    }
+  ]
+}
