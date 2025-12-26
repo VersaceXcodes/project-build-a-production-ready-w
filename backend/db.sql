@@ -313,10 +313,11 @@ CREATE TABLE case_studies (
 -- Marketing content
 CREATE TABLE marketing_content (
     id TEXT PRIMARY KEY,
-    page_key TEXT NOT NULL UNIQUE,
+    page_key TEXT NOT NULL,
     section_key TEXT NOT NULL,
     content TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    UNIQUE(page_key, section_key)
 );
 
 -- Tier checklist items

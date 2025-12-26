@@ -133,7 +133,7 @@ const UV_ADMIN_ContentManager: React.FC = () => {
   const [available_services, setAvailableServices] = useState<AvailableService[]>([]);
   const [has_unsaved_changes, setHasUnsavedChanges] = useState(false);
   const [is_saving, setIsSaving] = useState(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [show_preview_modal, setShowPreviewModal] = useState(false);
   const [show_discard_modal, setShowDiscardModal] = useState(false);
 

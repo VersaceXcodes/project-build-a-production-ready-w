@@ -709,24 +709,3 @@ const GV_LoadingStates: React.FC = () => {
 
 export default GV_LoadingStates;
 
-// ===========================
-// NAMED EXPORTS
-// ===========================
-
-export {
-  FullScreenLoader,
-  InlineSpinner,
-  ButtonSpinner,
-  SkeletonText,
-  SkeletonCard,
-  SkeletonTable,
-  SkeletonImage,
-  SkeletonGrid,
-  ProgressBar,
-  UploadProgress,
-  LoadingButton,
-  LoadingOverlay,
-  ShimmerSkeleton,
-  DotsLoader,
-  EmptyState,
-};

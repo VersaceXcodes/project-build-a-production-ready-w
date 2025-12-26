@@ -181,12 +181,25 @@ const UV_ADMIN_TierEditor: React.FC = () => {
   }, [current_user, navigate, show_toast]);
   
   // Fetch tier data
-  const { isLoading: is_loading, error } = useQuery({
+  const { data: tierDataList, isLoading: is_loading, error } = useQuery({
     queryKey: ['admin-tiers'],
     queryFn: () => fetchAllTiers(auth_token || ''),
     enabled: !!auth_token && !is_new_tier,
-    onSuccess: (data) => {
-      const tierData = data.find((t: any) => t.tier.id === tier_id);
+  });
+
+  useEffect(() => {
+    if (error) {
+      show_toast({
+        type: 'error',
+        message: (error as any).response?.data?.message || 'Failed to load tier',
+        duration: 5000
+      });
+    }
+  }, [error, show_toast]);
+
+  useEffect(() => {
+    if (tierDataList) {
+      const tierData = tierDataList.find((t: any) => t.tier.id === tier_id);
       if (!tierData) {
         show_toast({
           type: 'error',
@@ -213,15 +226,8 @@ const UV_ADMIN_TierEditor: React.FC = () => {
         initial_expanded[group.group_name] = true;
       });
       set_expanded_groups(initial_expanded);
-    },
-    onError: (err: any) => {
-      show_toast({
-        type: 'error',
-        message: err.response?.data?.message || 'Failed to load tier',
-        duration: 5000
-      });
     }
-  });
+  }, [tierDataList, tier_id, show_toast, navigate]);
   
   // Mutations
   const save_tier_mutation = useMutation({
@@ -554,10 +560,10 @@ const UV_ADMIN_TierEditor: React.FC = () => {
                 
                 <button
                   onClick={handle_save_tier}
-                  disabled={save_tier_mutation.isLoading}
+                  disabled={save_tier_mutation.isPending}
                   className="inline-flex items-center px-6 py-2 bg-yellow-400 text-black rounded-lg text-sm font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {save_tier_mutation.isLoading ? (
+                  {save_tier_mutation.isPending ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black mr-2"></div>
                       Saving...
@@ -846,7 +852,7 @@ const UV_ADMIN_TierEditor: React.FC = () => {
                                       {/* Included Toggle */}
                                       <button
                                         onClick={() => handle_toggle_inclusion(feature)}
-                                        disabled={update_feature_mutation.isLoading}
+                                        disabled={update_feature_mutation.isPending}
                                         className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                                           feature.is_included
                                             ? 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -859,7 +865,7 @@ const UV_ADMIN_TierEditor: React.FC = () => {
                                       {/* Delete Button */}
                                       <button
                                         onClick={() => handle_delete_feature(feature)}
-                                        disabled={delete_feature_mutation.isLoading}
+                                        disabled={delete_feature_mutation.isPending}
                                         className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                                         title="Delete feature"
                                       >
@@ -1043,10 +1049,10 @@ const UV_ADMIN_TierEditor: React.FC = () => {
                 
                 <button
                   onClick={handle_add_feature}
-                  disabled={create_feature_mutation.isLoading}
+                  disabled={create_feature_mutation.isPending}
                   className="px-6 py-2 bg-yellow-400 text-black rounded-lg text-sm font-semibold hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {create_feature_mutation.isLoading ? (
+                  {create_feature_mutation.isPending ? (
                     <>
                       <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black mr-2"></div>
                       Adding...

@@ -114,54 +114,58 @@ const UV_PUB_Landing: React.FC = () => {
   const show_toast = useAppStore(state => state.show_toast);
 
   // Data fetching with React Query
-  const { data: services_data, isLoading: is_loading_services, error: services_error } = useQuery({
+  const { data: services_data, isLoading: is_loading_services, error: services_error } = useQuery<ServicesResponse>({
     queryKey: ['top_selling_services'],
     queryFn: fetch_top_selling_services,
     staleTime: 60000,
     refetchOnWindowFocus: false,
     retry: 1,
-    onError: (error: any) => {
+  });
+
+  const { data: gallery_data, isLoading: is_loading_gallery, error: gallery_error } = useQuery<GalleryResponse>({
+    queryKey: ['gallery_preview'],
+    queryFn: fetch_gallery_preview,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  const { data: content_data, isLoading: is_loading_content, error: content_error } = useQuery<MarketingContent[]>({
+    queryKey: ['marketing_content', 'home'],
+    queryFn: fetch_marketing_content,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  // Handle errors
+  React.useEffect(() => {
+    if (services_error) {
       show_toast({
         type: 'error',
         message: 'Failed to load services',
         duration: 5000
       });
     }
-  });
-
-  const { data: gallery_data, isLoading: is_loading_gallery, error: gallery_error } = useQuery({
-    queryKey: ['gallery_preview'],
-    queryFn: fetch_gallery_preview,
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
-    retry: 1,
-    onError: (error: any) => {
+    if (gallery_error) {
       show_toast({
         type: 'error',
         message: 'Failed to load gallery images',
         duration: 5000
       });
     }
-  });
-
-  const { data: content_data, isLoading: is_loading_content, error: content_error } = useQuery({
-    queryKey: ['marketing_content', 'home'],
-    queryFn: fetch_marketing_content,
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
-    retry: 1,
-    onError: (error: any) => {
+    if (content_error) {
       show_toast({
         type: 'error',
         message: 'Failed to load page content',
         duration: 5000
       });
     }
-  });
+  }, [services_error, gallery_error, content_error, show_toast]);
 
   // Transform marketing content array into structured object
   const marketing_content = React.useMemo(() => {
-    if (!content_data) {
+    if (!content_data || !Array.isArray(content_data)) {
       return {
         hero_headline: 'Disciplined Premium Print, Signage & Branding',
         hero_subtext: 'Professional branding that is accessible and dependable',

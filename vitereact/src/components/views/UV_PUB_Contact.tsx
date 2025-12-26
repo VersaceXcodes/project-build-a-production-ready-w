@@ -472,7 +472,7 @@ const UV_PUB_Contact: React.FC = () => {
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us an inquiry</h2>
               
-              {submission_success ? (
+              {submissionSuccess ? (
                 <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center">
                   <svg className="w-16 h-16 text-green-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

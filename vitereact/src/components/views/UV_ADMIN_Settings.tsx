@@ -144,7 +144,11 @@ const UV_ADMIN_Settings: React.FC = () => {
     enabled: !!authToken,
     staleTime: 60000,
     retry: 1,
-    onSuccess: (data: Setting[]) => {
+  });
+
+  useEffect(() => {
+    if (settingsData) {
+      const data = settingsData;
       // Parse settings into organized sections
       const parsedFeatureFlags: FeatureFlagsState = {
         feature_b2b_enabled: data.find(s => s.key === 'feature_b2b_enabled')?.value === 'true',
@@ -178,8 +182,8 @@ const UV_ADMIN_Settings: React.FC = () => {
       setStripeSettings(parsedStripeSettings);
       setTaxSettings(parsedTaxSettings);
       setCalendarSettings(parsedCalendarSettings);
-    },
-  });
+    }
+  }, [settingsData]);
 
   // Fetch audit logs
   const { data: auditLogsData, isLoading: isLoadingAudit } = useQuery({
@@ -536,10 +540,10 @@ const UV_ADMIN_Settings: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleFeatureFlagToggle('feature_b2b_enabled')}
-                        disabled={updateSettingMutation.isLoading}
+                        disabled={updateSettingMutation.isPending}
                         className={`ml-6 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                           featureFlags.feature_b2b_enabled ? 'bg-yellow-400' : 'bg-gray-200'
-                        } ${updateSettingMutation.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${updateSettingMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
@@ -562,10 +566,10 @@ const UV_ADMIN_Settings: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleFeatureFlagToggle('feature_inventory_enabled')}
-                        disabled={updateSettingMutation.isLoading}
+                        disabled={updateSettingMutation.isPending}
                         className={`ml-6 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                           featureFlags.feature_inventory_enabled ? 'bg-yellow-400' : 'bg-gray-200'
-                        } ${updateSettingMutation.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${updateSettingMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
@@ -588,10 +592,10 @@ const UV_ADMIN_Settings: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleFeatureFlagToggle('feature_analytics_enabled')}
-                        disabled={updateSettingMutation.isLoading}
+                        disabled={updateSettingMutation.isPending}
                         className={`ml-6 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                           featureFlags.feature_analytics_enabled ? 'bg-yellow-400' : 'bg-gray-200'
-                        } ${updateSettingMutation.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${updateSettingMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
@@ -773,10 +777,10 @@ const UV_ADMIN_Settings: React.FC = () => {
                           </button>
                           <button
                             onClick={handleSaveStripeSettings}
-                            disabled={updateSettingMutation.isLoading}
+                            disabled={updateSettingMutation.isPending}
                             className="flex-1 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                           >
-                            {updateSettingMutation.isLoading ? 'Saving...' : 'Save Stripe Settings'}
+                            {updateSettingMutation.isPending ? 'Saving...' : 'Save Stripe Settings'}
                           </button>
                         </div>
                       </div>
@@ -842,10 +846,10 @@ const UV_ADMIN_Settings: React.FC = () => {
 
                     <button
                       onClick={handleSaveTaxSettings}
-                      disabled={updateSettingMutation.isLoading}
+                      disabled={updateSettingMutation.isPending}
                       className="w-full px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     >
-                      {updateSettingMutation.isLoading ? 'Saving...' : 'Save Tax Settings'}
+                      {updateSettingMutation.isPending ? 'Saving...' : 'Save Tax Settings'}
                     </button>
                   </div>
                 </div>
@@ -912,10 +916,10 @@ const UV_ADMIN_Settings: React.FC = () => {
 
                     <button
                       onClick={handleSaveCalendarSettings}
-                      disabled={updateSettingMutation.isLoading}
+                      disabled={updateSettingMutation.isPending}
                       className="w-full px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     >
-                      {updateSettingMutation.isLoading ? 'Saving...' : 'Save Calendar Settings'}
+                      {updateSettingMutation.isPending ? 'Saving...' : 'Save Calendar Settings'}
                     </button>
                   </div>
                 </div>
