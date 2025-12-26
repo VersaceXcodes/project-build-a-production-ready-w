@@ -267,7 +267,7 @@ const UV_P2_B2BAccountDetail: React.FC = () => {
 
   // Add location mutation
   const add_location_mutation = useMutation({
-    mutationFn: (data: typeof location_form & { account_id: string }) =>
+    mutationFn: (data: { account_id: string; label: string; address: string; contact_name?: string; contact_phone?: string }) =>
       createLocation(data, auth_token!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['b2b-account', account_id] });

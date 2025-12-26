@@ -238,7 +238,7 @@ const UV_ADMIN_TierEditor: React.FC = () => {
         message: 'Tier updated successfully',
         duration: 5000
       });
-      queryClient.invalidateQueries(['admin-tiers']);
+      queryClient.invalidateQueries({ queryKey: ['admin-tiers'] });
     },
     onError: (err: any) => {
       show_toast({
@@ -271,7 +271,7 @@ const UV_ADMIN_TierEditor: React.FC = () => {
         duration: 5000
       });
       
-      queryClient.invalidateQueries(['admin-tiers']);
+      queryClient.invalidateQueries({ queryKey: ['admin-tiers'] });
     },
     onError: (err: any) => {
       show_toast({
@@ -301,7 +301,7 @@ const UV_ADMIN_TierEditor: React.FC = () => {
         duration: 3000
       });
       
-      queryClient.invalidateQueries(['admin-tiers']);
+      queryClient.invalidateQueries({ queryKey: ['admin-tiers'] });
     },
     onError: (err: any) => {
       show_toast({
@@ -328,7 +328,7 @@ const UV_ADMIN_TierEditor: React.FC = () => {
         duration: 3000
       });
       
-      queryClient.invalidateQueries(['admin-tiers']);
+      queryClient.invalidateQueries({ queryKey: ['admin-tiers'] });
     },
     onError: (err: any) => {
       show_toast({

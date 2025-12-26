@@ -83,8 +83,8 @@ const UV_AUTH_ResetPassword: React.FC = () => {
 
     const password = form_data.password;
     let score = 0;
-    const requirements = [];
-    const failures = [];
+    const requirements: string[] = [];
+    const failures: string[] = [];
 
     // Check length (minimum 8)
     if (password.length >= 8) {
@@ -359,11 +359,11 @@ const UV_AUTH_ResetPassword: React.FC = () => {
           )}
 
           {/* Password Reset Form */}
-          {!reset_complete && token_valid !== false && (
+          {!reset_complete && (token_valid === true || token_valid === null) && (
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
               <form onSubmit={handle_submit} className="space-y-6">
                 {/* General Error Message */}
-                {form_errors.general && token_valid !== false && (
+                {form_errors.general && (token_valid === true || token_valid === null) && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                     <p className="text-sm">{form_errors.general}</p>
                   </div>
@@ -564,7 +564,7 @@ const UV_AUTH_ResetPassword: React.FC = () => {
           )}
 
           {/* Help Text */}
-          {!reset_complete && token_valid !== false && (
+          {!reset_complete && (token_valid === true || token_valid === null) && (
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500">
                 Make sure your password is strong and unique. Don't reuse passwords from other

@@ -203,7 +203,7 @@ const UV_PUB_Contact: React.FC = () => {
         }
         return null;
         
-      case 'email':
+      case 'email': {
         if (!value || value.trim().length === 0) {
           return 'Email is required';
         }
@@ -213,6 +213,7 @@ const UV_PUB_Contact: React.FC = () => {
           return 'Please enter a valid email address';
         }
         return null;
+      }
         
       case 'service_interested_in':
         if (!value || value === '') {

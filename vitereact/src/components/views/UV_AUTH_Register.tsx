@@ -141,13 +141,13 @@ const UV_AUTH_Register: React.FC = () => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
       
-      // Attempt login with dummy password to check if email exists
+      // Attempt login with placeholder password to check if email exists
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
-          password: 'dummy_password_for_check',
+          password: 'placeholder_password_for_check',
           role: 'CUSTOMER',
         }),
       });

@@ -23,9 +23,9 @@ const UV_Login: React.FC = () => {
     
     try {
       if (isRegisterMode) {
-        await registerUser(email, password, name);
+        await registerUser({ email, password, name });
       } else {
-        await loginUser(email, password);
+        await loginUser(email, password, 'CUSTOMER');
       }
     } catch (error) {
       // Error is handled in store

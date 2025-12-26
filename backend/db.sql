@@ -1,4 +1,46 @@
 -- =====================================================
+-- DROP TABLES
+-- =====================================================
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS customer_profiles CASCADE;
+DROP TABLE IF EXISTS staff_profiles CASCADE;
+DROP TABLE IF EXISTS service_categories CASCADE;
+DROP TABLE IF EXISTS services CASCADE;
+DROP TABLE IF EXISTS service_options CASCADE;
+DROP TABLE IF EXISTS tier_packages CASCADE;
+DROP TABLE IF EXISTS tier_features CASCADE;
+DROP TABLE IF EXISTS b2b_accounts CASCADE;
+DROP TABLE IF EXISTS b2b_locations CASCADE;
+DROP TABLE IF EXISTS quotes CASCADE;
+DROP TABLE IF EXISTS quote_answers CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS uploads CASCADE;
+DROP TABLE IF EXISTS bookings CASCADE;
+DROP TABLE IF EXISTS proof_versions CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS message_threads CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS gallery_images CASCADE;
+DROP TABLE IF EXISTS case_studies CASCADE;
+DROP TABLE IF EXISTS marketing_content CASCADE;
+DROP TABLE IF EXISTS tier_checklist_items CASCADE;
+DROP TABLE IF EXISTS contact_inquiries CASCADE;
+DROP TABLE IF EXISTS contract_pricing CASCADE;
+DROP TABLE IF EXISTS inventory_items CASCADE;
+DROP TABLE IF EXISTS material_consumption_rules CASCADE;
+DROP TABLE IF EXISTS purchase_orders CASCADE;
+DROP TABLE IF EXISTS purchase_order_items CASCADE;
+DROP TABLE IF EXISTS inventory_transactions CASCADE;
+DROP TABLE IF EXISTS calendar_settings CASCADE;
+DROP TABLE IF EXISTS blackout_dates CASCADE;
+DROP TABLE IF EXISTS notification_preferences CASCADE;
+DROP TABLE IF EXISTS password_reset_tokens CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
+
+-- =====================================================
 -- CREATE TABLES
 -- =====================================================
 

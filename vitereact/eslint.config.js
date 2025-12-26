@@ -191,6 +191,7 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
       'custom/no-empty-select-value': 'error',
       'custom/no-empty-dynamic-select-value': 'warn',
       'custom/no-mock-data': 'error',

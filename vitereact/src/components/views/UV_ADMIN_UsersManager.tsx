@@ -369,7 +369,7 @@ const UV_ADMIN_UsersManager: React.FC = () => {
   };
 
   const handleOpenEditModal = (userWithProfile: UserWithProfile) => {
-    let permissions = null;
+    let permissions: any = null;
     if (userWithProfile.user.role === 'STAFF' || userWithProfile.user.role === 'ADMIN') {
       const staffProfile = userWithProfile.profile as StaffProfile;
       if (staffProfile?.permissions) {

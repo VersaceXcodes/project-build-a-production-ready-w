@@ -224,7 +224,7 @@ const UV_ADMIN_Settings: React.FC = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin_settings']);
+      queryClient.invalidateQueries({ queryKey: ['admin_settings'] });
       showToast({
         type: 'success',
         message: 'Setting updated successfully',
@@ -415,7 +415,7 @@ const UV_ADMIN_Settings: React.FC = () => {
     setAuditFilters(prev => ({
       ...prev,
       [key]: value,
-      page: key !== 'page' ? 1 : value, // Reset to page 1 when filter changes
+      page: key !== 'page' ? 1 : Number(value), // Reset to page 1 when filter changes
     }));
   };
 
