@@ -1,315 +1,249 @@
-VALIDATION FAILURE - Auth E2E Tests (Attempt 3/100)
 
-The project validation failed at the "Auth E2E Tests" step. You need to analyze the error and fix it.
+You are tasked with generating comprehensive test artifacts for a web application.
+📊 CONTEXT PROVIDED:
 
-## Error Details:
-[90mstderr[2m | src/__tests__/auth.e2e.test.tsx[2m > [22m[2mAuth E2E Flow (Register -> Logout -> Login)[2m > [22m[2mcompletes the full auth lifecycle with real API
-[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
-⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
-
-[90mstderr[2m | src/__tests__/auth.e2e.test.tsx[2m > [22m[2mAuth E2E Flow (Register -> Logout -> Login)[2m > [22m[2mcompletes the full auth lifecycle with real API
-[22m[39mAuthentication error: Error: Internal server error
-    at register_user [90m(/app/vitereact/[39msrc/store/main.tsx:406:17[90m)[39m
-[90m    at processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
-    at handleSubmit [90m(/app/vitereact/[39msrc/components/views/UV_Login.tsx:26:9[90m)[39m
+PACKAGE.JSON ANALYSIS:
+Dependencies: concurrently
+Dev Dependencies: @flydotio/dockerfile
+Scripts: dev
 
 
-[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+DATABASE SCHEMA AND SEED DATA (sample):
+-- =====================================================
+-- DROP TABLES
+-- =====================================================
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS customer_profiles CASCADE;
+DROP TABLE IF EXISTS staff_profiles CASCADE;
+DROP TABLE IF EXISTS service_categories CASCADE;
+DROP TABLE IF EXISTS services CASCADE;
+DROP TABLE IF EXISTS service_options CASCADE;
+DROP TABLE IF EXISTS tier_packages CASCADE;
+DROP TABLE IF EXISTS tier_features CASCADE;
+DROP TABLE IF EXISTS b2b_accounts CASCADE;
+DROP TABLE IF EXISTS b2b_locations CASCADE;
+DROP TABLE IF EXISTS quotes CASCADE;
+DROP TABLE IF EXISTS quote_answers CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS uploads CASCADE;
+DROP TABLE IF EXISTS bookings CASCADE;
+DROP TABLE IF EXISTS proof_versions CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS message_threads CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS gallery_images CASCADE;
+DROP TABLE IF EXISTS case_studies CASCADE;
+DROP TABLE IF EXISTS marketing_content CASCADE;
+DROP TABLE IF EXISTS tier_checklist_items CASCADE;
+DROP TABLE IF EXISTS contact_inquiries CASCADE;
+DROP TABLE IF EXISTS contract_pricing CASCADE;
+DROP TABLE IF EXISTS inventory_items CASCADE;
+DROP TABLE IF EXISTS material_consumption_rules CASCADE;
+DROP TABLE IF EXISTS purchase_orders CASCADE;
+DROP TABLE IF EXISTS purchase_order_items CASCADE;
+DROP TABLE IF EXISTS inventory_transactions CASCADE;
+DROP TABLE IF EXISTS calendar_settings CASCADE;
+DROP TABLE IF EXISTS blackout_dates CASCADE;
+DROP TABLE IF EXISTS notification_preferences CASCADE;
+DROP TABLE IF EXISTS password_reset_tokens CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
 
-[41m[1m FAIL [22m[49m src/__tests__/auth.e2e.test.tsx[2m > [22mAuth E2E Flow (Register -> Logout -> Login)[2m > [22mcompletes the full auth lifecycle with real API
-[31m[1mAssertionError[22m[39m: expected false to be true // Object.is equality
+-- =====================================================
+-- CREATE TABLES
+-- =====================================================
 
-Ignored nodes: comments, script, style
-[36m<html>[39m
-  [36m<head />[39m
-  [36m<body>[39m
-    [36m<div>[39m
-      [36m<div[39m
-        [33mclass[39m=[32m"min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"[39m
-      [36m>[39m
-        [36m<div[39m
-          [33mclass[39m=[32m"max-w-md w-full space-y-8"[39m
-        [36m>[39m
-          [36m<div>[39m
-            [36m<h2[39m
-              [33mclass[39m=[32m"mt-6 text-center text-3xl font-extrabold text-gray-900"[39m
-            [36m>[39m
-              [0mCreate your account[0m
-            [36m</h2>[39m
-          [36m</div>[39m
-          [36m<form[39m
-            [33mclass[39m=[32m"mt-8 space-y-6"[39m
-          [36m>[39m
-            [36m<div[39m
-              [33mclass[39m=[32m"bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md"[39m
-            [36m>[39m
-              [36m<p[39m
-                [33mclass[39m=[32m"text-sm"[39m
-              [36m>[39m
-                [0mInternal server error[0m
-              [36m</p>[39m
-            [36m</div>[39m
-            [36m<div[39m
-              [33mclass[39m=[32m"space-y-4"[39m
-            [36m>[39m
-              [36m<div>[39m
-                [36m<label[39m
-                  [33mclass[39m=[32m"sr-only"[39m
-                  [33mfor[39m=[32m"name"[39m
-                [36m>[39m
-                  [0mFull Name[0m
-                [36m</label>[39m
-                [36m<input[39m
-                  [33mclass[39m=[32m"relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"[39m
-                  [33mid[39m=[32m"name"[39m
-                  [33mname[39m=[32m"name"[39m
-                  [33mplaceholder[39m=[32m"Full Name"[39m
-                  [33mrequired[39m=[32m""[39m
-                  [33mtype[39m=[32m"text"[39m
-                  [33mvalue[39m=[32m"Test User"[39m
-                [36m/>[39m
-              [36m</div>[39m
-              [36m<div>[39m
-                [36m<label[39m
-                  [33mclass[39m=[32m"sr-only"[39m
-                  [33mfor[39m=[32m"email"[39m
-                [36m>[39m
-                  [0mEmail address[0m
-                [36m</label>[39m
-                [36m<input[39m
-                  [33mautocomplete[39m=[32m"email"[39m
-                  [33mclass[39m=[32m"relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"[39m
-                  [33mid[39m=[32m"email"[39m
-                  [33mname[39m=[32m"email"[39m
-                  [33mplaceholder[39m=[32m"Email address"[39m
-                  [33mrequired[39m=[32m""[39m
-                  [33mtype[39m=[32m"email"[39m
-                  [33mvalue[39m=[32m"user1766782391393@example.com"[39m
-                [36m/>[39m
-              [36m</div>[39m
-              [36m<div>[39m
-                [36m<label[39m
-                  [33mclass[39m=[32m"sr-only"[39m
-                  [33mfor[39m=[32m"password"[39m
-                [36m>[39m
-                  [0mPassword[0m
-                [36m</label>[39m
-                [36m<input[39m
-                  [33mautocomplete[39m=[32m"new-password"[39m
-                  [33mclass[39m=[32m"relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"[39m
-                  [33mid[39m=[32m"password"[39m
-                  [33mname[39m=[32m"password"[39m
-                  [33mplaceholder[39m=[32m"Password"[39m
-                  [33mrequired[39m=[32m""[39m
-                  [33mtype[39m=[32m"password"[39m
-                  [33mvalue[39m=[32m"Password123!"[39m
-                [36m/>[39m
-              [36m</div>[39m
-            [36m</div>[39m
-            [36m<div>[39m
-              [36m<button[39m
-                [33mclass[39m=[32m"group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"[39m
-                [33mtype[39m=[32m"submit"[39m
-              [36m>[39m
-                [0mCreate account[0m
-              [36m</button>[39m
-            [36m</div>[39m
-            [36m<div[39m
-              [33mclass[39m=[32m"text-center"[39m
-            [36m>[39m
-              [36m<button[39m
-                [33mclass[39m=[32m"text-blue-600 hover:text-blue-500 text-sm font-medium"[39m
-                [33mtype[39m=[32m"button"[39m
-              [36m>[39m
-                [0mAlready have an account? Sign in[0m
-              [36m</button>[39m
-            [36m</div>[39m
-          [36m</form>[39m
-        [36m</div>[39m
-      [36m</div>[39m
-    [36m</div>[39m
-  [36m</body>[39m
-[36m</html>[39m
-
-[32m- Expected[39m
-[31m+ Received[39m
-
-[32m- true[39m
-[31m+ false[39m
-
-[36m [2m❯[22m timeout src/__tests__/auth.e2e.test.tsx:[2m64:81[22m[39m
-    [90m 62| [39m    [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
-    [90m 63| [39m      [35mconst[39m state [33m=[39m useAppStore[33m.[39m[34mgetState[39m()[33m;[39m
-    [90m 64| [39m      expect(state.authentication_state.authentication_status.is_authe…
-    [90m   | [39m                                                                                [31m^[39m
-    [90m 65| [39m      [34mexpect[39m(state[33m.[39mauthentication_state[33m.[39mauth_token)[33m.[39m[34mtoBeTruthy[39m()[33m;[39m
-    [90m 66| [39m      expect(state.authentication_state.current_user?.email).toBe(uniq…
-[90m [2m❯[22m runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:[2m47:12[22m[39m
-[90m [2m❯[22m checkCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m124:77[22m[39m
-[90m [2m❯[22m Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:[2m118:16[22m[39m
-
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+-- Users table
+CREATE TABLE users (
+    id ...
 
 
+BACKEND API ENDPOINTS (extracted from server code):
+app.post('/api/auth/register'
+app.post('/api/auth/login'
+app.post('/api/auth/forgot-password'
+app.post('/api/auth/reset-password'
+app.get('/api/auth/me'
+app.get('/api/public/services'
+app.get('/api/public/services/:service_slug'
+app.get('/api/public/service-categories'
+app.get('/api/public/tiers'
+app.get('/api/public/gallery'
+app.get('/api/public/case-studies/:case_study_slug'
+app.get('/api/public/marketing-content'
+app.post('/api/public/contact-inquiry'
+app.get('/api/quotes'
+app.post('/api/quotes'
+app.get('/api/quotes/:quote_id'
+app.patch('/api/quotes/:quote_id'
+app.get('/api/admin/quotes'
+app.post('/api/admin/quotes/:quote_id/finalize'
+app.post('/api/uploads'
+app.get('/api/uploads/:upload_id'
+app.delete('/api/uploads/:upload_id'
+app.get('/api/calendar/availability'
+app.get('/api/bookings'
+app.post('/api/bookings'
+app.get('/api/bookings/:booking_id'
+app.patch('/api/bookings/:booking_id'
+app.get('/api/orders'
+app.get('/api/orders/:order_id'
+app.patch('/api/orders/:order_id'
+app.get('/api/staff/jobs'
+app.get('/api/admin/orders'
+app.get('/api/orders/:order_id/proofs'
+app.post('/api/orders/:order_id/proofs'
+app.post('/api/proofs/:proof_id/approve'
+app.post('/api/proofs/:proof_id/request-changes'
+app.get('/api/orders/:order_id/payments'
+app.post('/api/orders/:order_id/payments'
+app.post('/api/payments/stripe/create-intent'
+app.get('/api/invoices/:invoice_id'
+app.get('/api/invoices/:invoice_id/download'
+app.get('/api/message-threads/:thread_id/messages'
+app.post('/api/message-threads/:thread_id/messages'
+app.patch('/api/messages/:message_id/mark-read'
+app.get('/api/users/profile'
+app.patch('/api/users/profile'
+app.post('/api/users/change-password'
+app.get('/api/users/notification-preferences'
+app.patch('/api/users/notification-preferences'
+app.get('/api/admin/users'
+app.post('/api/admin/users'
+app.patch('/api/admin/users/:user_id'
+app.delete('/api/admin/users/:user_id'
+app.get('/api/admin/services'
+app.post('/api/admin/services'
+app.patch('/api/admin/services/:service_id'
+app.delete('/api/admin/services/:service_id'
+app.get('/api/admin/calendar-settings'
+app.patch('/api/admin/calendar-settings'
+app.get('/api/admin/blackout-dates'
+app.post('/api/admin/blackout-dates'
+app.delete('/api/admin/blackout-dates/:blackout_id'
+app.get('/api/admin/settings'
+app.get('/api/admin/settings/:key'
+app.patch('/api/admin/settings/:key'
+app.get('/api/admin/audit-logs'
+app.get('/api/health'
 
-## Validation Context:
-- Step: Auth E2E Tests
-- Working Directory: /app/vitereact
-- Attempt: 3/100
-- Previous failures for this step: 2
-
-## Project Memory Summary:
-- Total validation attempts: 15
-- Common issues encountered: None
-- Known dependencies: @hookform/resolvers, @radix-ui/react-accordion, @radix-ui/react-alert-dialog, @radix-ui/react-aspect-ratio, @radix-ui/react-avatar, @radix-ui/react-checkbox, @radix-ui/react-collapsible, @radix-ui/react-context-menu, @radix-ui/react-dialog, @radix-ui/react-dropdown-menu
-- Missing dependencies: None
-
-## Project Structure:
-FULL PROJECT STRUCTURE CONTEXT for Agent:
-=====================================
-
-Working Directory: /app/vitereact
-
-PROJECT DIRECTORIES:
-/app
-/app/.git
-/app/.git/info
-/app/.git/branches
-/app/.git/hooks
-/app/.git/refs
-/app/.git/refs/heads
-/app/.git/refs/tags
-/app/.git/refs/remotes
-/app/.git/objects
-/app/.git/objects/pack
-/app/.git/objects/info
-/app/.git/objects/d5
-/app/.git/objects/c3
-/app/.git/objects/be
-/app/.git/objects/b0
-/app/.git/objects/da
-/app/.git/objects/c7
-/app/.git/objects/f4
-/app/.git/objects/05
-
-
-KEY PROJECT FILES:
-/app/README.md
-/app/backend/initdb.js
-/app/backend/jest.config.ts
-/app/backend/package.json
-/app/backend/schema.ts
-/app/backend/server.test.ts
-/app/backend/server.ts
-/app/backend/tsconfig.json
-/app/backend/package-lock.json
-/app/exports/1766773609521.json
-/app/exports/1766773944265.json
-/app/exports/1766774201538.json
-/app/exports/1766774234664.json
-/app/exports/1766775041825.json
-/app/exports/1766775047167.json
-/app/exports/1766775429077.json
-/app/exports/1766775431428.json
-/app/exports/1766776238887.json
-/app/exports/1766776238895.json
-/app/exports/1766776240855.json
-/app/exports/1766776336991.json
-/app/exports/1766776337039.json
-/app/exports/1766776480661.json
-/app/exports/1766776480685.json
-/app/exports/1766776482458.json
-/app/exports/1766776589080.json
-/app/exports/1766776589267.json
-/app/exports/1766776591163.json
-/app/exports/1766776595468.json
-/app/exports/1766776595493.json
-/app/exports/1766776596180.json
-/app/exports/1766776596233.json
-/app/exports/1766776597094.json
-/app/exports/1766776597135.json
-/app/exports/1766776597223.json
-/app/exports/1766776597838.json
-/app/exports/1766776598224.json
-/app/exports/1766776598593.json
-/app/exports/1766776598687.json
-/app/exports/1766776599439.json
-/app/exports/1766776604620.json
-/app/exports/1766776604641.json
-/app/exports/1766776605607.json
-/app/exports/1766776615377.json
-/app/exports/1766776615397.json
-/app/exports/1766776616891.json
-/app/exports/1766776628507.json
-/app/exports/1766776628736.json
-/app/exports/1766776629685.json
-/app/exports/1766776630599.json
-
-
-FRONTEND (vitereact) PACKAGE.JSON:
-  Scripts: dev, build, lint, preview
-  Dependencies: 64 packages
-  DevDependencies: 21 packages
-  Key Dependencies: @hello-pangea/dnd, @hookform/resolvers, @radix-ui/react-accordion, @radix-ui/react-alert-dialog, @radix-ui/react-aspect-ratio, @radix-ui/react-avatar, @radix-ui/react-checkbox, @radix-ui/react-collapsible, @radix-ui/react-context-menu, @radix-ui/react-dialog
-
-BACKEND PACKAGE.JSON:
-  Scripts: start, build, dev, test, test:watch, test:coverage
-  Dependencies: 15 packages
-  Key Dependencies: @electric-sql/pglite, @types/bcryptjs, bcryptjs, cors, dotenv, express, jsonwebtoken, morgan, multer, pg
-
-ROOT PACKAGE.JSON:
-  Scripts: dev
-
-BACKEND SCHEMA AVAILABLE:
-  Location: /app/backend/schema.ts
-  Size: 52900 characters
-  Contains Zod schemas for type validation
-
-BACKEND SERVER AVAILABLE:
-  Location: /app/backend/server.ts
-  Size: 78416 characters
-  Contains actual API endpoints and implementations
-
-PROTECTED DIRECTORIES (DO NOT MODIFY):
-  - /app/vitereact/src/components/ui/** (UI library)
-  - /app/node_modules/** (Dependencies)
-  - /app/.git/** (Version control)
-
-
-
-## Previous Validation Failures for Auth E2E Tests:
-- 8:47:45 PM: 
-- 8:53:22 PM: 
-
-## Your Task:
-1. **Analyze the Error**: Understand what specifically went wrong in the Auth E2E Tests step
-2. **Check Previous Attempts**: Consider if this is a recurring issue based on validation history
-3. **Locate the Problem**: Identify which files need to be modified
-4. **Apply Fixes**: Use the available tools to fix the specific issues
-5. **Focus on Root Cause**: Don't just suppress errors, fix the underlying problems
-
-
-
-
-
-## Important Notes:
-- You are working in a Modal Sandbox environment at /app/vitereact
-- Make changes to the actual project files that will be used in the next validation attempt
-- Always check packages are installed correctly, if not, install them, npm install
-- For TypeScript errors: Fix type issues, missing imports, etc.
-- For Build errors: Fix configuration issues, missing dependencies, syntax errors
-- For Lint errors: Fix code style issues, unused variables, missing dependencies, etc.
-- For Install errors: Fix package.json issues, dependency conflicts, etc.
-- For SQL errors: Fix syntax issues, schema problems, foreign key constraints, etc.
-- Use your memory context to avoid repeating failed approaches
-
-after you have fixed the issues, run the following commands to make sure there are no errors left:
-for typescript errors, run: cd /app/vitereact && npx tsc -b in /app/vitereact, it is important to run this command with -b so npx tsc -b in /app/vitereact
-for lint errors run npm run lint in vitereact
-for test errors, run: npm test in the appropriate directory (backend or vitereact)
-for SQL errors, run: node initdb.js in the backend directory to test database initialization
-
-MAKE SURE TO FIX ALL ERRORS! SMALL AND BIG!
-
-
-The validation will retry this step after your fixes. Make sure to address the specific error shown above.
+Frontend URL: https://123project-build-a-production-ready-w.launchpulse.ai
+Backend URL: https://123project-build-a-production-ready-w.launchpulse.ai
+🎯 YOUR CRITICAL TASKS - ANALYZE, AND CREATE TEST FILES:
+STEP 1: Create test_users.json
+🔐 INTELLIGENT TEST USER CREATION:
+1. **ANALYZE DATABASE SCHEMA** (from db.sql):
+   - Find user table structure (users, user, accounts, etc.)
+   - Identify role/user_type field and possible values
+   - Detect required fields (name, email, password structure)
+   - Extract existing seed data if available
+2. **ANALYZE BACKEND API** (from server files):
+   - Find registration endpoint (/api/auth/register, /register, etc.)
+   - Find login endpoint (/api/auth/login, /login, etc.)
+   - Determine required payload structure
+   - Identify authentication flow
+3. **CREATE & VERIFY TEST USERS**:
+   - If seed data exists: extract credentials with known test passwords
+   - If no seed data: create users via API with curl commands
+   - Test login for each user to ensure credentials work
+   - Support different roles: admin, user, guest, host, customer etc. based on the database schema and seed data
+4. **GENERATE test_users.json**:
+{
+  "generated_at": "2024-01-20T10:30:00Z",
+  "user_structure": {
+    "table_name": "users",
+    "role_field": "role",
+    "registration_endpoint": "/api/auth/register",
+    "login_endpoint": "/api/auth/login"
+  },
+  "total_users": 4,
+  "verified_users": 4,
+  "users": [
+    {
+      "email": "admin@test.com",
+      "password": "AdminPass123!",
+      "role": "admin",
+      "name": "Admin User",
+      "verified": true,
+      "token": "jwt_token_here"
+    }
+    // ... create for each detected role
+  ],
+  "by_role": {
+    "admin": [{"email": "admin@test.com", "password": "AdminPass123!", "verified": true}],
+    "user": [{"email": "user@test.com", "password": "UserPass123!", "verified": true}]
+    // ... organize by role for easy browser agent access
+  }
+}
+**CRITICAL**: Use actual project structure, not template data!
+STEP 2: Create code_summary.json
+{
+  "tech_stack": ["React", "Vite", "TypeScript", "Express", "PostgreSQL", "Node.js"],
+  "features": [
+    {
+      "name": "User Authentication",
+      "description": "Login, logout, session management",
+      "files": ["src/components/Login.tsx", "src/api/auth.ts"]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Main application dashboard",
+      "files": ["src/components/Dashboard.tsx"]
+    }
+  ],
+  "database_tables": ["users", "projects"],
+  "api_endpoints": ["/api/auth", "/api/users"]
+}
+STEP 3: test_cases.json 
+  "testCases": [
+    {
+      "id": "functional-app-test",
+      "name": "Functional Application Test",
+      "category": "functionality",
+      "priority": "high",
+      "description": "Verify the application has actual functionality beyond basic placeholder",
+      "steps": [
+        "Navigate to application",
+        "Verify multiple interactive elements exist (buttons, forms, links)",
+        "Check for proper navigation structure",
+        "Verify application has real features, not just 'Vite + React' text"
+      ],
+      "expectedOutcome": "Application shows functional features and interactivity",
+      "failureCondition": "If page only shows 'Vite + React' placeholder, this test should FAIL"
+    },
+    {
+      "id": "ui-components-test", 
+      "name": "UI Components Test",
+      "category": "interface",
+      "priority": "high",
+      "description": "Test that UI components are properly implemented",
+      "steps": [
+        "Check for buttons and verify they're clickable",
+        "Look for forms and input fields",
+        "Verify navigation menu exists",
+        "Test responsive design elements"
+      ],
+      "expectedOutcome": "Multiple interactive UI components found and functional"
+    },
+    {
+      "id": "content-quality-test",
+      "name": "Content Quality Test", 
+      "category": "content",
+      "priority": "high",
+      "description": "Verify application has meaningful content",
+      "steps": [
+        "Check page has substantial content beyond placeholder",
+        "Verify proper heading structure",
+        "Look for actual application features",
+        "Ensure professional appearance"
+      ],
+      "expectedOutcome": "Application demonstrates real functionality and professional design"
+    }
+  ]
+}
+CRITICAL REQUIREMENTS:
+1. You MUST create all 3 JSON files: code_summary.json, test_cases.json, and test_users.json
+2. Each file must be valid JSON
+3. The test_cases.json and test_users.json files are especially important - do not skip them
