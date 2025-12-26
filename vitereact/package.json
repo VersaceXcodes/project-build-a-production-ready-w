@@ -73,8 +73,7 @@
     "zustand": "*",
     "@stripe/stripe-js": "*",
     "@stripe/react-stripe-js": "*",
-    "@hello-pangea/dnd": "*",
-    "@/store/main": "*"
+    "@hello-pangea/dnd": "*"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
