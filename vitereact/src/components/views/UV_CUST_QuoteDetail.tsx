@@ -272,34 +272,42 @@ const UV_CUST_QuoteDetail: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Fetch quote detail
-  const { 
-    data: quoteData, 
-    isLoading: is_loading, 
-    error: fetchError 
+  const {
+    data: quoteData,
+    isLoading: is_loading,
+    error: fetchError
   } = useQuery({
     queryKey: ['quote', quote_id],
-    queryFn: () => fetchQuoteDetail(quote_id!, auth_token!),
+    queryFn: () => {
+      if (!quote_id || !auth_token) throw new Error('Missing required parameters');
+      return fetchQuoteDetail(quote_id, auth_token);
+    },
     enabled: !!quote_id && !!auth_token,
     staleTime: 60000,
     retry: 1,
   });
-  
+
   // Fetch thread messages (only if thread exists)
-  const { 
-    data: thread_messages = [], 
-    refetch: refetchMessages 
+  const {
+    data: thread_messages = [],
+    refetch: refetchMessages
   } = useQuery({
     queryKey: ['messages', quoteData?.message_thread?.id],
-    queryFn: () => fetchThreadMessages(quoteData!.message_thread!.id, auth_token!),
+    queryFn: () => {
+      if (!quoteData?.message_thread?.id || !auth_token) throw new Error('Missing parameters');
+      return fetchThreadMessages(quoteData.message_thread.id, auth_token);
+    },
     enabled: !!quoteData?.message_thread?.id && !!auth_token,
     staleTime: 30000,
     retry: 1,
   });
-  
+
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (message_body: string) => 
-      sendMessage(quoteData!.message_thread!.id, message_body, auth_token!),
+    mutationFn: (message_body: string) => {
+      if (!quoteData?.message_thread?.id || !auth_token) throw new Error('Missing parameters');
+      return sendMessage(quoteData.message_thread.id, message_body, auth_token);
+    },
     onSuccess: () => {
       set_new_message_body('');
       refetchMessages();

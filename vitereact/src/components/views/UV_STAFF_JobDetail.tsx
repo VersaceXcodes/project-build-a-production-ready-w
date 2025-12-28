@@ -187,21 +187,10 @@ const fetchJobDetail = async (orderId: string, authToken: string): Promise<Order
 };
 
 const fetchCustomerInfo = async (customerId: string, authToken: string): Promise<{ user: User; profile: CustomerProfile | null }> => {
-  // Fetch customer user info
-  const userResponse = await axios.get(`${API_BASE_URL}/api/admin/users`, {
-    headers: { Authorization: `Bearer ${authToken}` },
-    params: { search: customerId }
+  const response = await axios.get(`${API_BASE_URL}/api/admin/users/${customerId}`, {
+    headers: { Authorization: `Bearer ${authToken}` }
   });
-  
-  // Find the specific user
-  const user = userResponse.data.users.find((u: any) => u.user.id === customerId);
-  
-  if (!user) throw new Error('Customer not found');
-  
-  return {
-    user: user.user,
-    profile: user.profile
-  };
+  return response.data;
 };
 
 const fetchTierFeatures = async (tierId: string, authToken: string): Promise<TierFeature[]> => {

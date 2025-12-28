@@ -18,6 +18,38 @@
       "failureCondition": "Login fails with valid credentials or user is redirected to the wrong dashboard."
     },
     {
+      "id": "functional-auth-register",
+      "name": "User Registration Functionality",
+      "category": "authentication",
+      "priority": "critical",
+      "description": "Verify that a new user can successfully register an account.",
+      "steps": [
+        "Navigate to the registration page",
+        "Fill in valid user details (Name, Email, Password)",
+        "Submit the registration form",
+        "Verify success message or redirection to login/dashboard",
+        "Verify the new user exists in the database"
+      ],
+      "expectedOutcome": "New user account is created and can log in.",
+      "failureCondition": "Registration fails or user cannot log in after registration."
+    },
+    {
+      "id": "functional-auth-forgot-password",
+      "name": "Forgot Password Flow",
+      "category": "authentication",
+      "priority": "medium",
+      "description": "Verify the password recovery process.",
+      "steps": [
+        "Navigate to the login page",
+        "Click 'Forgot Password'",
+        "Enter a registered email address",
+        "Submit the request",
+        "Verify success message about email instructions"
+      ],
+      "expectedOutcome": "System accepts the request and initiates the password reset flow.",
+      "failureCondition": "Form submission fails or valid email is rejected."
+    },
+    {
       "id": "functional-service-browsing",
       "name": "Service Catalog Browsing",
       "category": "functionality",
@@ -51,6 +83,281 @@
       "failureCondition": "Quote submission fails or the created quote is not listed."
     },
     {
+      "id": "functional-cust-dashboard",
+      "name": "Customer Dashboard Loading",
+      "category": "customer",
+      "priority": "high",
+      "description": "Verify the customer dashboard loads with correct user data.",
+      "steps": [
+        "Log in as a Customer",
+        "Navigate to Dashboard",
+        "Check for Recent Orders widget",
+        "Check for Recent Quotes widget",
+        "Verify account summary information"
+      ],
+      "expectedOutcome": "Dashboard renders without errors and displays data relevant to the logged-in user.",
+      "failureCondition": "Dashboard crashes or displays empty/incorrect data."
+    },
+    {
+      "id": "functional-cust-orders",
+      "name": "Customer Order History",
+      "category": "customer",
+      "priority": "high",
+      "description": "Verify customers can view their past orders.",
+      "steps": [
+        "Log in as a Customer",
+        "Navigate to 'My Orders'",
+        "Verify the list includes past orders",
+        "Check status indicators (e.g., Pending, Completed)"
+      ],
+      "expectedOutcome": "List of orders is displayed correctly.",
+      "failureCondition": "Order list is empty (when orders exist) or throws an error."
+    },
+    {
+      "id": "functional-cust-order-detail",
+      "name": "Customer Order Detail View",
+      "category": "customer",
+      "priority": "medium",
+      "description": "Verify detailed view of a specific order.",
+      "steps": [
+        "Navigate to 'My Orders'",
+        "Click on a specific order ID",
+        "Verify order items, pricing, and status details",
+        "Check for invoice download option (if applicable)"
+      ],
+      "expectedOutcome": "Order details page loads with correct specific information.",
+      "failureCondition": "Page fails to load or shows mismatched data."
+    },
+    {
+      "id": "functional-cust-booking",
+      "name": "Customer Booking Calendar",
+      "category": "customer",
+      "priority": "medium",
+      "description": "Verify customers can view and book appointments.",
+      "steps": [
+        "Log in as a Customer",
+        "Navigate to Bookings/Calendar",
+        "Select an available time slot",
+        "Confirm booking details",
+        "Verify booking appears in 'My Bookings'"
+      ],
+      "expectedOutcome": "Booking is successfully created and slot is reserved.",
+      "failureCondition": "Booking submission fails or calendar does not load."
+    },
+    {
+      "id": "functional-cust-settings",
+      "name": "Customer Account Settings",
+      "category": "customer",
+      "priority": "low",
+      "description": "Verify customers can update their profile information.",
+      "steps": [
+        "Navigate to Account Settings",
+        "Update phone number or address",
+        "Save changes",
+        "Reload page to confirm persistence"
+      ],
+      "expectedOutcome": "Profile changes are saved to the database.",
+      "failureCondition": "Update fails or data reverts on reload."
+    },
+    {
+      "id": "functional-admin-dashboard",
+      "name": "Admin Dashboard Overview",
+      "category": "admin",
+      "priority": "high",
+      "description": "Verify admin dashboard key metrics.",
+      "steps": [
+        "Log in as Admin",
+        "Check Total Sales widget",
+        "Check Pending Orders count",
+        "Check Recent Activity feed"
+      ],
+      "expectedOutcome": "Admin dashboard displays aggregated business data.",
+      "failureCondition": "Widgets fail to load data or show server errors."
+    },
+    {
+      "id": "functional-admin-users",
+      "name": "Admin User Management",
+      "category": "admin",
+      "priority": "high",
+      "description": "Verify admin can manage user accounts.",
+      "steps": [
+        "Navigate to Users Manager",
+        "Search for a user",
+        "View user details",
+        "Edit user role or status (e.g., deactive)"
+      ],
+      "expectedOutcome": "Admin can successfully search and simple edit user properties.",
+      "failureCondition": "User list fails to load or edits are not saved."
+    },
+    {
+      "id": "functional-admin-services",
+      "name": "Admin Service Management",
+      "category": "admin",
+      "priority": "medium",
+      "description": "Verify admin can manage service catalog.",
+      "steps": [
+        "Navigate to Services Manager",
+        "Add a new service or edit existing one",
+        "Update price or description",
+        "Save changes",
+        "Verify change is reflected on public Services page"
+      ],
+      "expectedOutcome": "Catalog updates are persisted and public-facing.",
+      "failureCondition": "Save operation fails."
+    },
+    {
+      "id": "functional-admin-orders-list",
+      "name": "Admin Orders Manager (List)",
+      "category": "admin",
+      "priority": "high",
+      "description": "Verify admin can view and filter the orders list.",
+      "steps": [
+        "Navigate to Orders Manager",
+        "Apply filters (e.g., status 'Pending', Assigned Staff)",
+        "Check bulk actions availability",
+        "Export CSV (optional check)"
+      ],
+      "expectedOutcome": "Orders list filters correctly and displays relevant orders.",
+      "failureCondition": "Filtering fails or list is empty."
+    },
+    {
+      "id": "functional-admin-order-mgmt",
+      "name": "Admin Order Processing",
+      "category": "admin",
+      "priority": "critical",
+      "description": "Verify admin can process individual orders.",
+      "steps": [
+        "Navigate to Orders Management (Detail View)",
+        "Select an Order",
+        "Update Workflow Status (e.g., Pre-press -> Production)",
+        "Assign Staff Member",
+        "Upload/Review Proofs",
+        "Save Changes"
+      ],
+      "expectedOutcome": "Order state is updated comprehensively.",
+      "failureCondition": "Status update or staff assignment fails."
+    },
+    {
+      "id": "functional-admin-quotes",
+      "name": "Admin Quote Finalization",
+      "category": "admin",
+      "priority": "high",
+      "description": "Verify admin can review and finalize quotes.",
+      "steps": [
+        "Navigate to Quotes Manager",
+        "Select a submitted quote",
+        "Enter pricing for custom request",
+        "Finalize and Send to Customer",
+        "Verify quote status updates to 'Awaiting Approval'"
+      ],
+      "expectedOutcome": "Quote is correctly priced and sent back to customer.",
+      "failureCondition": "Cannot finalize quote or send email."
+    },
+    {
+      "id": "functional-admin-cms",
+      "name": "Admin Content & Gallery",
+      "category": "admin",
+      "priority": "medium",
+      "description": "Verify admin can manage website content.",
+      "steps": [
+        "Navigate to Gallery Manager / Content Manager",
+        "Upload a new image",
+        "Edit image details (Title, Tag)",
+        "Save"
+      ],
+      "expectedOutcome": "New content is added to the public gallery.",
+      "failureCondition": "Upload fails or content doesn't appear."
+    },
+    {
+      "id": "functional-admin-tiers",
+      "name": "Admin Tier Management",
+      "category": "admin",
+      "priority": "low",
+      "description": "Verify admin can manage pricing tiers.",
+      "steps": [
+        "Navigate to Tiers Manager",
+        "Edit features of a tier (e.g. Gold Package)",
+        "Save changes",
+        "Verify changes on public Pricing page"
+      ],
+      "expectedOutcome": "Tier configuration is updated.",
+      "failureCondition": "Update fails."
+    },
+    {
+      "id": "functional-staff-jobs",
+      "name": "Staff Job Queue",
+      "category": "staff",
+      "priority": "high",
+      "description": "Verify staff can see assigned tasks.",
+      "steps": [
+        "Log in as Staff",
+        "Navigate to Job Queue",
+        "Verify list of assigned production jobs",
+        "Mark a job item as complete"
+      ],
+      "expectedOutcome": "Staff sees relevant jobs and can update item status.",
+      "failureCondition": "Job queue is empty or updates fail."
+    },
+    {
+      "id": "functional-staff-job-detail",
+      "name": "Staff Job Execution",
+      "category": "staff",
+      "priority": "high",
+      "description": "Verify staff can work on a specific job detail.",
+      "steps": [
+        "Navigate to a specific Job ID",
+        "View tech specs and files",
+        "Log time or add production notes",
+        "Update job stage"
+      ],
+      "expectedOutcome": "Job details are accessible and updates are saved.",
+      "failureCondition": "Cannot access job files or save notes."
+    },
+    {
+      "id": "functional-staff-calendar",
+      "name": "Staff Schedule View",
+      "category": "staff",
+      "priority": "medium",
+      "description": "Verify staff can view the production calendar.",
+      "steps": [
+        "Navigate to Staff Calendar",
+        "View scheduled installations or massive print jobs",
+        "Check interactions (day/week view)"
+      ],
+      "expectedOutcome": "Calendar renders with production events.",
+      "failureCondition": "Calendar is blank."
+    },
+    {
+      "id": "functional-pub-contact",
+      "name": "Public Contact Form",
+      "category": "public",
+      "priority": "low",
+      "description": "Verify public inquiry form.",
+      "steps": [
+        "Navigate to Contact page",
+        "Fill out inquiry form",
+        "Submit",
+        "Verify success message",
+        "Check Admin/Staff dashboard for new inquiry (optional)"
+      ],
+      "expectedOutcome": "Form submits without error.",
+      "failureCondition": "Submission fails validation or network error."
+    },
+    {
+      "id": "functional-pub-pricing",
+      "name": "Public Pricing Visibility",
+      "category": "public",
+      "priority": "low",
+      "description": "Verify general pricing information is accessible.",
+      "steps": [
+        "Navigate to Pricing page",
+        "Verify pricing tables/tiers are rendered",
+        "Check for 'Get Started' links working"
+      ],
+      "expectedOutcome": "Pricing information is visible.",
+      "failureCondition": "Page is empty."
+    },
+    {
       "id": "ui-responsive-design",
       "name": "Responsive UI Test",
       "category": "interface",
@@ -78,6 +385,49 @@
         "Click on an image to view details or larger version"
       ],
       "expectedOutcome": "Gallery is populated with seed data images and text."
+    },
+    {
+      "id": "functional-adv-inventory",
+      "name": "Inventory Dashboard (Adv)",
+      "category": "advanced",
+      "priority": "low",
+      "description": "Verify inventory overview logic.",
+      "steps": [
+        "Navigate to Inventory Dashboard (Admin/Staff)",
+        "Check stock levels",
+        "Verify low-stock alerts (if any)"
+      ],
+      "expectedOutcome": "Inventory levels are displayed.",
+      "failureCondition": "Dashboard fails to load inventory data."
+    },
+    {
+      "id": "functional-adv-procurement",
+      "name": "Procurement / Purchase Orders",
+      "category": "advanced",
+      "priority": "low",
+      "description": "Verify purchase order generation.",
+      "steps": [
+        "Navigate to Purchase Orders",
+        "Create new PO for a supplier",
+        "Add items",
+        "Save/Send"
+      ],
+      "expectedOutcome": "PO is created.",
+      "failureCondition": "Creation fails."
+    },
+    {
+      "id": "functional-adv-b2b",
+      "name": "B2B Account Management (Adv)",
+      "category": "advanced",
+      "priority": "low",
+      "description": "Verify B2B specific features.",
+      "steps": [
+        "Navigate to B2B Accounts list",
+        "Select a corporate account",
+        "Verify specific pricing or contract details"
+      ],
+      "expectedOutcome": "B2B specific data is accessible.",
+      "failureCondition": "B2B section is inaccessible or empty."
     }
   ]
 }

@@ -534,21 +534,33 @@ app.post('/api/admin/quotes/:quote_id/finalize', authenticateToken, requireRole(
     const taxRate = 0.23;
     const taxAmount = parseFloat(final_subtotal) * taxRate;
     const totalAmount = parseFloat(final_subtotal) + taxAmount;
+    const now = new Date().toISOString();
     await pool.query(
       'UPDATE quotes SET status = $1, final_subtotal = $2, notes = $3, updated_at = $4 WHERE id = $5',
-      ['APPROVED', final_subtotal, notes || quote.notes, new Date().toISOString(), quote_id]
+      ['APPROVED', final_subtotal, notes || quote.notes, now, quote_id]
     );
+    // Create ORDER first (required for invoice FK constraint)
+    const orderId = uuidv4();
+    const depositPct = 50;
+    const depositAmount = totalAmount * (depositPct / 100);
+    await pool.query(
+      `INSERT INTO orders (id, quote_id, customer_id, tier_id, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [orderId, quote_id, quote.customer_id, quote.tier_id, 'PENDING_DEPOSIT', parseFloat(final_subtotal), taxAmount, totalAmount, depositPct, depositAmount, now, now]
+    );
+    // Create invoice with correct order_id (not quote_id!)
     const invoiceId = uuidv4();
     const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
     await pool.query(
       'INSERT INTO invoices (id, order_id, invoice_number, amount_due, issued_at, paid_at) VALUES ($1, $2, $3, $4, $5, $6)',
-      [invoiceId, quote_id, invoiceNumber, totalAmount, new Date().toISOString(), null]
+      [invoiceId, orderId, invoiceNumber, totalAmount, now, null]
     );
     const updatedQuote = await pool.query('SELECT * FROM quotes WHERE id = $1', [quote_id]);
+    const order = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
     const invoice = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
-    await createAuditLog(req.user.id, 'FINALIZE', 'QUOTE', quote_id, { final_subtotal, total_amount: totalAmount }, req.ip);
-    emitEvent('quote/finalized', { event_type: 'quote_finalized', timestamp: new Date().toISOString(), quote_id, customer_id: quote.customer_id, final_subtotal: parseFloat(final_subtotal), tax_amount: taxAmount, total_amount: totalAmount, finalized_by_admin_id: req.user.id, invoice_number: invoiceNumber });
-    res.json({ quote: updatedQuote.rows[0], invoice: invoice.rows[0] });
+    await createAuditLog(req.user.id, 'FINALIZE', 'QUOTE', quote_id, { final_subtotal, total_amount: totalAmount, order_id: orderId }, req.ip);
+    emitEvent('quote/finalized', { event_type: 'quote_finalized', timestamp: now, quote_id, order_id: orderId, customer_id: quote.customer_id, final_subtotal: parseFloat(final_subtotal), tax_amount: taxAmount, total_amount: totalAmount, finalized_by_admin_id: req.user.id, invoice_number: invoiceNumber });
+    res.json({ quote: updatedQuote.rows[0], order: order.rows[0], invoice: invoice.rows[0] });
   } catch (error) {
     console.error('Finalize quote error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -988,12 +1000,13 @@ app.post('/api/orders/:order_id/payments', authenticateToken, async (req, res) =
     const { amount, method, transaction_ref } = req.body;
     if (!amount || !method) return res.status(400).json({ message: 'amount and method required' });
     const paymentId = uuidv4();
+    const now = new Date().toISOString();
     await pool.query(
       'INSERT INTO payments (id, order_id, amount, method, status, transaction_ref, recorded_by_admin_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-      [paymentId, order_id, amount, method, 'COMPLETED', transaction_ref || null, req.user.role === 'ADMIN' ? req.user.id : null, new Date().toISOString(), new Date().toISOString()]
+      [paymentId, order_id, amount, method, 'PENDING', transaction_ref || null, req.user.role === 'ADMIN' ? req.user.id : null, now, now]
     );
     const result = await pool.query('SELECT * FROM payments WHERE id = $1', [paymentId]);
-    emitEvent('payment/completed', { event_type: 'payment_completed', timestamp: new Date().toISOString(), payment_id: paymentId, order_id, amount: parseFloat(amount), method, completed_at: new Date().toISOString() });
+    emitEvent('payment/created', { event_type: 'payment_created', timestamp: now, payment_id: paymentId, order_id, amount: parseFloat(amount), method, status: 'PENDING' });
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Record payment error:', error);
@@ -1203,28 +1216,76 @@ app.get('/api/admin/users', authenticateToken, requireRole(['ADMIN']), async (re
   try {
     const role = req.query.role as string | undefined;
     const search = req.query.search as string | undefined;
+    const status = req.query.status as string | undefined;
     const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
     const offset = (page - 1) * limit;
+
     let query = 'SELECT * FROM users WHERE 1=1';
-    const params = [];
+    const params: any[] = [];
+
     if (role) {
       params.push(role);
       query += ` AND role = $${params.length}`;
+    }
+    if (status === 'active') {
+      query += ' AND is_active = true';
+    } else if (status === 'inactive') {
+      query += ' AND is_active = false';
     }
     if (search) {
       params.push(`%${search}%`);
       query += ` AND (name ILIKE $${params.length} OR email ILIKE $${params.length})`;
     }
+
     query += ' ORDER BY created_at DESC';
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
+
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
-    const result = await pool.query(query, params);
-    res.json({ users: result.rows, total: parseInt(totalRes.rows[0].count) });
+    const usersResult = await pool.query(query, params);
+
+    // Fetch profiles for each user
+    const usersWithProfiles = await Promise.all(usersResult.rows.map(async (user: any) => {
+      let profile = null;
+      if (user.role === 'CUSTOMER') {
+        const profileRes = await pool.query('SELECT * FROM customer_profiles WHERE user_id = $1', [user.id]);
+        profile = profileRes.rows[0] || null;
+      } else if (user.role === 'STAFF' || user.role === 'ADMIN') {
+        const profileRes = await pool.query('SELECT * FROM staff_profiles WHERE user_id = $1', [user.id]);
+        profile = profileRes.rows[0] || null;
+      }
+      return { user, profile };
+    }));
+
+    res.json({ users: usersWithProfiles, total: parseInt(totalRes.rows[0].count) });
   } catch (error) {
     console.error('List users error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/users/:user_id', authenticateToken, requireRole(['ADMIN', 'STAFF']), async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [user_id]);
+    if (userRes.rows.length === 0) return res.status(404).json({ message: 'User not found' });
+
+    const user = userRes.rows[0];
+    let profile = null;
+
+    if (user.role === 'CUSTOMER') {
+      const profileRes = await pool.query('SELECT * FROM customer_profiles WHERE user_id = $1', [user.id]);
+      profile = profileRes.rows[0] || null;
+    } else if (user.role === 'STAFF' || user.role === 'ADMIN') {
+      const profileRes = await pool.query('SELECT * FROM staff_profiles WHERE user_id = $1', [user.id]);
+      profile = profileRes.rows[0] || null;
+    }
+
+    res.json({ user, profile });
+  } catch (error) {
+    console.error('Get user by ID error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -1304,8 +1365,54 @@ app.delete('/api/admin/users/:user_id', authenticateToken, requireRole(['ADMIN']
 
 app.get('/api/admin/services', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const result = await pool.query('SELECT s.*, c.name as category_name FROM services s JOIN service_categories c ON s.category_id = c.id ORDER BY s.name');
-    res.json(result.rows);
+    const category = req.query.category as string | undefined;
+    const is_active = req.query.is_active as string | undefined;
+
+    let query = `
+      SELECT s.*,
+             c.id as cat_id, c.name as cat_name, c.slug as cat_slug,
+             c.sort_order as cat_sort_order, c.is_active as cat_is_active
+      FROM services s
+      JOIN service_categories c ON s.category_id = c.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (category) {
+      params.push(category);
+      query += ` AND c.slug = $${params.length}`;
+    }
+    if (is_active !== undefined) {
+      params.push(is_active === 'true');
+      query += ` AND s.is_active = $${params.length}`;
+    }
+
+    query += ' ORDER BY s.name';
+    const servicesResult = await pool.query(query, params);
+
+    const servicesWithDetails = await Promise.all(servicesResult.rows.map(async (row: any) => {
+      const optionsRes = await pool.query(
+        'SELECT * FROM service_options WHERE service_id = $1 AND is_active = true ORDER BY sort_order',
+        [row.id]
+      );
+
+      return {
+        service: {
+          id: row.id, category_id: row.category_id, name: row.name, slug: row.slug,
+          description: row.description, requires_booking: row.requires_booking,
+          requires_proof: row.requires_proof, is_top_seller: row.is_top_seller,
+          is_active: row.is_active, slot_duration_hours: row.slot_duration_hours,
+          created_at: row.created_at, updated_at: row.updated_at
+        },
+        category: {
+          id: row.cat_id, name: row.cat_name, slug: row.cat_slug,
+          sort_order: row.cat_sort_order, is_active: row.cat_is_active
+        },
+        options: optionsRes.rows
+      };
+    }));
+
+    res.json(servicesWithDetails);
   } catch (error) {
     console.error('List admin services error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -1561,6 +1668,1073 @@ app.get('/api/admin/audit-logs', authenticateToken, requireRole(['ADMIN']), asyn
     res.json({ logs: result.rows, total: parseInt(totalRes.rows[0].count) });
   } catch (error) {
     console.error('List audit logs error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 1: Service Categories & Options CRUD
+// =====================================================
+
+app.get('/api/admin/service-categories', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM service_categories ORDER BY sort_order, name');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List service categories error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/service-categories', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { name, slug, sort_order } = req.body;
+    if (!name || !slug) return res.status(400).json({ message: 'name and slug required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO service_categories (id, name, slug, sort_order, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [id, name, slug, sort_order || 0, true, now, now]
+    );
+    const result = await pool.query('SELECT * FROM service_categories WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'SERVICE_CATEGORY', id, { name, slug }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create service category error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/service-options', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { service_id, key, label, type, required, choices, help_text, sort_order } = req.body;
+    if (!service_id || !key || !label || !type) return res.status(400).json({ message: 'service_id, key, label, and type required' });
+    const validTypes = ['TEXT', 'SELECT', 'CHECKBOX', 'NUMBER'];
+    if (!validTypes.includes(type)) return res.status(400).json({ message: 'type must be TEXT, SELECT, CHECKBOX, or NUMBER' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO service_options (id, service_id, key, label, type, required, choices, pricing_impact, help_text, sort_order, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+      [id, service_id, key, label, type, !!required, choices || null, null, help_text || null, sort_order || 0, true, now, now]
+    );
+    const result = await pool.query('SELECT * FROM service_options WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'SERVICE_OPTION', id, { service_id, key, label, type }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create service option error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/service-options/:option_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { option_id } = req.params;
+    const { label, required, choices, sort_order, help_text, is_active } = req.body;
+    const existing = await pool.query('SELECT * FROM service_options WHERE id = $1', [option_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Service option not found' });
+    const updates = [];
+    const params = [];
+    if (label !== undefined) { params.push(label); updates.push(`label = $${params.length}`); }
+    if (required !== undefined) { params.push(required); updates.push(`required = $${params.length}`); }
+    if (choices !== undefined) { params.push(choices); updates.push(`choices = $${params.length}`); }
+    if (sort_order !== undefined) { params.push(sort_order); updates.push(`sort_order = $${params.length}`); }
+    if (help_text !== undefined) { params.push(help_text); updates.push(`help_text = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(option_id);
+      await pool.query(`UPDATE service_options SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM service_options WHERE id = $1', [option_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'SERVICE_OPTION', option_id, req.body, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update service option error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/service-options/:option_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { option_id } = req.params;
+    const existing = await pool.query('SELECT * FROM service_options WHERE id = $1', [option_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Service option not found' });
+    await pool.query('UPDATE service_options SET is_active = false, updated_at = $1 WHERE id = $2', [new Date().toISOString(), option_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'SERVICE_OPTION', option_id, null, req.ip);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete service option error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 2: Tier Management CRUD
+// =====================================================
+
+app.get('/api/admin/tiers', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const tiers = await pool.query('SELECT * FROM tier_packages ORDER BY sort_order');
+    const result = [];
+    for (const tier of tiers.rows) {
+      const features = await pool.query('SELECT * FROM tier_features WHERE tier_id = $1 ORDER BY group_name, sort_order', [tier.id]);
+      const ordersCount = await pool.query('SELECT COUNT(*) FROM orders WHERE tier_id = $1', [tier.id]);
+      const featureGroups = {};
+      for (const f of features.rows) {
+        if (!featureGroups[f.group_name]) featureGroups[f.group_name] = [];
+        featureGroups[f.group_name].push(f);
+      }
+      result.push({
+        tier,
+        features: features.rows,
+        features_count: features.rows.length,
+        orders_count: parseInt(ordersCount.rows[0].count),
+        feature_groups: Object.entries(featureGroups).map(([group_name, features]) => ({ group_name, features }))
+      });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error('List admin tiers error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/tiers', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { name, slug, description, sort_order } = req.body;
+    if (!name || !slug) return res.status(400).json({ message: 'name and slug required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO tier_packages (id, name, slug, description, is_active, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [id, name, slug, description || null, true, sort_order || 0, now, now]
+    );
+    const result = await pool.query('SELECT * FROM tier_packages WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'TIER_PACKAGE', id, { name, slug }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create tier error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/tiers/:tier_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { tier_id } = req.params;
+    const { name, description, is_active, sort_order } = req.body;
+    const existing = await pool.query('SELECT * FROM tier_packages WHERE id = $1', [tier_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Tier not found' });
+    const updates = [];
+    const params = [];
+    if (name !== undefined) { params.push(name); updates.push(`name = $${params.length}`); }
+    if (description !== undefined) { params.push(description); updates.push(`description = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (sort_order !== undefined) { params.push(sort_order); updates.push(`sort_order = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(tier_id);
+      await pool.query(`UPDATE tier_packages SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM tier_packages WHERE id = $1', [tier_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'TIER_PACKAGE', tier_id, req.body, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update tier error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/tier-features', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { tier_id, group_name, feature_key, feature_label, feature_value, is_included } = req.body;
+    if (!tier_id || !group_name || !feature_key || !feature_label) {
+      return res.status(400).json({ message: 'tier_id, group_name, feature_key, and feature_label required' });
+    }
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO tier_features (id, tier_id, group_name, feature_key, feature_label, feature_value, is_included, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+      [id, tier_id, group_name, feature_key, feature_label, feature_value || null, is_included !== false, 0, now, now]
+    );
+    const result = await pool.query('SELECT * FROM tier_features WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'TIER_FEATURE', id, { tier_id, group_name, feature_key }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create tier feature error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/tier-features/:feature_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { feature_id } = req.params;
+    const { feature_label, feature_value, is_included, sort_order } = req.body;
+    const existing = await pool.query('SELECT * FROM tier_features WHERE id = $1', [feature_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Tier feature not found' });
+    const updates = [];
+    const params = [];
+    if (feature_label !== undefined) { params.push(feature_label); updates.push(`feature_label = $${params.length}`); }
+    if (feature_value !== undefined) { params.push(feature_value); updates.push(`feature_value = $${params.length}`); }
+    if (is_included !== undefined) { params.push(is_included); updates.push(`is_included = $${params.length}`); }
+    if (sort_order !== undefined) { params.push(sort_order); updates.push(`sort_order = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(feature_id);
+      await pool.query(`UPDATE tier_features SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM tier_features WHERE id = $1', [feature_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'TIER_FEATURE', feature_id, req.body, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update tier feature error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/tier-features/:feature_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { feature_id } = req.params;
+    const existing = await pool.query('SELECT * FROM tier_features WHERE id = $1', [feature_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Tier feature not found' });
+    await pool.query('DELETE FROM tier_features WHERE id = $1', [feature_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'TIER_FEATURE', feature_id, null, req.ip);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete tier feature error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 3: Content Management (Gallery, Case Studies, Marketing)
+// =====================================================
+
+app.get('/api/admin/gallery-images', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const category = req.query.category as string | undefined;
+    let query = 'SELECT * FROM gallery_images';
+    const params = [];
+    if (category) {
+      params.push(`%${category}%`);
+      query += ` WHERE categories LIKE $${params.length}`;
+    }
+    query += ' ORDER BY sort_order, created_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List admin gallery images error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/gallery-images', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { title, image_url, thumbnail_url, description, alt_text, categories } = req.body;
+    if (!title || !image_url) return res.status(400).json({ message: 'title and image_url required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO gallery_images (id, title, image_url, thumbnail_url, description, alt_text, categories, is_active, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+      [id, title, image_url, thumbnail_url || null, description || null, alt_text || null, categories || null, true, 0, now, now]
+    );
+    const result = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'GALLERY_IMAGE', id, { title }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create gallery image error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/gallery-images/:image_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { image_id } = req.params;
+    const { title, description, alt_text, categories, is_active, sort_order } = req.body;
+    const existing = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [image_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Gallery image not found' });
+    const updates = [];
+    const params = [];
+    if (title !== undefined) { params.push(title); updates.push(`title = $${params.length}`); }
+    if (description !== undefined) { params.push(description); updates.push(`description = $${params.length}`); }
+    if (alt_text !== undefined) { params.push(alt_text); updates.push(`alt_text = $${params.length}`); }
+    if (categories !== undefined) { params.push(categories); updates.push(`categories = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (sort_order !== undefined) { params.push(sort_order); updates.push(`sort_order = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(image_id);
+      await pool.query(`UPDATE gallery_images SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [image_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'GALLERY_IMAGE', image_id, req.body, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update gallery image error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/gallery-images/:image_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { image_id } = req.params;
+    const existing = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [image_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Gallery image not found' });
+    await pool.query('UPDATE gallery_images SET is_active = false, updated_at = $1 WHERE id = $2', [new Date().toISOString(), image_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'GALLERY_IMAGE', image_id, null, req.ip);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete gallery image error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/case-studies', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT cs.*, s.name as service_name, t.name as tier_name, g.image_url FROM case_studies cs LEFT JOIN services s ON cs.service_id = s.id LEFT JOIN tier_packages t ON cs.tier_id = t.id LEFT JOIN gallery_images g ON cs.gallery_image_id = g.id ORDER BY cs.created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List admin case studies error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/case-studies', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { slug, title, service_id, tier_id, gallery_image_id, description, client_testimonial, is_published } = req.body;
+    if (!slug || !title || !service_id || !tier_id || !gallery_image_id) {
+      return res.status(400).json({ message: 'slug, title, service_id, tier_id, and gallery_image_id required' });
+    }
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO case_studies (id, slug, title, service_id, tier_id, gallery_image_id, description, client_testimonial, additional_images, is_published, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+      [id, slug, title, service_id, tier_id, gallery_image_id, description || null, client_testimonial || null, null, is_published !== false, now, now]
+    );
+    const result = await pool.query('SELECT * FROM case_studies WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'CASE_STUDY', id, { slug, title }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create case study error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/marketing-content', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const page_key = req.query.page_key as string | undefined;
+    let query = 'SELECT * FROM marketing_content';
+    const params = [];
+    if (page_key) {
+      params.push(page_key);
+      query += ` WHERE page_key = $${params.length}`;
+    }
+    query += ' ORDER BY page_key, section_key';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List marketing content error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/marketing-content', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { page_key, section_key, content } = req.body;
+    if (!page_key || !section_key) return res.status(400).json({ message: 'page_key and section_key required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO marketing_content (id, page_key, section_key, content, updated_at) VALUES ($1, $2, $3, $4, $5)',
+      [id, page_key, section_key, content || '', now]
+    );
+    const result = await pool.query('SELECT * FROM marketing_content WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'MARKETING_CONTENT', id, { page_key, section_key }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create marketing content error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/marketing-content/:content_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { content_id } = req.params;
+    const { content } = req.body;
+    const existing = await pool.query('SELECT * FROM marketing_content WHERE id = $1', [content_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Marketing content not found' });
+    await pool.query('UPDATE marketing_content SET content = $1, updated_at = $2 WHERE id = $3', [content, new Date().toISOString(), content_id]);
+    const result = await pool.query('SELECT * FROM marketing_content WHERE id = $1', [content_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'MARKETING_CONTENT', content_id, { content }, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update marketing content error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 4: Contact Inquiries Management
+// =====================================================
+
+app.get('/api/admin/contact-inquiries', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const status = req.query.status as string | undefined;
+    let query = 'SELECT * FROM contact_inquiries';
+    const params = [];
+    if (status) {
+      params.push(status);
+      query += ` WHERE status = $${params.length}`;
+    }
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List contact inquiries error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/contact-inquiries/:inquiry_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { inquiry_id } = req.params;
+    const { status } = req.body;
+    const existing = await pool.query('SELECT * FROM contact_inquiries WHERE id = $1', [inquiry_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Contact inquiry not found' });
+    const validStatuses = ['NEW', 'CONTACTED', 'CONVERTED'];
+    if (status && !validStatuses.includes(status)) return res.status(400).json({ message: 'Invalid status' });
+    if (status) {
+      await pool.query('UPDATE contact_inquiries SET status = $1 WHERE id = $2', [status, inquiry_id]);
+    }
+    const result = await pool.query('SELECT * FROM contact_inquiries WHERE id = $1', [inquiry_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'CONTACT_INQUIRY', inquiry_id, { status }, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update contact inquiry error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 5: Phase 2 - B2B Accounts Management
+// =====================================================
+
+app.get('/api/admin/b2b-accounts', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const search = req.query.search as string | undefined;
+    let query = `SELECT a.*, u.name as main_contact_name, u.email as main_contact_email,
+      (SELECT COUNT(*) FROM b2b_locations l WHERE l.account_id = a.id) as locations_count
+      FROM b2b_accounts a LEFT JOIN users u ON a.main_contact_user_id = u.id`;
+    const params = [];
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` WHERE a.company_name ILIKE $${params.length}`;
+    }
+    query += ' ORDER BY a.created_at DESC';
+    const result = await pool.query(query, params);
+    const formatted = result.rows.map(row => ({
+      account: { id: row.id, company_name: row.company_name, main_contact_user_id: row.main_contact_user_id, contract_start: row.contract_start, contract_end: row.contract_end, terms: row.terms, payment_terms: row.payment_terms, is_active: row.is_active, created_at: row.created_at, updated_at: row.updated_at },
+      main_contact: { id: row.main_contact_user_id, name: row.main_contact_name, email: row.main_contact_email },
+      locations_count: parseInt(row.locations_count)
+    }));
+    res.json(formatted);
+  } catch (error) {
+    console.error('List B2B accounts error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/b2b-accounts', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { company_name, main_contact_user_id, contract_start, contract_end, terms, payment_terms } = req.body;
+    if (!company_name || !main_contact_user_id) return res.status(400).json({ message: 'company_name and main_contact_user_id required' });
+    const validPaymentTerms = ['NET_15', 'NET_30', 'NET_45', 'NET_60'];
+    if (payment_terms && !validPaymentTerms.includes(payment_terms)) return res.status(400).json({ message: 'Invalid payment_terms' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO b2b_accounts (id, company_name, main_contact_user_id, contract_start, contract_end, terms, payment_terms, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+      [id, company_name, main_contact_user_id, contract_start || null, contract_end || null, terms || null, payment_terms || 'NET_30', true, now, now]
+    );
+    const result = await pool.query('SELECT * FROM b2b_accounts WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'B2B_ACCOUNT', id, { company_name }, req.ip);
+    emitEvent('b2b/account_created', { event_type: 'b2b_account_created', timestamp: now, account_id: id, company_name, main_contact_user_id });
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create B2B account error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/b2b-accounts/:account_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { account_id } = req.params;
+    const accountRes = await pool.query('SELECT * FROM b2b_accounts WHERE id = $1', [account_id]);
+    if (accountRes.rows.length === 0) return res.status(404).json({ message: 'B2B account not found' });
+    const account = accountRes.rows[0];
+    const contactRes = await pool.query('SELECT id, name, email, role FROM users WHERE id = $1', [account.main_contact_user_id]);
+    const locationsRes = await pool.query('SELECT * FROM b2b_locations WHERE account_id = $1 ORDER BY label', [account_id]);
+    const pricingRes = await pool.query('SELECT * FROM contract_pricing WHERE account_id = $1', [account_id]);
+    res.json({
+      account,
+      main_contact: contactRes.rows[0] || null,
+      locations: locationsRes.rows,
+      contract_pricing: pricingRes.rows
+    });
+  } catch (error) {
+    console.error('Get B2B account error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/b2b-accounts/:account_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { account_id } = req.params;
+    const { company_name, contract_end, terms, is_active, payment_terms } = req.body;
+    const existing = await pool.query('SELECT * FROM b2b_accounts WHERE id = $1', [account_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'B2B account not found' });
+    const updates = [];
+    const params = [];
+    if (company_name !== undefined) { params.push(company_name); updates.push(`company_name = $${params.length}`); }
+    if (contract_end !== undefined) { params.push(contract_end); updates.push(`contract_end = $${params.length}`); }
+    if (terms !== undefined) { params.push(terms); updates.push(`terms = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (payment_terms !== undefined) { params.push(payment_terms); updates.push(`payment_terms = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(account_id);
+      await pool.query(`UPDATE b2b_accounts SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM b2b_accounts WHERE id = $1', [account_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'B2B_ACCOUNT', account_id, req.body, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update B2B account error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/b2b-locations', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { account_id, label, address, contact_name, contact_phone } = req.body;
+    if (!account_id || !label || !address) return res.status(400).json({ message: 'account_id, label, and address required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO b2b_locations (id, account_id, label, address, contact_name, contact_phone, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+      [id, account_id, label, address, contact_name || null, contact_phone || null, true, now, now]
+    );
+    const result = await pool.query('SELECT * FROM b2b_locations WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'B2B_LOCATION', id, { account_id, label }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create B2B location error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/b2b-locations/:location_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { location_id } = req.params;
+    const { label, address, contact_name, contact_phone, is_active } = req.body;
+    const existing = await pool.query('SELECT * FROM b2b_locations WHERE id = $1', [location_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'B2B location not found' });
+    const updates = [];
+    const params = [];
+    if (label !== undefined) { params.push(label); updates.push(`label = $${params.length}`); }
+    if (address !== undefined) { params.push(address); updates.push(`address = $${params.length}`); }
+    if (contact_name !== undefined) { params.push(contact_name); updates.push(`contact_name = $${params.length}`); }
+    if (contact_phone !== undefined) { params.push(contact_phone); updates.push(`contact_phone = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(location_id);
+      await pool.query(`UPDATE b2b_locations SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM b2b_locations WHERE id = $1', [location_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'B2B_LOCATION', location_id, req.body, req.ip);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update B2B location error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/b2b-locations/:location_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { location_id } = req.params;
+    const existing = await pool.query('SELECT * FROM b2b_locations WHERE id = $1', [location_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'B2B location not found' });
+    await pool.query('DELETE FROM b2b_locations WHERE id = $1', [location_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'B2B_LOCATION', location_id, null, req.ip);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete B2B location error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/contract-pricing', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { account_id, service_id, pricing_json } = req.body;
+    if (!account_id || !service_id || !pricing_json) return res.status(400).json({ message: 'account_id, service_id, and pricing_json required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO contract_pricing (id, account_id, service_id, pricing_json, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, account_id, service_id, pricing_json, now, now]
+    );
+    const result = await pool.query('SELECT * FROM contract_pricing WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'CONTRACT_PRICING', id, { account_id, service_id }, req.ip);
+    emitEvent('b2b/contract_pricing_updated', { event_type: 'b2b_contract_pricing_updated', timestamp: now, account_id, service_id, pricing_json });
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create contract pricing error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/contract-pricing/:pricing_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { pricing_id } = req.params;
+    const { pricing_json } = req.body;
+    const existing = await pool.query('SELECT * FROM contract_pricing WHERE id = $1', [pricing_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Contract pricing not found' });
+    if (pricing_json) {
+      await pool.query('UPDATE contract_pricing SET pricing_json = $1, updated_at = $2 WHERE id = $3', [pricing_json, new Date().toISOString(), pricing_id]);
+    }
+    const result = await pool.query('SELECT * FROM contract_pricing WHERE id = $1', [pricing_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'CONTRACT_PRICING', pricing_id, { pricing_json }, req.ip);
+    emitEvent('b2b/contract_pricing_updated', { event_type: 'b2b_contract_pricing_updated', timestamp: new Date().toISOString(), account_id: existing.rows[0].account_id, service_id: existing.rows[0].service_id, pricing_json });
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update contract pricing error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 6: Phase 2 - Inventory Management
+// =====================================================
+
+app.get('/api/admin/inventory-items', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const low_stock = req.query.low_stock as string | undefined;
+    const is_active = req.query.is_active as string | undefined;
+    let query = 'SELECT * FROM inventory_items';
+    const conditions = [];
+    const params = [];
+    if (is_active !== undefined) {
+      params.push(is_active === 'true');
+      conditions.push(`is_active = $${params.length}`);
+    }
+    if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
+    query += ' ORDER BY name';
+    const result = await pool.query(query, params);
+    const formatted = result.rows.map(item => {
+      let stock_status = 'in_stock';
+      if (parseFloat(item.qty_on_hand) <= 0) stock_status = 'out_of_stock';
+      else if (parseFloat(item.qty_on_hand) <= parseFloat(item.reorder_point)) stock_status = 'low_stock';
+      return { item, stock_status };
+    });
+    if (low_stock === 'true') {
+      res.json(formatted.filter(f => f.stock_status === 'low_stock' || f.stock_status === 'out_of_stock'));
+    } else {
+      res.json(formatted);
+    }
+  } catch (error) {
+    console.error('List inventory items error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/inventory-items', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { sku, name, unit, qty_on_hand, reorder_point, reorder_qty, supplier_name, cost_per_unit } = req.body;
+    if (!sku || !name || !unit) return res.status(400).json({ message: 'sku, name, and unit required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO inventory_items (id, sku, name, unit, qty_on_hand, reorder_point, reorder_qty, supplier_name, cost_per_unit, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
+      [id, sku, name, unit, qty_on_hand || 0, reorder_point || 0, reorder_qty || 0, supplier_name || null, cost_per_unit || 0, true, now, now]
+    );
+    const result = await pool.query('SELECT * FROM inventory_items WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'INVENTORY_ITEM', id, { sku, name }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create inventory item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/inventory-items/:item_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { item_id } = req.params;
+    const { qty_on_hand, reorder_point, reorder_qty, cost_per_unit, is_active, supplier_name } = req.body;
+    const existing = await pool.query('SELECT * FROM inventory_items WHERE id = $1', [item_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Inventory item not found' });
+    const updates = [];
+    const params = [];
+    if (qty_on_hand !== undefined) { params.push(qty_on_hand); updates.push(`qty_on_hand = $${params.length}`); }
+    if (reorder_point !== undefined) { params.push(reorder_point); updates.push(`reorder_point = $${params.length}`); }
+    if (reorder_qty !== undefined) { params.push(reorder_qty); updates.push(`reorder_qty = $${params.length}`); }
+    if (cost_per_unit !== undefined) { params.push(cost_per_unit); updates.push(`cost_per_unit = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (supplier_name !== undefined) { params.push(supplier_name); updates.push(`supplier_name = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(item_id);
+      await pool.query(`UPDATE inventory_items SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM inventory_items WHERE id = $1', [item_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'INVENTORY_ITEM', item_id, req.body, req.ip);
+    // Check low stock alert
+    const item = result.rows[0];
+    if (parseFloat(item.qty_on_hand) <= parseFloat(item.reorder_point) && parseFloat(item.qty_on_hand) > 0) {
+      emitEvent('inventory/low_stock_alert', { event_type: 'inventory_low_stock_alert', timestamp: new Date().toISOString(), inventory_item_id: item_id, sku: item.sku, name: item.name, qty_on_hand: item.qty_on_hand, reorder_point: item.reorder_point });
+    } else if (parseFloat(item.qty_on_hand) <= 0) {
+      emitEvent('inventory/out_of_stock', { event_type: 'inventory_out_of_stock', timestamp: new Date().toISOString(), inventory_item_id: item_id, sku: item.sku, name: item.name });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update inventory item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/inventory-transactions', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const inventory_item_id = req.query.inventory_item_id as string | undefined;
+    let query = 'SELECT * FROM inventory_transactions';
+    const params = [];
+    if (inventory_item_id) {
+      params.push(inventory_item_id);
+      query += ` WHERE inventory_item_id = $${params.length}`;
+    }
+    query += ' ORDER BY created_at DESC LIMIT 100';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List inventory transactions error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/material-consumption-rules', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const service_id = req.query.service_id as string | undefined;
+    let query = `SELECT r.*, s.name as service_name, s.slug as service_slug, i.sku, i.name as item_name, i.unit, i.qty_on_hand
+      FROM material_consumption_rules r
+      LEFT JOIN services s ON r.service_id = s.id
+      LEFT JOIN inventory_items i ON r.inventory_item_id = i.id`;
+    const params = [];
+    if (service_id) {
+      params.push(service_id);
+      query += ` WHERE r.service_id = $${params.length}`;
+    }
+    query += ' ORDER BY s.name, i.name';
+    const result = await pool.query(query, params);
+    const formatted = result.rows.map(row => ({
+      rule: { id: row.id, service_id: row.service_id, inventory_item_id: row.inventory_item_id, rule_json: row.rule_json, created_at: row.created_at, updated_at: row.updated_at },
+      service: { id: row.service_id, name: row.service_name, slug: row.service_slug },
+      inventory_item: { id: row.inventory_item_id, sku: row.sku, name: row.item_name, unit: row.unit, qty_on_hand: row.qty_on_hand }
+    }));
+    res.json(formatted);
+  } catch (error) {
+    console.error('List consumption rules error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/material-consumption-rules', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { service_id, inventory_item_id, rule_json } = req.body;
+    if (!service_id || !inventory_item_id || !rule_json) return res.status(400).json({ message: 'service_id, inventory_item_id, and rule_json required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO material_consumption_rules (id, service_id, inventory_item_id, rule_json, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, service_id, inventory_item_id, rule_json, now, now]
+    );
+    const result = await pool.query('SELECT * FROM material_consumption_rules WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'CONSUMPTION_RULE', id, { service_id, inventory_item_id }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create consumption rule error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/purchase-orders', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const status = req.query.status as string | undefined;
+    let query = 'SELECT * FROM purchase_orders';
+    const params = [];
+    if (status) {
+      params.push(status);
+      query += ` WHERE status = $${params.length}`;
+    }
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
+    const formatted = [];
+    for (const po of result.rows) {
+      const items = await pool.query('SELECT * FROM purchase_order_items WHERE purchase_order_id = $1', [po.id]);
+      formatted.push({ purchase_order: po, items: items.rows });
+    }
+    res.json(formatted);
+  } catch (error) {
+    console.error('List purchase orders error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/purchase-orders', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { supplier_name, notes } = req.body;
+    if (!supplier_name) return res.status(400).json({ message: 'supplier_name required' });
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      'INSERT INTO purchase_orders (id, supplier_name, status, ordered_at, received_at, notes, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [id, supplier_name, 'DRAFT', null, null, notes || null, now, now]
+    );
+    const result = await pool.query('SELECT * FROM purchase_orders WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'PURCHASE_ORDER', id, { supplier_name }, req.ip);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create purchase order error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/purchase-orders/:po_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { po_id } = req.params;
+    const { status, ordered_at, received_at, notes } = req.body;
+    const existing = await pool.query('SELECT * FROM purchase_orders WHERE id = $1', [po_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ message: 'Purchase order not found' });
+    const oldStatus = existing.rows[0].status;
+    const updates = [];
+    const params = [];
+    if (status !== undefined) { params.push(status); updates.push(`status = $${params.length}`); }
+    if (ordered_at !== undefined) { params.push(ordered_at); updates.push(`ordered_at = $${params.length}`); }
+    if (received_at !== undefined) { params.push(received_at); updates.push(`received_at = $${params.length}`); }
+    if (notes !== undefined) { params.push(notes); updates.push(`notes = $${params.length}`); }
+    if (updates.length > 0) {
+      params.push(new Date().toISOString()); updates.push(`updated_at = $${params.length}`);
+      params.push(po_id);
+      await pool.query(`UPDATE purchase_orders SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    const result = await pool.query('SELECT * FROM purchase_orders WHERE id = $1', [po_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'PURCHASE_ORDER', po_id, req.body, req.ip);
+    if (status && status !== oldStatus) {
+      emitEvent('purchase_order/status_updated', { event_type: 'purchase_order_status_updated', timestamp: new Date().toISOString(), purchase_order_id: po_id, old_status: oldStatus, new_status: status });
+    }
+    // If received, update inventory
+    if (status === 'RECEIVED' && oldStatus !== 'RECEIVED') {
+      const items = await pool.query('SELECT * FROM purchase_order_items WHERE purchase_order_id = $1', [po_id]);
+      for (const item of items.rows) {
+        await pool.query('UPDATE inventory_items SET qty_on_hand = qty_on_hand + $1, updated_at = $2 WHERE id = $3', [item.qty, new Date().toISOString(), item.inventory_item_id]);
+        const txId = uuidv4();
+        await pool.query(
+          'INSERT INTO inventory_transactions (id, inventory_item_id, transaction_type, qty, reference_type, reference_id, notes, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [txId, item.inventory_item_id, 'ADDITION', item.qty, 'PURCHASE_ORDER', po_id, 'Restocked from PO', new Date().toISOString()]
+        );
+      }
+      emitEvent('inventory/restock_completed', { event_type: 'inventory_restock_completed', timestamp: new Date().toISOString(), purchase_order_id: po_id });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update purchase order error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// BATCH 7: Phase 2 - Analytics Dashboards
+// =====================================================
+
+app.get('/api/admin/analytics/dashboard', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const period = req.query.period as string || 'last_30_days';
+    let dateFilter = '';
+    const now = new Date();
+    if (period === 'last_7_days') dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    else if (period === 'last_30_days') dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    else if (period === 'last_90_days') dateFilter = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    else if (period === 'this_year') dateFilter = new Date(now.getFullYear(), 0, 1).toISOString();
+    else dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Revenue metrics
+    const revenueRes = await pool.query(`SELECT COALESCE(SUM(total_amount), 0) as total, COUNT(*) as count FROM orders WHERE created_at >= $1 AND status = 'COMPLETED'`, [dateFilter]);
+    const totalRevenue = parseFloat(revenueRes.rows[0].total) || 0;
+    const orderCount = parseInt(revenueRes.rows[0].count) || 0;
+    const avgOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+    // Revenue by service
+    const revByServiceRes = await pool.query(`SELECT s.name, COALESCE(SUM(o.total_amount), 0) as revenue FROM orders o JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id WHERE o.created_at >= $1 AND o.status = 'COMPLETED' GROUP BY s.name ORDER BY revenue DESC LIMIT 10`, [dateFilter]);
+    const revenueByService = revByServiceRes.rows.map(r => ({ service_name: r.name, revenue: parseFloat(r.revenue) }));
+
+    // Revenue by tier
+    const revByTierRes = await pool.query(`SELECT t.name, COALESCE(SUM(o.total_amount), 0) as revenue FROM orders o JOIN tier_packages t ON o.tier_id = t.id WHERE o.created_at >= $1 AND o.status = 'COMPLETED' GROUP BY t.name ORDER BY revenue DESC`, [dateFilter]);
+    const revenueByTier = revByTierRes.rows.map(r => ({ tier_name: r.name, revenue: parseFloat(r.revenue) }));
+
+    // Conversion funnel (simplified)
+    const quotesSubmitted = await pool.query(`SELECT COUNT(*) FROM quotes WHERE created_at >= $1`, [dateFilter]);
+    const quotesFinalized = await pool.query(`SELECT COUNT(*) FROM quotes WHERE created_at >= $1 AND status = 'APPROVED'`, [dateFilter]);
+    const ordersCreated = await pool.query(`SELECT COUNT(*) FROM orders WHERE created_at >= $1`, [dateFilter]);
+    const ordersCompleted = await pool.query(`SELECT COUNT(*) FROM orders WHERE created_at >= $1 AND status = 'COMPLETED'`, [dateFilter]);
+    const depositsRes = await pool.query(`SELECT COUNT(*) FROM payments WHERE created_at >= $1 AND status = 'COMPLETED'`, [dateFilter]);
+
+    // Turnaround performance
+    const completedOrders = await pool.query(`SELECT o.*, t.name as tier_name FROM orders o JOIN tier_packages t ON o.tier_id = t.id WHERE o.created_at >= $1 AND o.status = 'COMPLETED'`, [dateFilter]);
+    const turnaroundByTier = {};
+    let onTime = 0, delayed = 0;
+    for (const order of completedOrders.rows) {
+      const tierName = order.tier_name;
+      const created = new Date(order.created_at);
+      const updated = new Date(order.updated_at);
+      const hours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
+      if (!turnaroundByTier[tierName]) turnaroundByTier[tierName] = [];
+      turnaroundByTier[tierName].push(hours);
+      if (order.due_at) {
+        const due = new Date(order.due_at);
+        if (updated <= due) onTime++; else delayed++;
+      }
+    }
+    const avgTurnaroundByTier = {};
+    for (const [tier, hours] of Object.entries(turnaroundByTier)) {
+      avgTurnaroundByTier[tier] = (hours as number[]).reduce((a, b) => a + b, 0) / (hours as number[]).length;
+    }
+    const totalForPercentage = onTime + delayed;
+    const onTimePercentage = totalForPercentage > 0 ? (onTime / totalForPercentage) * 100 : 100;
+    const delayedPercentage = totalForPercentage > 0 ? (delayed / totalForPercentage) * 100 : 0;
+
+    // Emergency bookings
+    const emergencyRes = await pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(o.total_amount), 0) as revenue FROM bookings b JOIN orders o ON o.quote_id = b.quote_id WHERE b.is_emergency = true AND b.created_at >= $1`, [dateFilter]);
+    const emergencyCount = parseInt(emergencyRes.rows[0].count) || 0;
+    const emergencyRevenue = parseFloat(emergencyRes.rows[0].revenue) || 0;
+    const emergencyPercentage = orderCount > 0 ? (emergencyCount / orderCount) * 100 : 0;
+
+    // Outstanding payments
+    const pendingDeposits = await pool.query(`SELECT COALESCE(SUM(deposit_amount), 0) as total FROM orders WHERE status NOT IN ('COMPLETED', 'CANCELLED') AND created_at >= $1`, [dateFilter]);
+    const pendingBalance = await pool.query(`SELECT COALESCE(SUM(total_amount - deposit_amount), 0) as total FROM orders WHERE status IN ('IN_PRODUCTION', 'PROOF_SENT', 'AWAITING_APPROVAL', 'READY_FOR_PICKUP') AND created_at >= $1`, [dateFilter]);
+
+    // Top customers
+    const topCustomersRes = await pool.query(`SELECT u.name, COALESCE(SUM(o.total_amount), 0) as revenue, COUNT(*) as order_count, MAX(o.created_at) as last_order FROM orders o JOIN users u ON o.customer_id = u.id WHERE o.created_at >= $1 AND o.status = 'COMPLETED' GROUP BY u.id, u.name ORDER BY revenue DESC LIMIT 10`, [dateFilter]);
+    const topCustomers = topCustomersRes.rows.map(r => ({ customer_name: r.name, total_revenue: parseFloat(r.revenue), order_count: parseInt(r.order_count), last_order_date: r.last_order }));
+
+    res.json({
+      conversion_funnel: {
+        visited_site: 0, // Would need analytics integration
+        started_quote: 0,
+        submitted_quote: parseInt(quotesSubmitted.rows[0].count),
+        quote_finalized: parseInt(quotesFinalized.rows[0].count),
+        deposit_paid: parseInt(depositsRes.rows[0].count),
+        order_completed: parseInt(ordersCompleted.rows[0].count)
+      },
+      revenue_metrics: {
+        total_revenue: totalRevenue,
+        average_order_value: avgOrderValue,
+        revenue_by_service: revenueByService,
+        revenue_by_tier: revenueByTier
+      },
+      turnaround_performance: {
+        avg_turnaround_by_tier: avgTurnaroundByTier,
+        on_time_percentage: onTimePercentage,
+        delayed_percentage: delayedPercentage
+      },
+      emergency_bookings: {
+        total_count: emergencyCount,
+        total_revenue: emergencyRevenue,
+        percentage_of_total: emergencyPercentage
+      },
+      outstanding_payments: {
+        total_deposits_pending: parseFloat(pendingDeposits.rows[0].total) || 0,
+        total_balance_due: parseFloat(pendingBalance.rows[0].total) || 0,
+        aging_report: { '0-7': 0, '8-14': 0, '15-30': 0, '30+': 0 } // Simplified
+      },
+      top_customers: topCustomers
+    });
+  } catch (error) {
+    console.error('Analytics dashboard error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/admin/analytics/sla', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    // Get all active orders
+    const ordersRes = await pool.query(`
+      SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name
+      FROM orders o
+      LEFT JOIN users u ON o.customer_id = u.id
+      LEFT JOIN quotes q ON o.quote_id = q.id
+      LEFT JOIN services s ON q.service_id = s.id
+      LEFT JOIN tier_packages t ON o.tier_id = t.id
+      WHERE o.status NOT IN ('COMPLETED', 'CANCELLED')
+      ORDER BY o.due_at ASC
+    `);
+
+    const now = new Date();
+    const atRiskJobs = [];
+    const breachedJobs = [];
+    let meetingSLA = 0;
+    let breachedSLA = 0;
+
+    for (const order of ordersRes.rows) {
+      if (!order.due_at) continue;
+      const dueDate = new Date(order.due_at);
+      const hoursRemaining = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      if (hoursRemaining < 0) {
+        const daysOverdue = Math.abs(hoursRemaining) / 24;
+        breachedJobs.push({ order, customer_name: order.customer_name, service_name: order.service_name, tier_name: order.tier_name, days_overdue: Math.round(daysOverdue * 10) / 10 });
+        breachedSLA++;
+      } else if (hoursRemaining <= 4) {
+        atRiskJobs.push({ order, customer_name: order.customer_name, service_name: order.service_name, tier_name: order.tier_name, hours_remaining: Math.round(hoursRemaining * 10) / 10 });
+      } else {
+        meetingSLA++;
+      }
+    }
+
+    const total = meetingSLA + breachedSLA + atRiskJobs.length;
+    const meetingPercentage = total > 0 ? ((meetingSLA + atRiskJobs.length) / total) * 100 : 100;
+    const breachedPercentage = total > 0 ? (breachedSLA / total) * 100 : 0;
+
+    // Avg completion time by tier
+    const completedRes = await pool.query(`
+      SELECT t.name as tier_name, o.created_at, o.updated_at
+      FROM orders o
+      JOIN tier_packages t ON o.tier_id = t.id
+      WHERE o.status = 'COMPLETED'
+      ORDER BY o.updated_at DESC LIMIT 100
+    `);
+    const completionByTier = {};
+    for (const order of completedRes.rows) {
+      const created = new Date(order.created_at);
+      const updated = new Date(order.updated_at);
+      const hours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
+      if (!completionByTier[order.tier_name]) completionByTier[order.tier_name] = [];
+      completionByTier[order.tier_name].push(hours);
+    }
+    const avgCompletionTime = {};
+    for (const [tier, hours] of Object.entries(completionByTier)) {
+      avgCompletionTime[tier] = (hours as number[]).reduce((a, b) => a + b, 0) / (hours as number[]).length;
+    }
+
+    res.json({
+      sla_performance: {
+        meeting_sla_percentage: Math.round(meetingPercentage * 10) / 10,
+        breached_sla_percentage: Math.round(breachedPercentage * 10) / 10,
+        avg_completion_time: avgCompletionTime
+      },
+      at_risk_jobs: atRiskJobs,
+      breached_jobs: breachedJobs
+    });
+  } catch (error) {
+    console.error('SLA dashboard error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

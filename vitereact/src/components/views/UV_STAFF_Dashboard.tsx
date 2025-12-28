@@ -123,9 +123,11 @@ const UV_STAFF_Dashboard: React.FC = () => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
-    const assigned_jobs = jobs_data.filter(job => 
-      job.order.assigned_staff_id === current_user?.id
-    );
+    // Guard against null current_user
+    const userId = current_user?.id;
+    const assigned_jobs = userId
+      ? jobs_data.filter(job => job.order.assigned_staff_id === userId)
+      : [];
 
     return {
       assigned_jobs_count: assigned_jobs.length,

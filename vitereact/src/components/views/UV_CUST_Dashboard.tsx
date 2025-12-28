@@ -429,9 +429,9 @@ const UV_CUST_Dashboard: React.FC = () => {
                     ⚠️ Action Required
                   </h2>
                   <div className="space-y-3">
-                    {nextActions.map((action, index) => (
+                    {nextActions.map((action) => (
                       <Link
-                        key={`${action.type}-${index}`}
+                        key={`${action.type}-${action.action_url}`}
                         to={action.action_url}
                         className="flex items-center justify-between p-4 bg-orange-50 border-l-4 border-orange-500 rounded-lg hover:bg-orange-100 transition-colors"
                       >

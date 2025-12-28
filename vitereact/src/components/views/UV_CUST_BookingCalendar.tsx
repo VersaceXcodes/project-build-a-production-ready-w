@@ -308,32 +308,41 @@ const UV_CUST_BookingCalendar: React.FC = () => {
   // Generate time slots for selected date
   const generate_time_slots = (date_string: string): TimeSlot[] => {
     if (!availability_response?.calendar_settings) return [];
-    
+
     const settings = availability_response.calendar_settings;
     const start_hour = settings.start_hour;
     const end_hour = settings.end_hour;
     const duration = settings.slot_duration_minutes;
-    
+
+    // Get available slots from API response for this date
+    const date_availability = availability_response.available_dates.find(d => d.date === date_string);
+    const available_api_slots = date_availability?.available_slots || [];
+
     const slots: TimeSlot[] = [];
     let current_hour = start_hour;
-    
+
     while (current_hour < end_hour) {
       const start_at = `${date_string}T${String(current_hour).padStart(2, '0')}:00:00Z`;
       const end_minutes = (current_hour * 60) + duration;
       const end_hour_calc = Math.floor(end_minutes / 60);
       const end_minute_calc = end_minutes % 60;
       const end_at = `${date_string}T${String(end_hour_calc).padStart(2, '0')}:${String(end_minute_calc).padStart(2, '0')}:00Z`;
-      
+
+      // Check if this slot is available from the API response
+      const api_slot = available_api_slots.find(s => s.start_at === start_at);
+      const is_slot_available = api_slot ? api_slot.is_available : true;
+      const is_emergency_available = api_slot ? api_slot.emergency_available : true;
+
       slots.push({
         start_at,
         end_at,
-        is_available: true, // Simplified - would check against existing bookings
-        emergency_available: true,
+        is_available: is_slot_available,
+        emergency_available: is_emergency_available,
       });
-      
+
       current_hour += duration / 60;
     }
-    
+
     return slots;
   };
 
@@ -582,7 +591,7 @@ const UV_CUST_BookingCalendar: React.FC = () => {
                       <button
                         key={date_string}
                         onClick={() => {
-                          if (is_available) {
+                          if (is_available && date_info) {
                             select_date(date_string, date_info);
                           } else if (is_full && !is_past) {
                             request_emergency_booking(date_string);

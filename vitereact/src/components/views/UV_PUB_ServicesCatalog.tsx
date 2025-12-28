@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -83,6 +83,18 @@ const UV_PUB_ServicesCatalog: React.FC = () => {
     searchParams.get('search') || ''
   );
 
+  // Ref for debounce timeout (avoids window pollution)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Global State (only for toast notifications)
   const show_toast = useAppStore(state => state.show_toast);
 
@@ -150,17 +162,16 @@ const UV_PUB_ServicesCatalog: React.FC = () => {
   const handle_search_input_change = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     set_search_input(value);
-    
+
     // Auto-submit search after user stops typing (debounced)
-    // We'll use a simple timeout approach
     if (value.length >= 3 || value.length === 0) {
       // Clear existing timeout
-      if ((window as any).searchTimeout) {
-        clearTimeout((window as any).searchTimeout);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-      
+
       // Set new timeout
-      (window as any).searchTimeout = setTimeout(() => {
+      searchTimeoutRef.current = setTimeout(() => {
         set_search_query(value);
       }, 500);
     }

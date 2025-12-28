@@ -136,6 +136,7 @@ const UV_ADMIN_ContentManager: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [show_preview_modal, setShowPreviewModal] = useState(false);
   const [show_discard_modal, setShowDiscardModal] = useState(false);
+  const [content_ids, setContentIds] = useState<Record<string, string>>({});
 
   // Check auth
   useEffect(() => {
@@ -161,14 +162,24 @@ const UV_ADMIN_ContentManager: React.FC = () => {
     refetchOnWindowFocus: false,
     select: (data) => {
       const contentMap: Record<string, string> = {};
+      const idMap: Record<string, string> = {};
       data.forEach(item => {
         contentMap[item.section_key] = item.content;
+        idMap[`home_${item.section_key}`] = item.id;
       });
+      // Store IDs for saving
+      setContentIds(prev => ({ ...prev, ...idMap }));
+      let topServicesIds: string[] = [];
+      try {
+        topServicesIds = JSON.parse(contentMap.top_services_ids || '[]');
+      } catch {
+        topServicesIds = [];
+      }
       return {
         hero_headline: contentMap.hero_headline || '',
         hero_subtext: contentMap.hero_subtext || '',
         hero_cta_text: contentMap.hero_cta_text || 'Get a Quote',
-        top_services_ids: JSON.parse(contentMap.top_services_ids || '[]'),
+        top_services_ids: topServicesIds,
       };
     },
   });
@@ -182,9 +193,13 @@ const UV_ADMIN_ContentManager: React.FC = () => {
     refetchOnWindowFocus: false,
     select: (data) => {
       const contentMap: Record<string, string> = {};
+      const idMap: Record<string, string> = {};
       data.forEach(item => {
         contentMap[item.section_key] = item.content;
+        idMap[`about_${item.section_key}`] = item.id;
       });
+      // Store IDs for saving
+      setContentIds(prev => ({ ...prev, ...idMap }));
       return {
         brand_purpose: contentMap.brand_purpose || '',
         values_content: contentMap.values_content || '',
@@ -221,21 +236,45 @@ const UV_ADMIN_ContentManager: React.FC = () => {
     }
   }, [servicesData]);
 
-  // Save mutation (simplified - in real implementation, would need multiple PATCH calls)
+  // Save mutation - implements PATCH calls for each content section
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // This is a simplified implementation
-      // In production, would need to make individual PATCH calls for each content section
+      if (!authToken) throw new Error('Not authenticated');
+      const updates: Promise<void>[] = [];
+
       if (active_section === 'homepage') {
-        // Would need to save each section individually
-        // For now, showing the pattern
-        await Promise.all([
-          // updateMarketingContent(hero_headline_id, homepage_content.hero_headline, authToken),
-          // updateMarketingContent(hero_subtext_id, homepage_content.hero_subtext, authToken),
-          // etc.
-        ]);
+        // Save homepage content sections
+        if (content_ids['home_hero_headline']) {
+          updates.push(updateMarketingContent(content_ids['home_hero_headline'], homepage_content.hero_headline, authToken));
+        }
+        if (content_ids['home_hero_subtext']) {
+          updates.push(updateMarketingContent(content_ids['home_hero_subtext'], homepage_content.hero_subtext, authToken));
+        }
+        if (content_ids['home_hero_cta_text']) {
+          updates.push(updateMarketingContent(content_ids['home_hero_cta_text'], homepage_content.hero_cta_text, authToken));
+        }
+        if (content_ids['home_top_services_ids']) {
+          updates.push(updateMarketingContent(content_ids['home_top_services_ids'], JSON.stringify(homepage_content.top_services_ids), authToken));
+        }
+      } else if (active_section === 'about') {
+        // Save about content sections
+        if (content_ids['about_brand_purpose']) {
+          updates.push(updateMarketingContent(content_ids['about_brand_purpose'], about_content.brand_purpose, authToken));
+        }
+        if (content_ids['about_values_content']) {
+          updates.push(updateMarketingContent(content_ids['about_values_content'], about_content.values_content, authToken));
+        }
+        if (content_ids['about_approach_content']) {
+          updates.push(updateMarketingContent(content_ids['about_approach_content'], about_content.approach_content, authToken));
+        }
+      } else if (active_section === 'policies') {
+        // Save policies content sections (would need to fetch policies content IDs first)
+        // For now, policies content saving would require similar ID mapping
       }
-      // Similar for about and policies sections
+
+      if (updates.length > 0) {
+        await Promise.all(updates);
+      }
     },
     onSuccess: () => {
       setHasUnsavedChanges(false);

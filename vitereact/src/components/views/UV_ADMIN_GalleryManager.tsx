@@ -367,11 +367,19 @@ const UV_ADMIN_GalleryManager: React.FC = () => {
 
   const handleOpenEditModal = (image: GalleryImage) => {
     setSelectedImage(image);
-    const parsedCategories = image.categories ? JSON.parse(image.categories) : [];
+    let parsedCategories: string[] = [];
+    if (image.categories) {
+      try {
+        const parsed = JSON.parse(image.categories);
+        parsedCategories = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        parsedCategories = [];
+      }
+    }
     setEditForm({
       title: image.title,
       description: image.description || '',
-      categories: Array.isArray(parsedCategories) ? parsedCategories : [],
+      categories: parsedCategories,
       is_active: image.is_active,
     });
     setEditModalOpen(true);

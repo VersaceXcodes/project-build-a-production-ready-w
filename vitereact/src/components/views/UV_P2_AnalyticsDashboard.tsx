@@ -197,12 +197,15 @@ const UV_P2_AnalyticsDashboard: React.FC = () => {
       csvContent += 'CONVERSION FUNNEL\n';
       csvContent += 'Stage,Count,Conversion Rate\n';
       const funnel = analyticsData.conversion_funnel;
+      // Safe division helper to avoid NaN/Infinity
+      const safeDivide = (num: number, denom: number): string =>
+        denom > 0 ? ((num / denom) * 100).toFixed(1) : '0.0';
       csvContent += `Visited Site,${funnel.visited_site},100%\n`;
-      csvContent += `Started Quote,${funnel.started_quote},${((funnel.started_quote / funnel.visited_site) * 100).toFixed(1)}%\n`;
-      csvContent += `Submitted Quote,${funnel.submitted_quote},${((funnel.submitted_quote / funnel.started_quote) * 100).toFixed(1)}%\n`;
-      csvContent += `Quote Finalized,${funnel.quote_finalized},${((funnel.quote_finalized / funnel.submitted_quote) * 100).toFixed(1)}%\n`;
-      csvContent += `Deposit Paid,${funnel.deposit_paid},${((funnel.deposit_paid / funnel.quote_finalized) * 100).toFixed(1)}%\n`;
-      csvContent += `Order Completed,${funnel.order_completed},${((funnel.order_completed / funnel.deposit_paid) * 100).toFixed(1)}%\n\n`;
+      csvContent += `Started Quote,${funnel.started_quote},${safeDivide(funnel.started_quote, funnel.visited_site)}%\n`;
+      csvContent += `Submitted Quote,${funnel.submitted_quote},${safeDivide(funnel.submitted_quote, funnel.started_quote)}%\n`;
+      csvContent += `Quote Finalized,${funnel.quote_finalized},${safeDivide(funnel.quote_finalized, funnel.submitted_quote)}%\n`;
+      csvContent += `Deposit Paid,${funnel.deposit_paid},${safeDivide(funnel.deposit_paid, funnel.quote_finalized)}%\n`;
+      csvContent += `Order Completed,${funnel.order_completed},${safeDivide(funnel.order_completed, funnel.deposit_paid)}%\n\n`;
 
       // Revenue Metrics
       csvContent += 'REVENUE METRICS\n';

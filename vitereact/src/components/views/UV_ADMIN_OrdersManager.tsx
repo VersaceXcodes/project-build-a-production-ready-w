@@ -378,20 +378,38 @@ const UV_ADMIN_OrdersManager: React.FC = () => {
     setBulkActionLoading(true);
 
     try {
-      await Promise.all(
+      // Use allSettled to allow partial success
+      const results = await Promise.allSettled(
         selectedOrderIds.map(orderId =>
           assignStaffToOrder(authToken!, orderId, staffId)
         )
       );
 
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       setSelectedOrderIds([]);
-      
-      showToast({
-        type: 'success',
-        message: `${selectedOrderIds.length} orders assigned successfully`,
-        duration: 3000,
-      });
+
+      if (failed === 0) {
+        showToast({
+          type: 'success',
+          message: `${succeeded} orders assigned successfully`,
+          duration: 3000,
+        });
+      } else if (succeeded > 0) {
+        showToast({
+          type: 'info',
+          message: `${succeeded} orders assigned, ${failed} failed`,
+          duration: 5000,
+        });
+      } else {
+        showToast({
+          type: 'error',
+          message: 'All bulk assignments failed',
+          duration: 5000,
+        });
+      }
     } catch (error: any) {
       showToast({
         type: 'error',

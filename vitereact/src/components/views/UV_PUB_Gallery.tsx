@@ -165,20 +165,16 @@ const UV_PUB_Gallery: React.FC = () => {
       current_image_index: imageIndex,
       images: galleryImages,
     });
-    
-    // Lock body scroll
-    document.body.style.overflow = 'hidden';
+    // Body scroll is handled by useEffect
   };
-  
+
   const closeLightbox = () => {
     setLightboxState({
       is_open: false,
       current_image_index: 0,
       images: [],
     });
-    
-    // Unlock body scroll
-    document.body.style.overflow = '';
+    // Body scroll is handled by useEffect
   };
   
   const navigateLightbox = (direction: 'next' | 'prev') => {
@@ -223,11 +219,24 @@ const UV_PUB_Gallery: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [lightboxState.is_open, lightboxState.images.length]);
-  
+
+  // Lock body scroll when lightbox is open with proper cleanup
+  useEffect(() => {
+    if (lightboxState.is_open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [lightboxState.is_open]);
+
   // ===========================
   // ERROR HANDLING
   // ===========================
-  
+
   useEffect(() => {
     if (error) {
       showToast({

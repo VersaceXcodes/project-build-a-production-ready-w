@@ -92,11 +92,14 @@ const fetchPaymentsPending = async (auth_token: string): Promise<number> => {
   // Count orders where deposit not fully paid or balance due
   const orders = response.data.orders || [];
   let pending_count = 0;
-  
+
   // This is simplified - in real implementation would check payment status per order
   // For now, estimate based on orders not completed
   const incomplete_statuses = ['QUOTE_REQUESTED', 'APPROVED', 'IN_PRODUCTION', 'PROOF_SENT', 'AWAITING_APPROVAL'];
-  pending_count = orders.filter((o: any) => incomplete_statuses.includes(o.order?.status || o.status)).length;
+  pending_count = orders.filter((o: any) => {
+    const status = o.order?.status ?? o.status ?? '';
+    return incomplete_statuses.includes(status);
+  }).length;
   
   return pending_count;
 };

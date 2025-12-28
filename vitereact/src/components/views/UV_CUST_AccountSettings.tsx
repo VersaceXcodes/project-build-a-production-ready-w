@@ -50,7 +50,7 @@ const UV_CUST_AccountSettings: React.FC = () => {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof profileForm) => {
       const response = await axios.patch(
-        `${API_BASE_URL}/api/auth/profile`,
+        `${API_BASE_URL}/api/users/profile`,
         data,
         { headers: { Authorization: `Bearer ${auth_token}` } }
       );
@@ -77,7 +77,7 @@ const UV_CUST_AccountSettings: React.FC = () => {
   const changePasswordMutation = useMutation({
     mutationFn: async (data: typeof passwordForm) => {
       await axios.post(
-        `${API_BASE_URL}/api/auth/change-password`,
+        `${API_BASE_URL}/api/users/change-password`,
         {
           current_password: data.current_password,
           new_password: data.new_password
