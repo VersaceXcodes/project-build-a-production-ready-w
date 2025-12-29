@@ -62,29 +62,29 @@ const GV_HeaderAuth: React.FC = () => {
   const user_role = current_user?.role || 'CUSTOMER';
 
   // Dashboard path based on role
-  const dashboard_path = user_role === 'CUSTOMER' ? '/app'
-    : user_role === 'STAFF' ? '/staff'
-    : user_role === 'ADMIN' ? '/admin'
+  const dashboard_path = user_role === 'CUSTOMER' ? '/app/dashboard'
+    : user_role === 'STAFF' ? '/staff/dashboard'
+    : user_role === 'ADMIN' ? '/admin/dashboard'
     : '/';
 
   // Navigation links based on role
   const get_nav_links = () => {
     if (user_role === 'CUSTOMER') {
       return [
-        { label: 'Dashboard', path: '/app', icon: Home, section: '' },
+        { label: 'Dashboard', path: '/app/dashboard', icon: Home, section: '' },
         { label: 'Quotes', path: '/app/quotes', icon: FileText, section: 'quotes' },
         { label: 'Orders', path: '/app/orders', icon: ShoppingCart, section: 'orders' },
         { label: 'Bookings', path: '/app/bookings', icon: Calendar, section: 'bookings' },
       ];
     } else if (user_role === 'STAFF') {
       return [
-        { label: 'Dashboard', path: '/staff', icon: Home, section: '' },
+        { label: 'Dashboard', path: '/staff/dashboard', icon: Home, section: '' },
         { label: 'Jobs', path: '/staff/jobs', icon: ClipboardList, section: 'jobs' },
         { label: 'Calendar', path: '/staff/calendar', icon: Calendar, section: 'calendar' },
       ];
     } else if (user_role === 'ADMIN') {
       const base_links = [
-        { label: 'Dashboard', path: '/admin', icon: Home, section: '' },
+        { label: 'Dashboard', path: '/admin/dashboard', icon: Home, section: '' },
         { label: 'Services', path: '/admin/services', icon: Briefcase, section: 'services' },
         { label: 'Orders', path: '/admin/orders', icon: ShoppingCart, section: 'orders' },
         { label: 'Users', path: '/admin/users', icon: Users, section: 'users' },
