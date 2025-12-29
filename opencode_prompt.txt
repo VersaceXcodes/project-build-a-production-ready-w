@@ -1,249 +1,247 @@
+You are a senior frontend engineer debugging a MOBILE NAVIGATION BUG.
 
-You are tasked with generating comprehensive test artifacts for a web application.
-📊 CONTEXT PROVIDED:
+CONTEXT:
+- This is a mobile-first responsive website.
+- There is a hamburger menu (3-line icon) on mobile.
+- When the user taps the hamburger icon, NOTHING happens.
+- No sidebar, drawer, or menu becomes visible.
+- This is a critical UX bug.
 
-PACKAGE.JSON ANALYSIS:
-Dependencies: concurrently
-Dev Dependencies: @flydotio/dockerfile
-Scripts: dev
+YOUR TASK:
+Identify the root cause and FIX the mobile sidebar so it opens and closes correctly on tap, with proper animations, accessibility, and state handling.
 
+--------------------------------------------
+REQUIREMENTS (NON-NEGOTIABLE)
+--------------------------------------------
 
-DATABASE SCHEMA AND SEED DATA (sample):
--- =====================================================
--- DROP TABLES
--- =====================================================
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS customer_profiles CASCADE;
-DROP TABLE IF EXISTS staff_profiles CASCADE;
-DROP TABLE IF EXISTS service_categories CASCADE;
-DROP TABLE IF EXISTS services CASCADE;
-DROP TABLE IF EXISTS service_options CASCADE;
-DROP TABLE IF EXISTS tier_packages CASCADE;
-DROP TABLE IF EXISTS tier_features CASCADE;
-DROP TABLE IF EXISTS b2b_accounts CASCADE;
-DROP TABLE IF EXISTS b2b_locations CASCADE;
-DROP TABLE IF EXISTS quotes CASCADE;
-DROP TABLE IF EXISTS quote_answers CASCADE;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS uploads CASCADE;
-DROP TABLE IF EXISTS bookings CASCADE;
-DROP TABLE IF EXISTS proof_versions CASCADE;
-DROP TABLE IF EXISTS invoices CASCADE;
-DROP TABLE IF EXISTS payments CASCADE;
-DROP TABLE IF EXISTS message_threads CASCADE;
-DROP TABLE IF EXISTS messages CASCADE;
-DROP TABLE IF EXISTS settings CASCADE;
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS gallery_images CASCADE;
-DROP TABLE IF EXISTS case_studies CASCADE;
-DROP TABLE IF EXISTS marketing_content CASCADE;
-DROP TABLE IF EXISTS tier_checklist_items CASCADE;
-DROP TABLE IF EXISTS contact_inquiries CASCADE;
-DROP TABLE IF EXISTS contract_pricing CASCADE;
-DROP TABLE IF EXISTS inventory_items CASCADE;
-DROP TABLE IF EXISTS material_consumption_rules CASCADE;
-DROP TABLE IF EXISTS purchase_orders CASCADE;
-DROP TABLE IF EXISTS purchase_order_items CASCADE;
-DROP TABLE IF EXISTS inventory_transactions CASCADE;
-DROP TABLE IF EXISTS calendar_settings CASCADE;
-DROP TABLE IF EXISTS blackout_dates CASCADE;
-DROP TABLE IF EXISTS notification_preferences CASCADE;
-DROP TABLE IF EXISTS password_reset_tokens CASCADE;
-DROP TABLE IF EXISTS sessions CASCADE;
+1) FUNCTIONALITY
+- Tapping the hamburger icon MUST open a mobile sidebar / drawer.
+- Tapping again OR tapping outside the drawer MUST close it.
+- Sidebar must slide in smoothly (left or right).
+- State must persist correctly during navigation.
+- Must work on real mobile devices (iOS Safari, Android Chrome).
 
--- =====================================================
--- CREATE TABLES
--- =====================================================
+2) STATE MANAGEMENT
+- Use explicit state (e.g. `isMenuOpen`).
+- Hamburger button toggles this state.
+- Sidebar visibility MUST depend ONLY on this state.
+- No CSS-only hover hacks.
 
--- Users table
-CREATE TABLE users (
-    id ...
+3) COMMON BUGS TO CHECK AND FIX
+You MUST verify and fix any of the following if present:
+- Missing `onClick` handler on hamburger button
+- `pointer-events: none` on the button or overlay
+- Sidebar rendered but hidden via `display: none` with no toggle
+- Sidebar mounted outside React tree or behind z-index
+- `z-index` lower than header or hero section
+- Overflow hidden on body blocking interaction
+- Event handler attached to wrong element
+- Mobile breakpoint hiding the sidebar entirely
+- Sidebar component never mounted
 
+4) ACCESSIBILITY
+- Hamburger button MUST be a `<button>` element (not a div).
+- Add `aria-expanded`, `aria-controls`.
+- Sidebar must trap focus when open.
+- Escape key closes the menu.
+- Screen-reader friendly.
 
-BACKEND API ENDPOINTS (extracted from server code):
-app.post('/api/auth/register'
-app.post('/api/auth/login'
-app.post('/api/auth/forgot-password'
-app.post('/api/auth/reset-password'
-app.get('/api/auth/me'
-app.get('/api/public/services'
-app.get('/api/public/services/:service_slug'
-app.get('/api/public/service-categories'
-app.get('/api/public/tiers'
-app.get('/api/public/gallery'
-app.get('/api/public/case-studies/:case_study_slug'
-app.get('/api/public/marketing-content'
-app.post('/api/public/contact-inquiry'
-app.get('/api/quotes'
-app.post('/api/quotes'
-app.get('/api/quotes/:quote_id'
-app.patch('/api/quotes/:quote_id'
-app.get('/api/admin/quotes'
-app.post('/api/admin/quotes/:quote_id/finalize'
-app.post('/api/uploads'
-app.get('/api/uploads/:upload_id'
-app.delete('/api/uploads/:upload_id'
-app.get('/api/calendar/availability'
-app.get('/api/bookings'
-app.post('/api/bookings'
-app.get('/api/bookings/:booking_id'
-app.patch('/api/bookings/:booking_id'
-app.get('/api/orders'
-app.get('/api/orders/:order_id'
-app.patch('/api/orders/:order_id'
-app.get('/api/staff/jobs'
-app.get('/api/admin/orders'
-app.get('/api/orders/:order_id/proofs'
-app.post('/api/orders/:order_id/proofs'
-app.post('/api/proofs/:proof_id/approve'
-app.post('/api/proofs/:proof_id/request-changes'
-app.get('/api/orders/:order_id/payments'
-app.post('/api/orders/:order_id/payments'
-app.post('/api/payments/stripe/create-intent'
-app.get('/api/invoices/:invoice_id'
-app.get('/api/invoices/:invoice_id/download'
-app.get('/api/message-threads/:thread_id/messages'
-app.post('/api/message-threads/:thread_id/messages'
-app.patch('/api/messages/:message_id/mark-read'
-app.get('/api/users/profile'
-app.patch('/api/users/profile'
-app.post('/api/users/change-password'
-app.get('/api/users/notification-preferences'
-app.patch('/api/users/notification-preferences'
-app.get('/api/admin/users'
-app.post('/api/admin/users'
-app.patch('/api/admin/users/:user_id'
-app.delete('/api/admin/users/:user_id'
-app.get('/api/admin/services'
-app.post('/api/admin/services'
-app.patch('/api/admin/services/:service_id'
-app.delete('/api/admin/services/:service_id'
-app.get('/api/admin/calendar-settings'
-app.patch('/api/admin/calendar-settings'
-app.get('/api/admin/blackout-dates'
-app.post('/api/admin/blackout-dates'
-app.delete('/api/admin/blackout-dates/:blackout_id'
-app.get('/api/admin/settings'
-app.get('/api/admin/settings/:key'
-app.patch('/api/admin/settings/:key'
-app.get('/api/admin/audit-logs'
-app.get('/api/health'
+5) MOBILE UX
+- Sidebar covers 70–85% of screen width.
+- Background page is dimmed with an overlay.
+- Scrolling of body is disabled when menu is open.
+- Tap targets ≥ 44px.
+- Sidebar scrolls independently if content overflows.
 
-Frontend URL: https://123project-build-a-production-ready-w.launchpulse.ai
-Backend URL: https://123project-build-a-production-ready-w.launchpulse.ai
-🎯 YOUR CRITICAL TASKS - ANALYZE, AND CREATE TEST FILES:
-STEP 1: Create test_users.json
-🔐 INTELLIGENT TEST USER CREATION:
-1. **ANALYZE DATABASE SCHEMA** (from db.sql):
-   - Find user table structure (users, user, accounts, etc.)
-   - Identify role/user_type field and possible values
-   - Detect required fields (name, email, password structure)
-   - Extract existing seed data if available
-2. **ANALYZE BACKEND API** (from server files):
-   - Find registration endpoint (/api/auth/register, /register, etc.)
-   - Find login endpoint (/api/auth/login, /login, etc.)
-   - Determine required payload structure
-   - Identify authentication flow
-3. **CREATE & VERIFY TEST USERS**:
-   - If seed data exists: extract credentials with known test passwords
-   - If no seed data: create users via API with curl commands
-   - Test login for each user to ensure credentials work
-   - Support different roles: admin, user, guest, host, customer etc. based on the database schema and seed data
-4. **GENERATE test_users.json**:
-{
-  "generated_at": "2024-01-20T10:30:00Z",
-  "user_structure": {
-    "table_name": "users",
-    "role_field": "role",
-    "registration_endpoint": "/api/auth/register",
-    "login_endpoint": "/api/auth/login"
-  },
-  "total_users": 4,
-  "verified_users": 4,
-  "users": [
-    {
-      "email": "admin@test.com",
-      "password": "AdminPass123!",
-      "role": "admin",
-      "name": "Admin User",
-      "verified": true,
-      "token": "jwt_token_here"
-    }
-    // ... create for each detected role
-  ],
-  "by_role": {
-    "admin": [{"email": "admin@test.com", "password": "AdminPass123!", "verified": true}],
-    "user": [{"email": "user@test.com", "password": "UserPass123!", "verified": true}]
-    // ... organize by role for easy browser agent access
-  }
-}
-**CRITICAL**: Use actual project structure, not template data!
-STEP 2: Create code_summary.json
-{
-  "tech_stack": ["React", "Vite", "TypeScript", "Express", "PostgreSQL", "Node.js"],
-  "features": [
-    {
-      "name": "User Authentication",
-      "description": "Login, logout, session management",
-      "files": ["src/components/Login.tsx", "src/api/auth.ts"]
-    },
-    {
-      "name": "Dashboard",
-      "description": "Main application dashboard",
-      "files": ["src/components/Dashboard.tsx"]
-    }
-  ],
-  "database_tables": ["users", "projects"],
-  "api_endpoints": ["/api/auth", "/api/users"]
-}
-STEP 3: test_cases.json 
-  "testCases": [
-    {
-      "id": "functional-app-test",
-      "name": "Functional Application Test",
-      "category": "functionality",
-      "priority": "high",
-      "description": "Verify the application has actual functionality beyond basic placeholder",
-      "steps": [
-        "Navigate to application",
-        "Verify multiple interactive elements exist (buttons, forms, links)",
-        "Check for proper navigation structure",
-        "Verify application has real features, not just 'Vite + React' text"
-      ],
-      "expectedOutcome": "Application shows functional features and interactivity",
-      "failureCondition": "If page only shows 'Vite + React' placeholder, this test should FAIL"
-    },
-    {
-      "id": "ui-components-test", 
-      "name": "UI Components Test",
-      "category": "interface",
-      "priority": "high",
-      "description": "Test that UI components are properly implemented",
-      "steps": [
-        "Check for buttons and verify they're clickable",
-        "Look for forms and input fields",
-        "Verify navigation menu exists",
-        "Test responsive design elements"
-      ],
-      "expectedOutcome": "Multiple interactive UI components found and functional"
-    },
-    {
-      "id": "content-quality-test",
-      "name": "Content Quality Test", 
-      "category": "content",
-      "priority": "high",
-      "description": "Verify application has meaningful content",
-      "steps": [
-        "Check page has substantial content beyond placeholder",
-        "Verify proper heading structure",
-        "Look for actual application features",
-        "Ensure professional appearance"
-      ],
-      "expectedOutcome": "Application demonstrates real functionality and professional design"
-    }
-  ]
-}
-CRITICAL REQUIREMENTS:
-1. You MUST create all 3 JSON files: code_summary.json, test_cases.json, and test_users.json
-2. Each file must be valid JSON
-3. The test_cases.json and test_users.json files are especially important - do not skip them
+--------------------------------------------
+IMPLEMENTATION SPEC
+--------------------------------------------
+
+A) HAMBURGER BUTTON
+- Must have:
+  - onClick toggle
+  - visible hit area
+  - high z-index
+- Example behavior:
+  - click → open menu
+  - click again → close menu
+
+B) SIDEBAR / DRAWER
+- Position: fixed
+- Top: 0
+- Height: 100vh
+- Transform-based animation:
+  - closed: translateX(-100%) OR translateX(100%)
+  - open: translateX(0)
+- Transition: 250–300ms ease-out
+- Z-index ABOVE header + hero
+
+C) OVERLAY
+- Semi-transparent black overlay behind sidebar
+- Clicking overlay closes sidebar
+
+D) BODY SCROLL LOCK
+- When sidebar is open:
+  - `document.body.style.overflow = "hidden"`
+- When closed:
+  - restore original overflow
+
+--------------------------------------------
+DEBUGGING INSTRUCTIONS (MANDATORY)
+--------------------------------------------
+Before writing the fix, do ALL of the following:
+1) Confirm whether the click event is firing (console log).
+2) Confirm sidebar component is rendered in DOM.
+3) Confirm computed styles when menu should be open.
+4) Verify z-index stacking context.
+5) Verify mobile breakpoint logic.
+
+Then implement the FIX.
+
+--------------------------------------------
+DELIVERABLE
+--------------------------------------------
+- Provide the corrected component code (React/Next.js friendly).
+- Show:
+  - hamburger button
+  - sidebar
+  - overlay
+  - state logic
+- Code must be production-ready.
+- Explain briefly WHAT was broken and WHY it didn’t open.
+
+ASSUME:
+- Tailwind CSS is available.
+- React / Next.js App Router environment.
+- Mobile-first design.
+
+FIX THE BUG COMPLETELY.
+
+When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
+- If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
+- If the user says "sign up" or "register", search for "Create your account" or equivalent.
+- Always return an explicit list of changed file paths. If your first attempt doesn't change the UI, re-search by heading text and update the correct file.
+
+⚠️ PRIORITY INSTRUCTIONS:
+- The user's request above is the PRIMARY task. Complete it first.
+- Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
+- Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
+- Focus solely on implementing the user's request: "You are a senior frontend engineer debugging a MOBILE NAVIGATION BUG.
+
+CONTEXT:
+- This is a mobile-first responsive website.
+- There is a hamburger menu (3-line icon) on mobile.
+- When the user taps the hamburger icon, NOTHING happens.
+- No sidebar, drawer, or menu becomes visible.
+- This is a critical UX bug.
+
+YOUR TASK:
+Identify the root cause and FIX the mobile sidebar so it opens and closes correctly on tap, with proper animations, accessibility, and state handling.
+
+--------------------------------------------
+REQUIREMENTS (NON-NEGOTIABLE)
+--------------------------------------------
+
+1) FUNCTIONALITY
+- Tapping the hamburger icon MUST open a mobile sidebar / drawer.
+- Tapping again OR tapping outside the drawer MUST close it.
+- Sidebar must slide in smoothly (left or right).
+- State must persist correctly during navigation.
+- Must work on real mobile devices (iOS Safari, Android Chrome).
+
+2) STATE MANAGEMENT
+- Use explicit state (e.g. `isMenuOpen`).
+- Hamburger button toggles this state.
+- Sidebar visibility MUST depend ONLY on this state.
+- No CSS-only hover hacks.
+
+3) COMMON BUGS TO CHECK AND FIX
+You MUST verify and fix any of the following if present:
+- Missing `onClick` handler on hamburger button
+- `pointer-events: none` on the button or overlay
+- Sidebar rendered but hidden via `display: none` with no toggle
+- Sidebar mounted outside React tree or behind z-index
+- `z-index` lower than header or hero section
+- Overflow hidden on body blocking interaction
+- Event handler attached to wrong element
+- Mobile breakpoint hiding the sidebar entirely
+- Sidebar component never mounted
+
+4) ACCESSIBILITY
+- Hamburger button MUST be a `<button>` element (not a div).
+- Add `aria-expanded`, `aria-controls`.
+- Sidebar must trap focus when open.
+- Escape key closes the menu.
+- Screen-reader friendly.
+
+5) MOBILE UX
+- Sidebar covers 70–85% of screen width.
+- Background page is dimmed with an overlay.
+- Scrolling of body is disabled when menu is open.
+- Tap targets ≥ 44px.
+- Sidebar scrolls independently if content overflows.
+
+--------------------------------------------
+IMPLEMENTATION SPEC
+--------------------------------------------
+
+A) HAMBURGER BUTTON
+- Must have:
+  - onClick toggle
+  - visible hit area
+  - high z-index
+- Example behavior:
+  - click → open menu
+  - click again → close menu
+
+B) SIDEBAR / DRAWER
+- Position: fixed
+- Top: 0
+- Height: 100vh
+- Transform-based animation:
+  - closed: translateX(-100%) OR translateX(100%)
+  - open: translateX(0)
+- Transition: 250–300ms ease-out
+- Z-index ABOVE header + hero
+
+C) OVERLAY
+- Semi-transparent black overlay behind sidebar
+- Clicking overlay closes sidebar
+
+D) BODY SCROLL LOCK
+- When sidebar is open:
+  - `document.body.style.overflow = "hidden"`
+- When closed:
+  - restore original overflow
+
+--------------------------------------------
+DEBUGGING INSTRUCTIONS (MANDATORY)
+--------------------------------------------
+Before writing the fix, do ALL of the following:
+1) Confirm whether the click event is firing (console log).
+2) Confirm sidebar component is rendered in DOM.
+3) Confirm computed styles when menu should be open.
+4) Verify z-index stacking context.
+5) Verify mobile breakpoint logic.
+
+Then implement the FIX.
+
+--------------------------------------------
+DELIVERABLE
+--------------------------------------------
+- Provide the corrected component code (React/Next.js friendly).
+- Show:
+  - hamburger button
+  - sidebar
+  - overlay
+  - state logic
+- Code must be production-ready.
+- Explain briefly WHAT was broken and WHY it didn’t open.
+
+ASSUME:
+- Tailwind CSS is available.
+- React / Next.js App Router environment.
+- Mobile-first design.
+
+FIX THE BUG COMPLETELY."
+- Only address errors if they block the specific functionality requested by the user.

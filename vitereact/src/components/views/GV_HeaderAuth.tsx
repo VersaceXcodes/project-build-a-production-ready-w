@@ -219,8 +219,10 @@ const GV_HeaderAuth: React.FC = () => {
               {/* Mobile Hamburger */}
               <button
                 onClick={toggle_mobile_nav}
-                className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Toggle navigation menu"
+                aria-expanded={mobile_nav_open}
+                aria-controls="mobile-navigation-drawer"
               >
                 {mobile_nav_open ? (
                   <X className="h-6 w-6 text-black" />
@@ -399,30 +401,40 @@ const GV_HeaderAuth: React.FC = () => {
       </header>
 
       {/* Mobile Navigation Drawer */}
-      {mobile_nav_open && (
-        <>
-          {/* Overlay */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-60 z-40 md:hidden"
-            onClick={toggle_mobile_nav}
-          ></div>
+      <>
+        {/* Overlay */}
+        <div 
+          className={`fixed inset-0 bg-black transition-opacity duration-300 z-40 md:hidden ${
+            mobile_nav_open ? 'bg-opacity-60 pointer-events-auto' : 'bg-opacity-0 pointer-events-none'
+          }`}
+          onClick={toggle_mobile_nav}
+          aria-hidden="true"
+        />
 
-          {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden">
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <img src={sultanstampLogo} alt="SultanStamp" className="h-8 w-auto" />
-              <button
-                onClick={toggle_mobile_nav}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                aria-label="Close menu"
-              >
-                <X className="h-6 w-6 text-black" />
-              </button>
-            </div>
+        {/* Drawer */}
+        <div 
+          id="mobile-navigation-drawer"
+          className={`fixed inset-y-0 left-0 w-4/5 max-w-sm bg-white z-50 transform transition-transform duration-300 ease-out md:hidden shadow-2xl overflow-y-auto ${
+            mobile_nav_open ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation menu"
+        >
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+            <img src={sultanstampLogo} alt="SultanStamp" className="h-8 w-auto" />
+            <button
+              onClick={toggle_mobile_nav}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Close menu"
+            >
+              <X className="h-6 w-6 text-black" />
+            </button>
+          </div>
 
             {/* Drawer Navigation */}
-            <nav className="flex flex-col p-4 space-y-2">
+            <nav className="flex flex-col p-4 space-y-2 pb-24">
               {nav_links.map((link) => {
                 const Icon = link.icon;
                 const is_active = link.section === '' 
@@ -433,7 +445,7 @@ const GV_HeaderAuth: React.FC = () => {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ${
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors min-h-[44px] ${
                       is_active
                         ? 'bg-yellow-400 text-black'
                         : 'text-gray-700 hover:bg-gray-100'
@@ -450,7 +462,7 @@ const GV_HeaderAuth: React.FC = () => {
               {primary_cta && (
                 <Link
                   to={primary_cta.path}
-                  className="flex items-center justify-center bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-3 rounded-lg text-base font-semibold transition-colors mt-4"
+                  className="flex items-center justify-center bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-3 rounded-lg text-base font-semibold transition-colors mt-4 min-h-[44px]"
                   onClick={toggle_mobile_nav}
                 >
                   {primary_cta.label}
@@ -464,7 +476,7 @@ const GV_HeaderAuth: React.FC = () => {
               {settings_path && (
                 <Link
                   to={settings_path}
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-gray-700 hover:bg-gray-100 transition-colors min-h-[44px]"
                   onClick={toggle_mobile_nav}
                 >
                   <Settings className="h-5 w-5" />
@@ -475,7 +487,7 @@ const GV_HeaderAuth: React.FC = () => {
               {/* Public Site Link */}
               <Link
                 to="/"
-                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-gray-700 hover:bg-gray-100 transition-colors min-h-[44px]"
                 onClick={toggle_mobile_nav}
               >
                 <Globe className="h-5 w-5" />
@@ -488,7 +500,7 @@ const GV_HeaderAuth: React.FC = () => {
                   toggle_mobile_nav();
                   handle_logout();
                 }}
-                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-red-600 hover:bg-red-50 transition-colors text-left mt-2"
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-red-600 hover:bg-red-50 transition-colors text-left mt-2 min-h-[44px] w-full"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Sign Out</span>
@@ -498,7 +510,7 @@ const GV_HeaderAuth: React.FC = () => {
             {/* User Info Footer */}
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center text-black font-semibold">
+                <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center text-black font-semibold flex-shrink-0">
                   {current_user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -512,8 +524,7 @@ const GV_HeaderAuth: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
-      )}
+      </>
     </>
   );
 };
