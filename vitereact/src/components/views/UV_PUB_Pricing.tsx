@@ -101,11 +101,8 @@ const UV_PUB_Pricing: React.FC = () => {
 
   // Handle navigation to quote wizard
   const handleGetQuoteClick = () => {
-    if (isAuthenticated) {
-      navigate('/app/quotes/new');
-    } else {
-      navigate('/login?returnTo=/app/quotes/new');
-    }
+    // Route to quote start - user can choose guest/login/register
+    navigate('/quote/start');
   };
 
   // Handle modal controls

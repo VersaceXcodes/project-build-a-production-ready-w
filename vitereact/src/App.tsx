@@ -23,6 +23,10 @@ import UV_PUB_Gallery from '@/components/views/UV_PUB_Gallery';
 import UV_PUB_About from '@/components/views/UV_PUB_About';
 import UV_PUB_CaseStudy from '@/components/views/UV_PUB_CaseStudy';
 import UV_PUB_Policies from '@/components/views/UV_PUB_Policies';
+import UV_PUB_QuoteStart from '@/components/views/UV_PUB_QuoteStart';
+import UV_PUB_GuestQuoteWizard from '@/components/views/UV_PUB_GuestQuoteWizard';
+import UV_PUB_GuestQuoteConfirmation from '@/components/views/UV_PUB_GuestQuoteConfirmation';
+import UV_PUB_GuestQuoteView from '@/components/views/UV_PUB_GuestQuoteView';
 
 // Customer views
 import UV_CUST_Dashboard from '@/components/views/UV_CUST_Dashboard';
@@ -149,6 +153,12 @@ const App: React.FC = () => {
             <Route path="/about" element={<UV_PUB_About />} />
             <Route path="/case-study/:slug" element={<UV_PUB_CaseStudy />} />
             <Route path="/policies" element={<UV_PUB_Policies />} />
+            
+            {/* ===== QUOTE FLOW ROUTES (PUBLIC - No Auth Required) ===== */}
+            <Route path="/quote/start" element={<UV_PUB_QuoteStart />} />
+            <Route path="/quote/guest/new" element={<UV_PUB_GuestQuoteWizard />} />
+            <Route path="/quote/guest/confirmation/:quoteId" element={<UV_PUB_GuestQuoteConfirmation />} />
+            <Route path="/quote/guest/view/:token" element={<UV_PUB_GuestQuoteView />} />
 
             {/* ===== AUTH ROUTES (redirect if authenticated) ===== */}
             <Route path="/login" element={

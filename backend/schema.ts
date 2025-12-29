@@ -357,24 +357,34 @@ export type UpdateTierFeatureInput = z.infer<typeof updateTierFeatureInputSchema
 
 export const quoteSchema = z.object({
   id: z.string(),
-  customer_id: z.string(),
+  customer_id: z.string().nullable(),
   service_id: z.string(),
   tier_id: z.string(),
   status: z.string(),
   estimate_subtotal: z.number().nullable(),
   final_subtotal: z.number().nullable(),
   notes: z.string().nullable(),
+  is_guest: z.boolean(),
+  guest_name: z.string().nullable(),
+  guest_email: z.string().nullable(),
+  guest_phone: z.string().nullable(),
+  guest_company_name: z.string().nullable(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 });
 
 export const createQuoteInputSchema = z.object({
-  customer_id: z.string(),
+  customer_id: z.string().optional(),
   service_id: z.string(),
   tier_id: z.string(),
   status: z.enum(['SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED']).default('SUBMITTED'),
   estimate_subtotal: z.number().nonnegative().nullable(),
-  notes: z.string().nullable()
+  notes: z.string().nullable(),
+  is_guest: z.boolean().default(false),
+  guest_name: z.string().optional(),
+  guest_email: z.string().email().optional(),
+  guest_phone: z.string().optional(),
+  guest_company_name: z.string().optional()
 });
 
 export const updateQuoteInputSchema = z.object({
@@ -1493,3 +1503,26 @@ export const createSessionInputSchema = z.object({
 
 export type Session = z.infer<typeof sessionSchema>;
 export type CreateSessionInput = z.infer<typeof createSessionInputSchema>;
+
+// =====================================================
+// GUEST QUOTE TOKENS SCHEMAS
+// =====================================================
+
+export const guestQuoteTokenSchema = z.object({
+  id: z.string(),
+  quote_id: z.string(),
+  token: z.string(),
+  expires_at: z.string(),
+  is_used: z.boolean(),
+  created_at: z.coerce.date()
+});
+
+export const createGuestQuoteTokenInputSchema = z.object({
+  quote_id: z.string(),
+  token: z.string().min(32),
+  expires_at: z.string(),
+  is_used: z.boolean().default(false)
+});
+
+export type GuestQuoteToken = z.infer<typeof guestQuoteTokenSchema>;
+export type CreateGuestQuoteTokenInput = z.infer<typeof createGuestQuoteTokenInputSchema>;

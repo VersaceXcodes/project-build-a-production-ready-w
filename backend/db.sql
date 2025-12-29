@@ -39,6 +39,7 @@ DROP TABLE IF EXISTS blackout_dates CASCADE;
 DROP TABLE IF EXISTS notification_preferences CASCADE;
 DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS guest_quote_tokens CASCADE;
 
 -- =====================================================
 -- CREATE TABLES
@@ -177,13 +178,18 @@ CREATE TABLE b2b_locations (
 -- Quotes
 CREATE TABLE quotes (
     id TEXT PRIMARY KEY,
-    customer_id TEXT NOT NULL REFERENCES users(id),
+    customer_id TEXT REFERENCES users(id),
     service_id TEXT NOT NULL REFERENCES services(id),
     tier_id TEXT NOT NULL REFERENCES tier_packages(id),
     status TEXT NOT NULL DEFAULT 'SUBMITTED',
     estimate_subtotal NUMERIC,
     final_subtotal NUMERIC,
     notes TEXT,
+    is_guest BOOLEAN NOT NULL DEFAULT false,
+    guest_name TEXT,
+    guest_email TEXT,
+    guest_phone TEXT,
+    guest_company_name TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -503,6 +509,16 @@ CREATE TABLE sessions (
     expires_at TEXT NOT NULL,
     ip_address TEXT,
     user_agent TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- Guest quote access tokens (magic links)
+CREATE TABLE guest_quote_tokens (
+    id TEXT PRIMARY KEY,
+    quote_id TEXT NOT NULL REFERENCES quotes(id),
+    token TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    is_used BOOLEAN NOT NULL DEFAULT false,
     created_at TEXT NOT NULL
 );
 

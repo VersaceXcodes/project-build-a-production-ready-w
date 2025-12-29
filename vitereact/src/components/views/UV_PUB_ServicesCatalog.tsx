@@ -544,7 +544,7 @@ const UV_PUB_ServicesCatalog: React.FC = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  to="/app/quotes/new"
+                  to="/quote/start"
                   className="px-8 py-4 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Get a Quote

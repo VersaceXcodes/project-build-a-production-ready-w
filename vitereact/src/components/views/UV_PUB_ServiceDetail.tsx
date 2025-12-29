@@ -164,13 +164,8 @@ const UV_PUB_ServiceDetail: React.FC = () => {
 
   const handleBuildQuote = () => {
     if (!serviceData?.service) return;
-
-    if (isAuthenticated) {
-      navigate(`/app/quotes/new?service=${serviceData.service.slug}`);
-    } else {
-      const returnPath = encodeURIComponent(`/app/quotes/new?service=${serviceData.service.slug}`);
-      navigate(`/login?returnTo=${returnPath}`);
-    }
+    // Route to quote start - user can choose guest/login/register
+    navigate(`/quote/start?service=${serviceData.service.slug}`);
   };
 
   const handleViewGallery = () => {

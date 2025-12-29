@@ -624,7 +624,7 @@ const UV_PUB_Gallery: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
               <Link
-                to="/app/quotes/new"
+                to="/quote/start"
                 className="w-full sm:w-auto px-8 py-4 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-500 transition-colors shadow-lg hover:shadow-xl text-center"
               >
                 Get a Quote

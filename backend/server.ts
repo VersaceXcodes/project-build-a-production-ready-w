@@ -486,6 +486,196 @@ app.get('/api/quotes', authenticateToken, requireRole(['CUSTOMER']), async (req,
   }
 });
 
+// =====================================================
+// GUEST QUOTE ENDPOINTS (No Auth Required)
+// =====================================================
+
+// Create guest quote (no authentication required)
+app.post('/api/guest/quotes', async (req, res) => {
+  try {
+    const { service_id, tier_id, project_details, notes, guest_name, guest_email, guest_phone, guest_company_name } = req.body;
+    
+    // Validation
+    if (!service_id || !tier_id) {
+      return res.status(400).json({ message: 'service_id and tier_id required' });
+    }
+    if (!guest_name || !guest_email) {
+      return res.status(400).json({ message: 'guest_name and guest_email required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(guest_email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+    
+    const quoteId = uuidv4();
+    const threadId = uuidv4();
+    
+    // Create guest quote
+    await pool.query(
+      'INSERT INTO quotes (id, customer_id, service_id, tier_id, status, estimate_subtotal, final_subtotal, notes, is_guest, guest_name, guest_email, guest_phone, guest_company_name, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)',
+      [quoteId, null, service_id, tier_id, 'SUBMITTED', null, null, notes || null, true, guest_name, guest_email, guest_phone || null, guest_company_name || null, new Date().toISOString(), new Date().toISOString()]
+    );
+    
+    // Create message thread
+    await pool.query(
+      'INSERT INTO message_threads (id, quote_id, order_id, created_at) VALUES ($1, $2, $3, $4)', 
+      [threadId, quoteId, null, new Date().toISOString()]
+    );
+    
+    // Save project details as quote answers
+    if (project_details && typeof project_details === 'object') {
+      for (const [key, value] of Object.entries(project_details)) {
+        await pool.query(
+          'INSERT INTO quote_answers (id, quote_id, option_key, value, created_at) VALUES ($1, $2, $3, $4, $5)',
+          [uuidv4(), quoteId, key, String(value), new Date().toISOString()]
+        );
+      }
+    }
+    
+    // Generate magic link token (expires in 7 days)
+    const token = uuidv4() + '-' + Date.now();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    
+    await pool.query(
+      'INSERT INTO guest_quote_tokens (id, quote_id, token, expires_at, is_used, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [uuidv4(), quoteId, token, expiresAt, false, new Date().toISOString()]
+    );
+    
+    // Fetch complete quote data
+    const quoteRes = await pool.query('SELECT * FROM quotes WHERE id = $1', [quoteId]);
+    const answersRes = await pool.query('SELECT * FROM quote_answers WHERE quote_id = $1', [quoteId]);
+    
+    // Emit event for admin notifications
+    emitEvent('quote/status_updated', {
+      event_type: 'guest_quote_submitted',
+      timestamp: new Date().toISOString(),
+      quote_id: quoteId,
+      is_guest: true,
+      guest_email,
+      old_status: null,
+      new_status: 'SUBMITTED'
+    });
+    
+    res.status(201).json({
+      quote: quoteRes.rows[0],
+      quote_answers: answersRes.rows,
+      magic_link_token: token,
+      message: 'Quote submitted successfully. Check your email for the magic link.'
+    });
+  } catch (error: any) {
+    console.error('Create guest quote error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get guest quote by magic link token
+app.get('/api/guest/quotes/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    // Find and validate token
+    const tokenRes = await pool.query(
+      'SELECT * FROM guest_quote_tokens WHERE token = $1',
+      [token]
+    );
+    
+    if (tokenRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Invalid or expired link' });
+    }
+    
+    const tokenData = tokenRes.rows[0];
+    
+    // Check if token is expired
+    if (new Date(tokenData.expires_at) < new Date()) {
+      return res.status(410).json({ message: 'This link has expired' });
+    }
+    
+    // Fetch quote data
+    const quoteRes = await pool.query('SELECT * FROM quotes WHERE id = $1', [tokenData.quote_id]);
+    
+    if (quoteRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Quote not found' });
+    }
+    
+    const quote = quoteRes.rows[0];
+    
+    // Only allow access to guest quotes via this endpoint
+    if (!quote.is_guest) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Fetch related data
+    const serviceRes = await pool.query('SELECT * FROM services WHERE id = $1', [quote.service_id]);
+    const tierRes = await pool.query('SELECT * FROM tier_packages WHERE id = $1', [quote.tier_id]);
+    const answersRes = await pool.query('SELECT * FROM quote_answers WHERE quote_id = $1', [tokenData.quote_id]);
+    
+    res.json({
+      quote,
+      service: serviceRes.rows[0],
+      tier: tierRes.rows[0],
+      quote_answers: answersRes.rows,
+      token_valid: true
+    });
+  } catch (error: any) {
+    console.error('Get guest quote error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update guest quote status (approve/reject via magic link)
+app.patch('/api/guest/quotes/:token/status', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { status } = req.body;
+    
+    if (!['APPROVED', 'REJECTED'].includes(status)) {
+      return res.status(400).json({ message: 'Status must be APPROVED or REJECTED' });
+    }
+    
+    // Validate token
+    const tokenRes = await pool.query(
+      'SELECT * FROM guest_quote_tokens WHERE token = $1',
+      [token]
+    );
+    
+    if (tokenRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Invalid or expired link' });
+    }
+    
+    const tokenData = tokenRes.rows[0];
+    
+    if (new Date(tokenData.expires_at) < new Date()) {
+      return res.status(410).json({ message: 'This link has expired' });
+    }
+    
+    // Update quote status
+    await pool.query(
+      'UPDATE quotes SET status = $1, updated_at = $2 WHERE id = $3 AND is_guest = true',
+      [status, new Date().toISOString(), tokenData.quote_id]
+    );
+    
+    const updatedQuote = await pool.query('SELECT * FROM quotes WHERE id = $1', [tokenData.quote_id]);
+    
+    emitEvent('quote/status_updated', {
+      event_type: 'guest_quote_status_updated',
+      timestamp: new Date().toISOString(),
+      quote_id: tokenData.quote_id,
+      new_status: status,
+      is_guest: true
+    });
+    
+    res.json({
+      quote: updatedQuote.rows[0],
+      message: `Quote ${status.toLowerCase()} successfully`
+    });
+  } catch (error: any) {
+    console.error('Update guest quote status error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.post('/api/quotes', authenticateToken, requireRole(['CUSTOMER']), async (req, res) => {
   try {
     const { service_id, tier_id, project_details, file_ids, notes } = req.body;
@@ -591,7 +781,7 @@ app.get('/api/admin/quotes', authenticateToken, requireRole(['ADMIN', 'STAFF']),
       s.id as service_id_ref, s.name as service_name, s.slug as service_slug,
       t.id as tier_id_ref, t.name as tier_name, t.description as tier_description
       FROM quotes q
-      JOIN users u ON q.customer_id = u.id
+      LEFT JOIN users u ON q.customer_id = u.id
       JOIN services s ON q.service_id = s.id
       JOIN tier_packages t ON q.tier_id = t.id
       WHERE 1=1`;
@@ -625,13 +815,24 @@ app.get('/api/admin/quotes', authenticateToken, requireRole(['ADMIN', 'STAFF']),
         estimate_subtotal: row.estimate_subtotal,
         final_subtotal: row.final_subtotal,
         notes: row.notes,
+        is_guest: row.is_guest,
+        guest_name: row.guest_name,
+        guest_email: row.guest_email,
+        guest_phone: row.guest_phone,
+        guest_company_name: row.guest_company_name,
         created_at: row.created_at,
         updated_at: row.updated_at
       },
-      customer: {
+      customer: row.is_guest ? {
+        id: null,
+        name: row.guest_name,
+        email: row.guest_email,
+        is_guest: true
+      } : {
         id: row.customer_id_ref,
         name: row.customer_name,
-        email: row.customer_email
+        email: row.customer_email,
+        is_guest: false
       },
       service: {
         id: row.service_id_ref,

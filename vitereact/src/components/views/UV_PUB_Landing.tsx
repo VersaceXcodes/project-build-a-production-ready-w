@@ -200,11 +200,8 @@ const UV_PUB_Landing: React.FC = () => {
 
   // Navigation handlers
   const navigate_to_quote_wizard = () => {
-    if (is_authenticated) {
-      navigate('/app/quotes/new');
-    } else {
-      navigate('/login?returnTo=/app/quotes/new');
-    }
+    // Route to quote start page - user can choose guest/login/register
+    navigate('/quote/start');
   };
 
   const navigate_to_service_detail = (service_slug: string) => {

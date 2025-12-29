@@ -415,7 +415,7 @@ const UV_PUB_Policies: React.FC = () => {
                   Contact Us
                 </Link>
                 <Link
-                  to="/app/quotes/new"
+                  to="/quote/start"
                   className="px-8 py-3 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-lg border-2 border-gray-300 transition-all duration-200"
                 >
                   Get a Quote

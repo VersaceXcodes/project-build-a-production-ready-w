@@ -51,11 +51,8 @@ const GV_HeaderPublic: React.FC = () => {
   // ACTIONS
   // ===========================
   const handleGetQuoteClick = () => {
-    if (isAuthenticated) {
-      navigate('/app/quotes/new');
-    } else {
-      navigate('/login?returnTo=/app/quotes/new');
-    }
+    // Always route to quote start page - let user choose guest/login/register
+    navigate('/quote/start');
   };
 
   const handleLoginRoleClick = (role: 'CUSTOMER' | 'STAFF' | 'ADMIN') => {
