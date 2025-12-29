@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/main';
+import sultanstampLogo from '@/assets/sultanstamp_logo.jpeg';
 import { 
   Bell, 
   User, 
@@ -233,9 +234,11 @@ const GV_HeaderAuth: React.FC = () => {
                 onClick={navigate_to_dashboard}
                 className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
               >
-                <div className="text-2xl md:text-3xl font-bold text-black">
-                  SultanStamp
-                </div>
+                <img
+                  src={sultanstampLogo}
+                  alt="SultanStamp"
+                  className="h-10 md:h-12 w-auto"
+                />
               </button>
             </div>
 
@@ -408,7 +411,7 @@ const GV_HeaderAuth: React.FC = () => {
           <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-white z-50 transform transition-transform duration-300 ease-in-out md:hidden">
             {/* Drawer Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <div className="text-xl font-bold text-black">SultanStamp</div>
+              <img src={sultanstampLogo} alt="SultanStamp" className="h-8 w-auto" />
               <button
                 onClick={toggle_mobile_nav}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"

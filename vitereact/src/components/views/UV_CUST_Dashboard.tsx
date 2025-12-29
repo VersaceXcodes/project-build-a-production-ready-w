@@ -555,6 +555,20 @@ const UV_CUST_Dashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Mobile spacer for fixed CTA */}
+        <div className="md:hidden h-20"></div>
+      </div>
+
+      {/* Mobile Sticky CTA */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 shadow-lg">
+        <Link
+          to="/app/quotes/new"
+          className="flex items-center justify-center w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-3 rounded-lg transition-all duration-200"
+        >
+          <FileText className="h-5 w-5 mr-2" />
+          Get a New Quote
+        </Link>
       </div>
     </>
   );

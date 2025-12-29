@@ -133,7 +133,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 // ===========================
 
 const UV_CUST_OrderDetail: React.FC = () => {
-  const { order_id } = useParams<{ order_id: string }>();
+  const { id: order_id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -161,24 +161,34 @@ const UV_CUST_OrderDetail: React.FC = () => {
   const {
     data: order_data,
     isLoading: is_loading_order,
+    isFetching: is_fetching_order,
+    isPending: is_pending_order,
     error: order_error,
     refetch: refetch_order,
   } = useQuery({
     queryKey: ['order', order_id],
     queryFn: async () => {
-      if (!order_id || !auth_token) throw new Error('Missing order_id or auth_token');
-      
+      const token = useAppStore.getState().authentication_state.auth_token;
+      if (!order_id || !token) throw new Error('Missing order_id or auth_token');
+
       const response = await axios.get<OrderDetailResponse>(
         `${API_BASE_URL}/api/orders/${order_id}`,
-        { headers: { Authorization: `Bearer ${auth_token}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       return response.data;
     },
     enabled: !!order_id && !!auth_token,
     retry: 1,
     staleTime: 60000,
   });
+
+  // Refetch when auth token becomes available
+  useEffect(() => {
+    if (auth_token && order_id && !order_data && !is_loading_order) {
+      refetch_order();
+    }
+  }, [auth_token, order_id, order_data, is_loading_order, refetch_order]);
 
   // Fetch messages (dependent query)
   const {
@@ -544,7 +554,13 @@ const UV_CUST_OrderDetail: React.FC = () => {
   // LOADING STATE
   // ===========================
 
-  if (is_loading_order) {
+  // Show loading if:
+  // 1. Query is actively loading/fetching
+  // 2. Auth token not yet available (Zustand hydrating)
+  // 3. Query is pending (no data yet) and auth is available (about to fetch)
+  const should_show_loading = is_loading_order || is_fetching_order || !auth_token || (is_pending_order && !!auth_token && !order_data);
+
+  if (should_show_loading) {
     return (
       <>
         <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">

@@ -76,7 +76,7 @@ interface NewOptionFormData {
 // ===========================
 
 const UV_ADMIN_ServiceEditor: React.FC = () => {
-  const { service_id } = useParams<{ service_id: string }>();
+  const { id: service_id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -156,18 +156,13 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
         headers: { Authorization: `Bearer ${auth_token}` },
       });
       
-      const service = servicesResponse.data.find((s: any) => s.id === service_id);
-      if (!service) throw new Error('Service not found');
+      const serviceItem = servicesResponse.data.find((s: any) => s.service.id === service_id);
+      if (!serviceItem) throw new Error('Service not found');
 
-      // Then get full details by slug
-      const detailResponse = await axios.get(
-        `${API_BASE_URL}/api/public/services/${service.slug}`,
-        { headers: { Authorization: `Bearer ${auth_token}` } }
-      );
-
+      // The admin services endpoint already returns full details with options
       return {
-        service: detailResponse.data.service,
-        service_options: detailResponse.data.service_options || [],
+        service: serviceItem.service,
+        service_options: serviceItem.options || [],
       };
     },
     enabled: !is_new_service && !!auth_token,

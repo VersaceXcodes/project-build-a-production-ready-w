@@ -108,10 +108,22 @@ async function fetch_marketing_content(): Promise<MarketingContent[]> {
 
 const UV_PUB_Landing: React.FC = () => {
   const navigate = useNavigate();
-  
+
   // CRITICAL: Individual selectors, no object destructuring
   const is_authenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
   const show_toast = useAppStore(state => state.show_toast);
+
+  // State for sticky CTA visibility
+  const [showStickyCTA, setShowStickyCTA] = React.useState(false);
+
+  // Show sticky CTA after scrolling past hero
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setShowStickyCTA(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Data fetching with React Query
   const { data: services_data, isLoading: is_loading_services, error: services_error } = useQuery<ServicesResponse>({
@@ -554,6 +566,36 @@ const UV_PUB_Landing: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Mobile Sticky CTA */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 shadow-lg">
+        <button
+          onClick={navigate_to_quote_wizard}
+          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-3 rounded-lg transition-all duration-200"
+        >
+          Get a Free Quote
+        </button>
+      </div>
+
+      {/* Desktop Floating Sticky CTA */}
+      <div
+        className={`hidden md:flex fixed bottom-8 right-8 z-40 transition-all duration-300 ${
+          showStickyCTA ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <button
+          onClick={navigate_to_quote_wizard}
+          className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-4 rounded-full shadow-2xl transition-all duration-200 flex items-center gap-3 group"
+        >
+          <svg className="h-6 w-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span>Get a Quote</span>
+          <svg className="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </div>
     </>
   );
 };

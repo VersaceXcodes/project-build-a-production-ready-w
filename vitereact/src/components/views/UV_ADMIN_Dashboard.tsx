@@ -232,7 +232,7 @@ const UV_ADMIN_Dashboard: React.FC = () => {
       case 'USER':
         return `/admin/users?search=${object_id}`;
       case 'SERVICE':
-        return `/admin/services/${object_id}/edit`;
+        return `/admin/services/${object_id}`;
       default:
         return '/admin';
     }
@@ -409,12 +409,17 @@ const UV_ADMIN_Dashboard: React.FC = () => {
           {/* Quick Actions */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link
                 to="/admin/quotes?status=SUBMITTED"
-                className="flex items-center justify-center px-6 py-4 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="relative flex items-center justify-center px-6 py-4 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-200 shadow-md hover:shadow-lg"
               >
+                {summary_widgets.pending_quotes > 0 && (
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                    {summary_widgets.pending_quotes}
+                  </span>
+                )}
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>

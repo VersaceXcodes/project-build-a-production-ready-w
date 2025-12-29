@@ -258,7 +258,7 @@ const getNextActionMessage = (status: string): string => {
 // ===========================
 
 const UV_CUST_QuoteDetail: React.FC = () => {
-  const { quote_id } = useParams<{ quote_id: string }>();
+  const { id: quote_id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   

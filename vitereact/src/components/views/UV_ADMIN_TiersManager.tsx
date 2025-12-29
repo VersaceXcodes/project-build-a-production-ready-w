@@ -673,7 +673,7 @@ const UV_ADMIN_TiersManager: React.FC = () => {
 
                                   {/* Actions */}
                                   <Link
-                                    to={`/admin/tiers/${tierData.tier.id}/edit`}
+                                    to={`/admin/tiers/${tierData.tier.id}`}
                                     className="block w-full text-center px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors"
                                   >
                                     Edit Tier Details

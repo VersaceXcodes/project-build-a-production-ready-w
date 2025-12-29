@@ -270,15 +270,15 @@ const UV_ADMIN_QuoteFinalization: React.FC = () => {
   // Auto-fill pricing form with estimate when quote data loads
   useEffect(() => {
     if (quote_data?.quote && pricing_form.final_subtotal === null) {
-      const estimate = quote_data.quote.estimate_subtotal || quote_data.quote.final_subtotal || 0;
+      const estimate = Number(quote_data.quote.estimate_subtotal || quote_data.quote.final_subtotal || 0);
       const tax_amount = estimate * pricing_form.tax_rate;
       const total_amount = estimate + tax_amount;
-      
+
       set_pricing_form(prev => ({
         ...prev,
         final_subtotal: estimate,
-        tax_amount: Number(tax_amount.toFixed(2)),
-        total_amount: Number(total_amount.toFixed(2)),
+        tax_amount: Number((tax_amount || 0).toFixed(2)),
+        total_amount: Number((total_amount || 0).toFixed(2)),
         notes: quote_data.quote.notes || ''
       }));
     }
@@ -293,8 +293,8 @@ const UV_ADMIN_QuoteFinalization: React.FC = () => {
     set_pricing_form(prev => ({
       ...prev,
       final_subtotal: subtotal,
-      tax_amount: Number(tax_amount.toFixed(2)),
-      total_amount: Number(total_amount.toFixed(2))
+      tax_amount: Number((tax_amount || 0).toFixed(2)),
+      total_amount: Number((total_amount || 0).toFixed(2))
     }));
   };
 
@@ -695,14 +695,14 @@ const UV_ADMIN_QuoteFinalization: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Tax Amount</span>
                         <span className="text-sm font-semibold text-gray-900">
-                          €{pricing_form.tax_amount.toFixed(2)}
+                          €{Number(pricing_form.tax_amount || 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="border-t border-gray-300 pt-3 mt-3">
                         <div className="flex items-center justify-between">
                           <span className="text-base font-bold text-gray-900">Total Amount</span>
                           <span className="text-xl font-bold text-gray-900">
-                            €{pricing_form.total_amount.toFixed(2)}
+                            €{Number(pricing_form.total_amount || 0).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -726,10 +726,10 @@ const UV_ADMIN_QuoteFinalization: React.FC = () => {
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
                       <p className="text-xs text-green-700 font-medium">DEPOSIT REQUIRED (50%)</p>
                       <p className="text-lg font-bold text-green-900">
-                        €{(pricing_form.total_amount * 0.5).toFixed(2)}
+                        €{(Number(pricing_form.total_amount || 0) * 0.5).toFixed(2)}
                       </p>
                       <p className="text-xs text-green-700">
-                        Balance due: €{(pricing_form.total_amount * 0.5).toFixed(2)}
+                        Balance due: €{(Number(pricing_form.total_amount || 0) * 0.5).toFixed(2)}
                       </p>
                     </div>
 

@@ -86,6 +86,18 @@ const UV_PUB_ServicesCatalog: React.FC = () => {
   // Ref for debounce timeout (avoids window pollution)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // State for sticky CTA visibility
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
+
+  // Show sticky CTA after scrolling
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowStickyCTA(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -565,6 +577,36 @@ const UV_PUB_ServicesCatalog: React.FC = () => {
           overflow: hidden;
         }
       `}</style>
+
+      {/* Mobile Sticky CTA */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 shadow-lg">
+        <Link
+          to="/app/quotes/new"
+          className="block w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-3 rounded-lg text-center transition-all duration-200"
+        >
+          Get a Free Quote
+        </Link>
+      </div>
+
+      {/* Desktop Floating Sticky CTA */}
+      <div
+        className={`hidden md:flex fixed bottom-8 right-8 z-40 transition-all duration-300 ${
+          showStickyCTA ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <Link
+          to="/app/quotes/new"
+          className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-4 rounded-full shadow-2xl transition-all duration-200 flex items-center gap-3 group"
+        >
+          <svg className="h-6 w-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span>Get a Quote</span>
+          <svg className="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </Link>
+      </div>
     </>
   );
 };

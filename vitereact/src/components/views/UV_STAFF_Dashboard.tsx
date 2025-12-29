@@ -60,7 +60,31 @@ const fetchStaffJobs = async (auth_token: string | null): Promise<JobListItem[]>
     }
   );
 
-  return response.data;
+  // Transform flat API response to nested structure expected by component
+  const now = new Date();
+  return response.data.map((job: any) => {
+    const dueDate = job.due_at ? new Date(job.due_at) : null;
+    const isOverdue = dueDate ? dueDate < now : false;
+
+    return {
+      order: {
+        id: job.id,
+        customer_id: job.customer_id,
+        tier_id: job.tier_id,
+        status: job.status,
+        due_at: job.due_at,
+        revision_count: Number(job.revision_count || 0),
+        assigned_staff_id: job.assigned_staff_id,
+        created_at: job.created_at,
+        updated_at: job.updated_at
+      },
+      customer_name: job.customer_name || 'Unknown',
+      service_name: job.service_name || 'Unknown',
+      tier_name: job.tier_name || 'Unknown',
+      is_overdue: isOverdue,
+      priority_level: isOverdue || job.tier_name === 'Enterprise' ? 'HIGH' : 'NORMAL'
+    };
+  });
 };
 
 const fetchTodaysBookings = async (auth_token: string | null): Promise<BookingItem[]> => {
@@ -566,6 +590,33 @@ const UV_STAFF_Dashboard: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Mobile spacer for sticky bar */}
+        <div className="md:hidden h-20"></div>
+      </div>
+
+      {/* Mobile Sticky Action Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-40 shadow-lg">
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            to="/staff/jobs"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-yellow-400 text-black font-semibold rounded-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            View Jobs
+          </Link>
+          <Link
+            to="/staff/calendar"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-900 font-semibold rounded-lg border border-gray-300"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Calendar
+          </Link>
         </div>
       </div>
     </>

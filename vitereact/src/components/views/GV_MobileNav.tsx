@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '@/store/main';
+import sultanstampLogo from '@/assets/sultanstamp_logo.jpeg';
 import { 
   X, 
   Home, 
@@ -156,12 +157,7 @@ const GV_MobileNav: React.FC = () => {
       >
         {/* Header Section - Sticky */}
         <div className="sticky top-0 bg-white border-b-2 border-black px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-              <span className="text-black font-bold text-sm">SS</span>
-            </div>
-            <span className="text-lg font-bold text-black">SultanStamp</span>
-          </div>
+          <img src={sultanstampLogo} alt="SultanStamp" className="h-8 w-auto" />
           <button
             onClick={toggleMobileNav}
             aria-label="Close navigation"

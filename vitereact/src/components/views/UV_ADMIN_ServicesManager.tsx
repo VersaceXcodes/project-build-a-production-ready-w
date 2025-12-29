@@ -410,7 +410,7 @@ const UV_ADMIN_ServicesManager: React.FC = () => {
   };
 
   const handle_navigate_to_editor = (service_id: string) => {
-    navigate(`/admin/services/${service_id}/edit`);
+    navigate(`/admin/services/${service_id}`);
   };
 
   // Filter services by search query (client-side)

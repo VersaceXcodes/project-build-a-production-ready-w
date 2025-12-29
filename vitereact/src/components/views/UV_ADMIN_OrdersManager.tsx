@@ -649,10 +649,10 @@ const UV_ADMIN_OrdersManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Bulk Actions Bar (show when orders selected) */}
+        {/* Bulk Actions Bar (show when orders selected) - STICKY */}
         {selectedOrderIds.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="sticky top-0 z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium text-blue-900">
                   {selectedOrderIds.length} order{selectedOrderIds.length !== 1 ? 's' : ''} selected

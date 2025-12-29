@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '@/store/main';
+import sultanstampLogo from '@/assets/sultanstamp_logo.jpeg';
 
 const UV_AUTH_Register: React.FC = () => {
   const navigate = useNavigate();
@@ -129,7 +130,7 @@ const UV_AUTH_Register: React.FC = () => {
     });
   };
 
-  // Email availability check (workaround using login attempt)
+  // Email availability check using dedicated endpoint
   const check_email_availability = async (email: string) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setEmailAvailable({ is_checking: false, is_available: null });
@@ -140,35 +141,32 @@ const UV_AUTH_Register: React.FC = () => {
 
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-      
-      // Attempt login with placeholder password to check if email exists
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/check-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.toLowerCase().trim(),
-          password: 'placeholder_password_for_check',
-          role: 'CUSTOMER',
-        }),
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
       });
 
-      // If email doesn't exist, will get specific error
-      // If email exists, will get invalid credentials
       const data = await response.json();
 
-      if (response.status === 401) {
-        // Email exists (either wrong password or account inactive)
-        setEmailAvailable({ is_checking: false, is_available: false });
-        setFormErrors((prev) => ({
-          ...prev,
-          email: 'Email already registered',
-        }));
+      if (response.ok) {
+        if (data.available) {
+          setEmailAvailable({ is_checking: false, is_available: true });
+          setFormErrors((prev) => ({ ...prev, email: null }));
+        } else {
+          setEmailAvailable({ is_checking: false, is_available: false });
+          setFormErrors((prev) => ({
+            ...prev,
+            email: 'Email already registered',
+          }));
+        }
       } else {
-        // Unexpected response, assume available
-        setEmailAvailable({ is_checking: false, is_available: true });
+        // Error checking, don't block registration
+        setEmailAvailable({ is_checking: false, is_available: null });
       }
     } catch (error) {
-      // Network error or other issue
+      // Network error or other issue - don't block registration
       setEmailAvailable({ is_checking: false, is_available: null });
     }
   };
@@ -369,7 +367,7 @@ const UV_AUTH_Register: React.FC = () => {
         <div className="bg-white border-b-2 border-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center">
             <Link to="/" className="flex items-center">
-              <span className="text-xl sm:text-2xl font-bold text-black">SultanStamp</span>
+              <img src={sultanstampLogo} alt="SultanStamp" className="h-10 sm:h-12 w-auto" />
             </Link>
           </div>
         </div>

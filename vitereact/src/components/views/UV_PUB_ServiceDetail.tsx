@@ -75,7 +75,7 @@ interface ServiceDetailResponse {
 // ===========================
 
 const UV_PUB_ServiceDetail: React.FC = () => {
-  const { service_slug } = useParams<{ service_slug: string }>();
+  const { slug: service_slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
   // CRITICAL: Individual selectors to avoid infinite loops
@@ -88,6 +88,9 @@ const UV_PUB_ServiceDetail: React.FC = () => {
 
   // Local state for carousel
   const [carouselScrollPosition, setCarouselScrollPosition] = useState(0);
+
+  // Local state for sticky CTA visibility
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
 
   // API base URL
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -142,6 +145,18 @@ const UV_PUB_ServiceDetail: React.FC = () => {
       document.body.style.overflow = '';
     };
   }, [lightboxOpen]);
+
+  // Show sticky CTA after scrolling past hero section
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      // Show sticky CTA after scrolling 300px (past hero)
+      setShowStickyCTA(scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // ===========================
   // ACTION HANDLERS
@@ -314,6 +329,28 @@ const UV_PUB_ServiceDetail: React.FC = () => {
                 </span>
               </div>
             )}
+
+            {/* Immediate CTA - visible right away without scrolling */}
+            <div className="mt-8 flex flex-wrap gap-4">
+              <button
+                onClick={handleBuildQuote}
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-lg flex items-center gap-2"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Get a Quote
+              </button>
+              <button
+                onClick={handleViewGallery}
+                className="bg-white hover:bg-gray-100 text-gray-900 font-medium px-6 py-4 rounded-lg border border-gray-300 transition-all duration-200 flex items-center gap-2"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                View Examples
+              </button>
+            </div>
           </div>
 
           {/* Examples Carousel */}
@@ -747,6 +784,26 @@ const UV_PUB_ServiceDetail: React.FC = () => {
             Gallery
           </button>
         </div>
+      </div>
+
+      {/* Desktop Floating Sticky CTA (appears after scrolling) */}
+      <div
+        className={`hidden md:flex fixed bottom-8 right-8 z-40 transition-all duration-300 ${
+          showStickyCTA ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <button
+          onClick={handleBuildQuote}
+          className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-6 py-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-200 flex items-center gap-3 group"
+        >
+          <svg className="h-6 w-6 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span>Get a Quote</span>
+          <svg className="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
       </div>
     </>
   );

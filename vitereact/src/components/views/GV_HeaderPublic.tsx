@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/main';
+import sultanstampLogo from '@/assets/sultanstamp_logo.jpeg';
 
 const GV_HeaderPublic: React.FC = () => {
   // ===========================
@@ -133,13 +134,15 @@ const GV_HeaderPublic: React.FC = () => {
             {/* ===========================
                 LOGO
                 =========================== */}
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="flex items-center"
             >
-              <span className="text-2xl md:text-3xl font-bold text-black">
-                SultanStamp
-              </span>
+              <img
+                src={sultanstampLogo}
+                alt="SultanStamp"
+                className="h-10 md:h-12 w-auto"
+              />
             </Link>
 
             {/* ===========================

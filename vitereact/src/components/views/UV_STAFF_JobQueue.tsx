@@ -630,6 +630,38 @@ const UV_STAFF_JobQueue: React.FC = () => {
               {activeFilters.assigned_to === currentUser?.id && ' assigned to you'}
             </div>
           )}
+
+          {/* Mobile spacer for sticky bar */}
+          <div className="md:hidden h-20"></div>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Action Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-40 shadow-lg">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-semibold text-gray-900">{sortedJobs.length}</span>
+            <span className="text-gray-600">jobs</span>
+            {sortedJobs.filter(j => j.is_overdue).length > 0 && (
+              <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                {sortedJobs.filter(j => j.is_overdue).length} overdue
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Link
+              to="/staff"
+              className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/staff/calendar"
+              className="px-3 py-2 bg-yellow-400 text-black rounded-lg text-sm font-medium"
+            >
+              Calendar
+            </Link>
+          </div>
         </div>
       </div>
     </>

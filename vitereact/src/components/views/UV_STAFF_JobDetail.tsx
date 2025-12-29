@@ -258,7 +258,7 @@ const updateOrderStatus = async (orderId: string, status: string, notes: string,
 // ===========================
 
 const UV_STAFF_JobDetail: React.FC = () => {
-  const { order_id } = useParams<{ order_id: string }>();
+  const { id: order_id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   

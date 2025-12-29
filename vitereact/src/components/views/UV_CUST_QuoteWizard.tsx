@@ -492,14 +492,37 @@ const UV_CUST_QuoteWizard: React.FC = () => {
             <p className="text-gray-600 mt-1">Step {currentStep} of 5</p>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mb-8 bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+          {/* Progress Bar - Enhanced for Mobile */}
+          <div className="mb-8 bg-white rounded-lg p-4 sm:p-6 shadow-sm">
+            {/* Mobile: Current step indicator */}
+            <div className="sm:hidden mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center font-bold text-black">
+                  {currentStep}
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Step {currentStep} of 5</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {currentStep === 1 && 'Choose Service'}
+                    {currentStep === 2 && 'Project Details'}
+                    {currentStep === 3 && 'Upload Files'}
+                    {currentStep === 4 && 'Select Tier'}
+                    {currentStep === 5 && 'Review & Submit'}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-yellow-600">{Math.round((currentStep / 5) * 100)}%</p>
+              </div>
+            </div>
+
+            {/* Desktop: Full step indicators */}
+            <div className="hidden sm:flex items-center justify-between mb-4">
               {[1, 2, 3, 4, 5].map((step) => (
-                <div key={step} className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                    step < currentStep ? 'bg-green-600 text-white' :
-                    step === currentStep ? 'bg-yellow-400 text-black' :
+                <div key={step} className="flex flex-col items-center cursor-pointer" onClick={() => step < currentStep && goToStep(step)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
+                    step < currentStep ? 'bg-green-600 text-white hover:bg-green-700' :
+                    step === currentStep ? 'bg-yellow-400 text-black ring-4 ring-yellow-100' :
                     'bg-gray-200 text-gray-500'
                   }`}>
                     {step < currentStep ? (
@@ -508,7 +531,7 @@ const UV_CUST_QuoteWizard: React.FC = () => {
                       </svg>
                     ) : step}
                   </div>
-                  <span className="text-xs text-gray-600 mt-2 hidden sm:block">
+                  <span className="text-xs text-gray-600 mt-2">
                     {step === 1 && 'Service'}
                     {step === 2 && 'Details'}
                     {step === 3 && 'Files'}
@@ -519,7 +542,7 @@ const UV_CUST_QuoteWizard: React.FC = () => {
               ))}
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(currentStep / 5) * 100}%` }}
               />
@@ -1017,8 +1040,8 @@ const UV_CUST_QuoteWizard: React.FC = () => {
             )}
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="mt-6 flex items-center justify-between">
+          {/* Navigation Buttons - Desktop */}
+          <div className="hidden sm:flex mt-6 items-center justify-between">
             <button
               onClick={() => goToStep(currentStep - 1)}
               disabled={currentStep === 1}
@@ -1026,7 +1049,7 @@ const UV_CUST_QuoteWizard: React.FC = () => {
             >
               Back
             </button>
-            
+
             {currentStep < 5 && (
               <button
                 onClick={() => goToStep(currentStep + 1)}
@@ -1036,6 +1059,45 @@ const UV_CUST_QuoteWizard: React.FC = () => {
               </button>
             )}
           </div>
+
+          {/* Mobile sticky navigation at bottom */}
+          <div className="sm:hidden h-20"></div>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Navigation */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 shadow-lg">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => goToStep(currentStep - 1)}
+            disabled={currentStep === 1}
+            className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+
+          {currentStep < 5 ? (
+            <button
+              onClick={() => goToStep(currentStep + 1)}
+              className="flex-1 px-4 py-3 bg-yellow-400 text-black rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+            >
+              {currentStep === 3 ? 'Continue' : 'Next'}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmitQuote}
+              disabled={submitQuoteMutation.isPending}
+              className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-bold transition-all disabled:opacity-50"
+            >
+              {submitQuoteMutation.isPending ? 'Submitting...' : 'Submit Quote'}
+            </button>
+          )}
         </div>
       </div>
 

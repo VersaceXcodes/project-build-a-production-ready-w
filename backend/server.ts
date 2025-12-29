@@ -40,14 +40,23 @@ console.log('DB Config:', {
 
 const pool = new Pool(
   (DATABASE_URL
-    ? { connectionString: DATABASE_URL, ssl: { require: true } }
-    : { 
+    ? {
+        connectionString: DATABASE_URL,
+        ssl: { require: true },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
+      }
+    : {
         host: PGHOST || "ep-ancient-dream-abbsot9k-pooler.eu-west-2.aws.neon.tech",
         database: PGDATABASE || "neondb",
         user: PGUSER || "neondb_owner",
         password: PGPASSWORD || "npg_jAS3aITLC5DX",
-        port: Number(PGPORT), 
-        ssl: { require: true } 
+        port: Number(PGPORT),
+        ssl: { require: true },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
       }) as any
 );
 
@@ -106,6 +115,22 @@ const createAuditLog = async (userId, action, objectType, objectId, metadata = n
 const emitEvent = (channel, data) => {
   io.emit(channel, data);
 };
+
+// Check if email is available for registration
+app.post('/api/auth/check-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const result = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    const available = result.rows.length === 0;
+
+    res.json({ available });
+  } catch (error: any) {
+    console.error('Check email error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 app.post('/api/auth/register', async (req, res) => {
   const client = await pool.connect();
@@ -313,21 +338,54 @@ app.get('/api/public/gallery', async (req, res) => {
     const limit = parseInt((req.query.limit as string) || '20');
     const offset = (page - 1) * limit;
     let query = 'SELECT * FROM gallery_images WHERE is_active = true';
-    const params = [];
+    const params: (string | number)[] = [];
+
     if (category) {
-      params.push(`%${category}%`);
-      query += ` AND categories LIKE $${params.length}`;
+      // First, get the category ID from the slug
+      const categoryResult = await pool.query(
+        'SELECT id FROM service_categories WHERE slug = $1',
+        [category]
+      );
+
+      if (categoryResult.rows.length > 0) {
+        const categoryId = categoryResult.rows[0].id;
+
+        // Get all service slugs in this category
+        const servicesResult = await pool.query(
+          'SELECT slug FROM services WHERE category_id = $1 AND is_active = true',
+          [categoryId]
+        );
+
+        if (servicesResult.rows.length > 0) {
+          // Build OR conditions for each service slug
+          const serviceSlugs = servicesResult.rows.map((r: { slug: string }) => r.slug);
+          const conditions = serviceSlugs.map((slug: string, idx: number) => {
+            params.push(`%${slug}%`);
+            return `categories LIKE $${params.length}`;
+          });
+          query += ` AND (${conditions.join(' OR ')})`;
+        } else {
+          // No services in this category, return empty
+          return res.json({ images: [], total: 0, page: page, total_pages: 0 });
+        }
+      } else {
+        // Category not found, try direct match on the category slug itself
+        params.push(`%${category}%`);
+        query += ` AND categories LIKE $${params.length}`;
+      }
     }
-    query += ' ORDER BY sort_order, created_at DESC';
+
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY sort_order, created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
     res.json({ images: result.rows, total: parseInt(totalRes.rows[0].count), page: page, total_pages: Math.ceil(parseInt(totalRes.rows[0].count) / limit) });
-  } catch (error) {
-    console.error('List gallery error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (error: any) {
+    const errMsg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+    console.error('List gallery error:', errMsg, error?.stack);
+    res.status(500).json({ message: `Internal server error: ${errMsg}` });
   }
 });
 
@@ -377,22 +435,54 @@ app.get('/api/quotes', authenticateToken, requireRole(['CUSTOMER']), async (req,
     const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
     const offset = (page - 1) * limit;
-    let query = 'SELECT q.*, s.name as service_name, t.name as tier_name FROM quotes q JOIN services s ON q.service_id = s.id JOIN tier_packages t ON q.tier_id = t.id WHERE q.customer_id = $1';
-    const params = [req.user.id];
+    let query = `SELECT q.*,
+      s.id as service_id_ref, s.name as service_name, s.slug as service_slug, s.description as service_description,
+      t.id as tier_id_ref, t.name as tier_name, t.description as tier_description
+      FROM quotes q
+      JOIN services s ON q.service_id = s.id
+      JOIN tier_packages t ON q.tier_id = t.id
+      WHERE q.customer_id = $1`;
+    const params: any[] = [req.user.id];
     if (status) {
       params.push(status);
       query += ` AND q.status = $${params.length}`;
     }
-    query += ' ORDER BY q.created_at DESC';
-    const countQuery = query.replace('SELECT q.*, s.name as service_name, t.name as tier_name', 'SELECT COUNT(*)');
+    const countQuery = query.replace(/SELECT q\.\*[\s\S]*?FROM quotes q/, 'SELECT COUNT(*) FROM quotes q');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY q.created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
-    res.json({ quotes: result.rows, total: parseInt(totalRes.rows[0].count) });
-  } catch (error) {
-    console.error('List quotes error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    // Transform flat rows into nested structure for frontend
+    const quotes = result.rows.map((row: any) => ({
+      quote: {
+        id: row.id,
+        customer_id: row.customer_id,
+        service_id: row.service_id,
+        tier_id: row.tier_id,
+        status: row.status,
+        estimate_subtotal: row.estimate_subtotal,
+        final_subtotal: row.final_subtotal,
+        notes: row.notes,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      },
+      service: {
+        id: row.service_id_ref,
+        name: row.service_name,
+        slug: row.service_slug,
+        description: row.service_description
+      },
+      tier: {
+        id: row.tier_id_ref,
+        name: row.tier_name,
+        description: row.tier_description
+      }
+    }));
+    res.json({ quotes, total: parseInt(totalRes.rows[0].count) });
+  } catch (error: any) {
+    console.error('List quotes error:', error?.message, error?.stack);
+    res.status(500).json({ message: `Internal server error: ${error?.message || 'Unknown error'}` });
   }
 });
 
@@ -496,8 +586,16 @@ app.get('/api/admin/quotes', authenticateToken, requireRole(['ADMIN', 'STAFF']),
     const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
     const offset = (page - 1) * limit;
-    let query = 'SELECT q.*, u.name as customer_name, u.email as customer_email, s.name as service_name, t.name as tier_name FROM quotes q JOIN users u ON q.customer_id = u.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON q.tier_id = t.id WHERE 1=1';
-    const params = [];
+    let query = `SELECT q.*,
+      u.id as customer_id_ref, u.name as customer_name, u.email as customer_email,
+      s.id as service_id_ref, s.name as service_name, s.slug as service_slug,
+      t.id as tier_id_ref, t.name as tier_name, t.description as tier_description
+      FROM quotes q
+      JOIN users u ON q.customer_id = u.id
+      JOIN services s ON q.service_id = s.id
+      JOIN tier_packages t ON q.tier_id = t.id
+      WHERE 1=1`;
+    const params: any[] = [];
     if (status) {
       params.push(status);
       query += ` AND q.status = $${params.length}`;
@@ -510,15 +608,45 @@ app.get('/api/admin/quotes', authenticateToken, requireRole(['ADMIN', 'STAFF']),
       params.push(service_id);
       query += ` AND q.service_id = $${params.length}`;
     }
-    query += ' ORDER BY q.created_at DESC';
-    const countQuery = query.replace('SELECT q.*, u.name as customer_name, u.email as customer_email, s.name as service_name, t.name as tier_name', 'SELECT COUNT(*)');
+    const countQuery = query.replace(/SELECT q\.\*[\s\S]*?FROM quotes q/, 'SELECT COUNT(*) FROM quotes q');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY q.created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
-    res.json({ quotes: result.rows, total: parseInt(totalRes.rows[0].count) });
-  } catch (error) {
-    console.error('List admin quotes error:', error);
+    // Transform flat rows into nested structure for frontend
+    const quotes = result.rows.map((row: any) => ({
+      quote: {
+        id: row.id,
+        customer_id: row.customer_id,
+        service_id: row.service_id,
+        tier_id: row.tier_id,
+        status: row.status,
+        estimate_subtotal: row.estimate_subtotal,
+        final_subtotal: row.final_subtotal,
+        notes: row.notes,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      },
+      customer: {
+        id: row.customer_id_ref,
+        name: row.customer_name,
+        email: row.customer_email
+      },
+      service: {
+        id: row.service_id_ref,
+        name: row.service_name,
+        slug: row.service_slug
+      },
+      tier: {
+        id: row.tier_id_ref,
+        name: row.tier_name,
+        description: row.tier_description
+      }
+    }));
+    res.json({ quotes, total: parseInt(totalRes.rows[0].count) });
+  } catch (error: any) {
+    console.error('List admin quotes error:', error?.message, error?.stack);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -655,11 +783,32 @@ app.get('/api/calendar/availability', async (req, res) => {
   }
 });
 
-app.get('/api/bookings', authenticateToken, requireRole(['CUSTOMER']), async (req, res) => {
+app.get('/api/bookings', authenticateToken, requireRole(['CUSTOMER', 'STAFF', 'ADMIN']), async (req, res) => {
   try {
-    const { status } = req.query;
-    let query = 'SELECT b.*, q.service_id, s.name as service_name FROM bookings b JOIN quotes q ON b.quote_id = q.id JOIN services s ON q.service_id = s.id WHERE b.customer_id = $1';
-    const params = [req.user.id];
+    const { status, start_date, end_date } = req.query;
+    const userRole = req.user.role;
+
+    // Staff and Admin see all bookings; Customers see only their own
+    let query = `SELECT b.*, q.service_id, s.name as service_name, u.name as customer_name
+                 FROM bookings b
+                 JOIN quotes q ON b.quote_id = q.id
+                 JOIN services s ON q.service_id = s.id
+                 JOIN users u ON b.customer_id = u.id
+                 WHERE 1=1`;
+    const params: any[] = [];
+
+    // For customers, filter by their own bookings
+    if (userRole === 'CUSTOMER') {
+      params.push(req.user.id);
+      query += ` AND b.customer_id = $${params.length}`;
+    }
+
+    // Date range filter (for calendar views)
+    if (start_date && end_date) {
+      params.push(start_date, end_date);
+      query += ` AND DATE(b.start_at) >= $${params.length - 1} AND DATE(b.start_at) <= $${params.length}`;
+    }
+
     if (status) {
       params.push(status);
       query += ` AND b.status = $${params.length}`;
@@ -749,31 +898,64 @@ app.get('/api/orders', authenticateToken, requireRole(['CUSTOMER']), async (req,
   try {
     const status = req.query.status as string | undefined;
     const page = parseInt((req.query.page as string) || '1');
-    const limit = 20;
+    const limit = parseInt((req.query.limit as string) || '20');
     const offset = (page - 1) * limit;
-    let query = 'SELECT o.*, s.name as service_name, t.name as tier_name FROM orders o JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id WHERE o.customer_id = $1';
-    const params = [req.user.id];
+    let query = `SELECT o.*,
+      s.id as service_id, s.name as service_name, s.slug as service_slug, s.description as service_description,
+      t.id as tier_id_ref, t.name as tier_name, t.description as tier_description
+      FROM orders o
+      JOIN quotes q ON o.quote_id = q.id
+      JOIN services s ON q.service_id = s.id
+      JOIN tier_packages t ON o.tier_id = t.id
+      WHERE o.customer_id = $1`;
+    const params: any[] = [req.user.id];
     if (status) {
       params.push(status);
       query += ` AND o.status = $${params.length}`;
     }
-    query += ' ORDER BY o.created_at DESC';
-    const countQuery = query.replace('SELECT o.*, s.name as service_name, t.name as tier_name', 'SELECT COUNT(*)');
+    const countQuery = query.replace(/SELECT o\.\*[\s\S]*?FROM orders o/, 'SELECT COUNT(*) FROM orders o');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY o.created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
-    const ordersWithPaymentStatus = [];
-    for (const order of result.rows) {
-      const paymentsRes = await pool.query('SELECT SUM(amount) as total_paid FROM payments WHERE order_id = $1 AND status = $2', [order.id, 'COMPLETED']);
+    const ordersWithDetails = [];
+    for (const row of result.rows) {
+      const paymentsRes = await pool.query('SELECT SUM(amount) as total_paid FROM payments WHERE order_id = $1 AND status = $2', [row.id, 'COMPLETED']);
       const totalPaid = parseFloat(paymentsRes.rows[0]?.total_paid || 0);
-      const balanceDue = order.total_amount - totalPaid;
-      ordersWithPaymentStatus.push({ order, payment_status: { deposit_paid: totalPaid >= order.deposit_amount, balance_due: balanceDue } });
+      const balanceDue = row.total_amount - totalPaid;
+      // Transform flat row into nested structure for frontend
+      ordersWithDetails.push({
+        order: {
+          id: row.id,
+          quote_id: row.quote_id,
+          customer_id: row.customer_id,
+          tier_id: row.tier_id,
+          status: row.status,
+          deposit_amount: row.deposit_amount,
+          total_amount: row.total_amount,
+          due_at: row.due_at,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        },
+        service: {
+          id: row.service_id,
+          name: row.service_name,
+          slug: row.service_slug,
+          description: row.service_description
+        },
+        tier: {
+          id: row.tier_id_ref,
+          name: row.tier_name,
+          description: row.tier_description
+        },
+        payment_status: { deposit_paid: totalPaid >= row.deposit_amount, balance_due: balanceDue }
+      });
     }
-    res.json({ orders: ordersWithPaymentStatus, total: parseInt(totalRes.rows[0].count) });
-  } catch (error) {
-    console.error('List orders error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.json({ orders: ordersWithDetails, total: parseInt(totalRes.rows[0].count) });
+  } catch (error: any) {
+    console.error('List orders error:', error?.message, error?.stack);
+    res.status(500).json({ message: `Internal server error: ${error?.message || 'Unknown error'}` });
   }
 });
 
@@ -839,8 +1021,17 @@ app.get('/api/staff/jobs', authenticateToken, requireRole(['STAFF', 'ADMIN']), a
   try {
     const status = req.query.status as string | undefined;
     const assigned_to = req.query.assigned_to as string | undefined;
-    let query = 'SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name FROM orders o JOIN users u ON o.customer_id = u.id JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id WHERE 1=1';
-    const params = [];
+    let query = `SELECT o.*,
+      u.name as customer_name, u.email as customer_email,
+      s.name as service_name, s.slug as service_slug,
+      t.name as tier_name
+      FROM orders o
+      JOIN users u ON o.customer_id = u.id
+      JOIN quotes q ON o.quote_id = q.id
+      JOIN services s ON q.service_id = s.id
+      JOIN tier_packages t ON o.tier_id = t.id
+      WHERE 1=1`;
+    const params: any[] = [];
     if (req.user.role === 'STAFF' && !assigned_to) {
       params.push(req.user.id);
       query += ` AND o.assigned_staff_id = $${params.length}`;
@@ -855,12 +1046,8 @@ app.get('/api/staff/jobs', authenticateToken, requireRole(['STAFF', 'ADMIN']), a
     }
     query += ' ORDER BY o.due_at ASC NULLS LAST, o.created_at DESC';
     const result = await pool.query(query, params);
-    const jobs = result.rows.map(job => {
-      const isOverdue = job.due_at && new Date(job.due_at) < new Date();
-      const isPriority = job.tier_id === 'tier_004' || isOverdue;
-      return { ...job, is_overdue: isOverdue, priority_level: isPriority ? 'HIGH' : 'NORMAL' };
-    });
-    res.json(jobs);
+    // Return flat rows - frontend transforms to nested structure
+    res.json(result.rows);
   } catch (error) {
     console.error('List staff jobs error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -890,16 +1077,58 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
       params.push(`%${customer}%`);
       query += ` AND (u.name ILIKE $${params.length} OR u.email ILIKE $${params.length})`;
     }
-    query += ' ORDER BY o.created_at DESC';
     const countQuery = query.replace('SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY o.created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
-    res.json({ orders: result.rows, total: parseInt(totalRes.rows[0].count) });
-  } catch (error) {
-    console.error('List admin orders error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    // Transform flat rows into nested structure for frontend
+    const orders = result.rows.map((row: any) => ({
+      order: {
+        id: row.id,
+        quote_id: row.quote_id,
+        customer_id: row.customer_id,
+        tier_id: row.tier_id,
+        status: row.status,
+        due_at: row.due_at,
+        total_subtotal: row.total_subtotal,
+        tax_amount: row.tax_amount,
+        total_amount: row.total_amount,
+        deposit_pct: row.deposit_pct,
+        deposit_amount: row.deposit_amount,
+        revision_count: row.revision_count || 0,
+        assigned_staff_id: row.assigned_staff_id,
+        location_id: row.location_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      },
+      customer: {
+        id: row.customer_id,
+        name: row.customer_name,
+        email: ''
+      },
+      service: {
+        id: '',
+        name: row.service_name,
+        slug: ''
+      },
+      tier: {
+        id: row.tier_id,
+        name: row.tier_name,
+        slug: ''
+      },
+      assigned_staff: row.assigned_staff_id ? {
+        id: row.assigned_staff_id,
+        name: row.assigned_staff_name,
+        email: ''
+      } : null
+    }));
+    res.json({ orders, total: parseInt(totalRes.rows[0].count) });
+  } catch (error: any) {
+    const errMsg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+    console.error('List admin orders error:', errMsg, error?.stack);
+    res.status(500).json({ message: `Internal server error: ${errMsg}` });
   }
 });
 
@@ -1238,9 +1467,9 @@ app.get('/api/admin/users', authenticateToken, requireRole(['ADMIN']), async (re
       query += ` AND (name ILIKE $${params.length} OR email ILIKE $${params.length})`;
     }
 
-    query += ' ORDER BY created_at DESC';
     const countQuery = query.replace('SELECT *', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY created_at DESC';
 
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
@@ -1481,7 +1710,7 @@ app.delete('/api/admin/services/:service_id', authenticateToken, requireRole(['A
   }
 });
 
-app.get('/api/admin/calendar-settings', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+app.get('/api/admin/calendar-settings', authenticateToken, requireRole(['ADMIN', 'STAFF']), async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM calendar_settings LIMIT 1');
     if (result.rows.length === 0) {
@@ -1659,14 +1888,33 @@ app.get('/api/admin/audit-logs', authenticateToken, requireRole(['ADMIN']), asyn
       params.push(end_date);
       query += ` AND al.created_at <= $${params.length}`;
     }
-    query += ' ORDER BY al.created_at DESC';
     const countQuery = query.replace('SELECT al.*, u.name as user_name', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
+    query += ' ORDER BY al.created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
-    res.json({ logs: result.rows, total: parseInt(totalRes.rows[0].count) });
-  } catch (error) {
+    // Transform flat rows into nested structure for frontend
+    const logs = result.rows.map((row: any) => ({
+      log: {
+        id: row.id,
+        user_id: row.user_id,
+        action: row.action,
+        object_type: row.object_type,
+        object_id: row.object_id,
+        metadata: row.metadata,
+        ip_address: row.ip_address,
+        created_at: row.created_at
+      },
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+        email: '',
+        role: ''
+      }
+    }));
+    res.json({ logs, total: parseInt(totalRes.rows[0].count) });
+  } catch (error: any) {
     console.error('List audit logs error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }

@@ -8,7 +8,7 @@ import GV_HeaderAuth from '@/components/views/GV_HeaderAuth';
 import GV_Footer from '@/components/views/GV_Footer';
 
 // Auth views
-import UV_Login from '@/components/views/UV_Login';
+import UV_AUTH_Login from '@/components/views/UV_AUTH_Login';
 import UV_AUTH_Register from '@/components/views/UV_AUTH_Register';
 import UV_AUTH_ForgotPassword from '@/components/views/UV_AUTH_ForgotPassword';
 import UV_AUTH_ResetPassword from '@/components/views/UV_AUTH_ResetPassword';
@@ -152,7 +152,7 @@ const App: React.FC = () => {
 
             {/* ===== AUTH ROUTES (redirect if authenticated) ===== */}
             <Route path="/login" element={
-              <PublicOnlyRoute><UV_Login /></PublicOnlyRoute>
+              <PublicOnlyRoute><UV_AUTH_Login /></PublicOnlyRoute>
             } />
             <Route path="/register" element={
               <PublicOnlyRoute><UV_AUTH_Register /></PublicOnlyRoute>
@@ -221,7 +221,10 @@ const App: React.FC = () => {
             <Route path="/admin/quotes" element={
               <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_QuotesManager /></ProtectedRoute>
             } />
-            <Route path="/admin/quotes/:id/finalize" element={
+            <Route path="/admin/quotes/:quote_id" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_QuoteFinalization /></ProtectedRoute>
+            } />
+            <Route path="/admin/quotes/:quote_id/finalize" element={
               <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_QuoteFinalization /></ProtectedRoute>
             } />
             <Route path="/admin/gallery" element={
@@ -233,7 +236,7 @@ const App: React.FC = () => {
             <Route path="/admin/tiers/new" element={
               <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_TierEditor /></ProtectedRoute>
             } />
-            <Route path="/admin/tiers/:id" element={
+            <Route path="/admin/tiers/:tier_id" element={
               <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_TierEditor /></ProtectedRoute>
             } />
             <Route path="/admin/content" element={

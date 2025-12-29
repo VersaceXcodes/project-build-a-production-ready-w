@@ -160,7 +160,7 @@ interface OrderDetailResponse {
 // =====================================================
 
 const UV_ADMIN_OrderManagement: React.FC = () => {
-  const { order_id } = useParams<{ order_id: string }>();
+  const { id: order_id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const query_client = useQueryClient();
 
@@ -243,16 +243,14 @@ const UV_ADMIN_OrderManagement: React.FC = () => {
     queryKey: ['customer_profile', order_data?.order?.customer_id],
     queryFn: async () => {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/admin/users?role=CUSTOMER&search=${order_data?.order?.customer_id}`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/admin/users/${order_data?.order?.customer_id}`,
         {
           headers: {
             Authorization: `Bearer ${auth_token}`,
           },
         }
       );
-      // Find customer in returned users array
-      const customer_user = response.data.users?.[0];
-      return customer_user || null;
+      return response.data || null;
     },
     enabled: !!order_data?.order?.customer_id && !!auth_token,
     staleTime: 60000,
