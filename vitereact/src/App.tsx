@@ -156,9 +156,11 @@ const App: React.FC = () => {
             
             {/* ===== QUOTE FLOW ROUTES (PUBLIC - No Auth Required) ===== */}
             <Route path="/quote/start" element={<UV_PUB_QuoteStart />} />
+            <Route path="/quote/guest" element={<UV_PUB_GuestQuoteWizard />} />
             <Route path="/quote/guest/new" element={<UV_PUB_GuestQuoteWizard />} />
             <Route path="/quote/guest/confirmation/:quoteId" element={<UV_PUB_GuestQuoteConfirmation />} />
             <Route path="/quote/guest/view/:token" element={<UV_PUB_GuestQuoteView />} />
+            <Route path="/quote/guest/:token" element={<UV_PUB_GuestQuoteView />} />
 
             {/* ===== AUTH ROUTES (redirect if authenticated) ===== */}
             <Route path="/login" element={

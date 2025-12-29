@@ -73,10 +73,28 @@ const UV_AUTH_Register: React.FC = () => {
   const [show_password, setShowPassword] = useState(false);
   const [show_confirm_password, setShowConfirmPassword] = useState(false);
 
-  // Parse return_to URL param on mount
+  // Parse URL params on mount (return_to, pre-fill email/name from guest quote)
   useEffect(() => {
     const return_to = searchParams.get('return_to');
     setReturnToPath(return_to);
+    
+    // Pre-fill from URL params (from guest quote conversion)
+    const prefillEmail = searchParams.get('email');
+    const prefillName = searchParams.get('name');
+    const quoteId = searchParams.get('quote');
+    
+    if (prefillEmail || prefillName) {
+      setFormData(prev => ({
+        ...prev,
+        email: prefillEmail || prev.email,
+        name: prefillName || prev.name,
+      }));
+    }
+    
+    // Store quote ID for linking after registration
+    if (quoteId) {
+      sessionStorage.setItem('pending_quote_link', quoteId);
+    }
   }, [searchParams]);
 
   // Redirect if already authenticated

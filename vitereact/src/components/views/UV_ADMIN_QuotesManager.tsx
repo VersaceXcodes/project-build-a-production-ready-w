@@ -11,20 +11,26 @@ import { useAppStore } from '@/store/main';
 interface QuoteWithDetails {
   quote: {
     id: string;
-    customer_id: string;
+    customer_id: string | null;
     service_id: string;
     tier_id: string;
     status: 'SUBMITTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
     estimate_subtotal: number | null;
     final_subtotal: number | null;
     notes: string | null;
+    is_guest?: boolean;
+    guest_name?: string | null;
+    guest_email?: string | null;
+    guest_phone?: string | null;
+    guest_company_name?: string | null;
     created_at: string;
     updated_at: string;
   };
   customer: {
-    id: string;
+    id: string | null;
     name: string;
     email: string;
+    is_guest?: boolean;
   };
   service: {
     id: string;
@@ -757,8 +763,19 @@ const UV_ADMIN_QuotesManager: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{item.customer.name}</div>
-                            <div className="text-sm text-gray-500">{item.customer.email}</div>
+                            <div className="flex items-center">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                  {item.customer.name}
+                                  {(item.quote.is_guest || item.customer.is_guest) && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                      Guest
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-sm text-gray-500">{item.customer.email}</div>
+                              </div>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{item.service.name}</div>
@@ -826,7 +843,14 @@ const UV_ADMIN_QuotesManager: React.FC = () => {
                       <div className="space-y-2 mb-3">
                         <div>
                           <span className="text-xs text-gray-500">Customer:</span>
-                          <div className="text-sm font-medium text-gray-900">{item.customer.name}</div>
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            {item.customer.name}
+                            {(item.quote.is_guest || item.customer.is_guest) && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                Guest
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-500">{item.customer.email}</div>
                         </div>
 
