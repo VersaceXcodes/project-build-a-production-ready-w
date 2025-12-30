@@ -815,7 +815,7 @@ const UV_ADMIN_ProductsManager: React.FC = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center text-sm font-medium text-gray-900">
                             <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                            {product.base_price.toFixed(2)}
+                            {Number(product.base_price || 0).toFixed(2)}
                           </div>
                         </td>
                         
