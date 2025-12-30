@@ -92,6 +92,7 @@
     "eslint": "^9.8.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "fill-range": "^7.1.1",
     "globals": "^15.9.0",
     "html2canvas": "^1.4.1",
     "jsdom": "^27.4.0",
