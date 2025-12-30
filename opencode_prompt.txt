@@ -4,12 +4,29 @@ The Vite build process failed. Analyze the error output below and fix the issue.
 
 ## Build Error Output:
 ```
+x Build failed in 451ms
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+/app/vitereact/src/main.tsx:7:5: ERROR: Expected ";" but found "is"
+file: /app/vitereact/src/main.tsx:7:5
 
-> conductor@0.0.0 build
-> vite build
+Expected ";" but found "is"
+5  |  			<AppWrapper /> 
+6  |  );
+7  |  This is a syntax error
+   |       ^
+8  |  
 
-vite v5.4.21 building for production...
-transforming...
+    at failureErrorWithLog (/app/vitereact/node_modules/esbuild/lib/main.js:1472:15)
+    at /app/vitereact/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/app/vitereact/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/app/vitereact/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/app/vitereact/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
 
 ```
 
