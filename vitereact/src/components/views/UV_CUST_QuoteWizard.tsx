@@ -676,16 +676,28 @@ const UV_CUST_QuoteWizard: React.FC = () => {
                       )}
                       
                       {option.type === 'SELECT' && option.choices && (
-                        <select
-                          value={projectDetails[option.key] || ''}
-                          onChange={(e) => handleProjectDetailChange(option.key, e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                        >
-                          <option value="">Select {option.label}</option>
-                          {JSON.parse(option.choices).map((choice: string) => (
-                            <option key={choice} value={choice}>{choice}</option>
-                          ))}
-                        </select>
+                        <div className="space-y-3">
+                          <select
+                            value={projectDetails[option.key] || ''}
+                            onChange={(e) => handleProjectDetailChange(option.key, e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                          >
+                            <option value="">Select {option.label}</option>
+                            {JSON.parse(option.choices).map((choice: string) => (
+                              <option key={choice} value={choice}>{choice}</option>
+                            ))}
+                          </select>
+
+                          {(projectDetails[option.key] === 'Others' || projectDetails[option.key] === 'Other') && (
+                            <input
+                              type="text"
+                              value={projectDetails[`${option.key}_custom`] || ''}
+                              onChange={(e) => handleProjectDetailChange(`${option.key}_custom`, e.target.value)}
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                              placeholder={`Please specify ${option.label.toLowerCase()}`}
+                            />
+                          )}
+                        </div>
                       )}
                       
                       {option.type === 'CHECKBOX' && (
