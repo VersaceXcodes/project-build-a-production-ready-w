@@ -34,6 +34,7 @@ const GV_HeaderPublic: React.FC = () => {
     { label: 'About Us', path: '/about' },
     { label: 'Gallery', path: '/gallery' },
     { label: 'Services', path: '/services' },
+    { label: 'Products', path: '/products' },
     { label: 'Pricing', path: '/pricing' },
     { label: 'Contact', path: '/contact' },
   ];

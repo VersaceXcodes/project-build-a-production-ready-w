@@ -3188,6 +3188,792 @@ app.get('/api/admin/analytics/sla', authenticateToken, requireRole(['ADMIN']), a
   }
 });
 
+// =====================================================
+// PRODUCTS & E-COMMERCE ENDPOINTS
+// =====================================================
+
+// Public: Get all products
+app.get('/api/public/products', async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    let query = `SELECT p.*, pc.name as category_name, pc.slug as category_slug
+      FROM products p
+      LEFT JOIN product_categories pc ON p.category_id = pc.id
+      WHERE p.is_active = true`;
+    const params: any[] = [];
+    
+    if (category) {
+      params.push(category);
+      query += ` AND pc.slug = $${params.length}`;
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      query += ` AND (p.name ILIKE $${params.length} OR p.description ILIKE $${params.length})`;
+    }
+    query += ' ORDER BY p.name';
+    
+    const productsRes = await pool.query(query, params);
+    const categoriesRes = await pool.query('SELECT * FROM product_categories WHERE is_active = true ORDER BY sort_order');
+    
+    // Get min price for each product
+    const products = [];
+    for (const product of productsRes.rows) {
+      const variantRes = await pool.query(
+        'SELECT MIN(total_price) as min_price FROM product_variants WHERE product_id = $1 AND is_active = true',
+        [product.id]
+      );
+      products.push({
+        ...product,
+        from_price: variantRes.rows[0]?.min_price || product.base_price
+      });
+    }
+    
+    res.json({ products, categories: categoriesRes.rows });
+  } catch (error) {
+    console.error('List products error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Public: Get product categories
+app.get('/api/public/product-categories', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM product_categories WHERE is_active = true ORDER BY sort_order');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List product categories error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Public: Get single product with variants
+app.get('/api/public/products/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const productRes = await pool.query(
+      `SELECT p.*, pc.name as category_name, pc.slug as category_slug
+       FROM products p
+       LEFT JOIN product_categories pc ON p.category_id = pc.id
+       WHERE p.slug = $1 AND p.is_active = true`,
+      [slug]
+    );
+    
+    if (productRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const product = productRes.rows[0];
+    const variantsRes = await pool.query(
+      'SELECT * FROM product_variants WHERE product_id = $1 AND is_active = true ORDER BY sort_order',
+      [product.id]
+    );
+    const imagesRes = await pool.query(
+      'SELECT * FROM product_images WHERE product_id = $1 ORDER BY sort_order',
+      [product.id]
+    );
+    
+    // Parse config_schema if it exists
+    let configSchema = null;
+    if (product.config_schema) {
+      try {
+        configSchema = JSON.parse(product.config_schema);
+      } catch (e) {
+        configSchema = null;
+      }
+    }
+    
+    res.json({
+      product: { ...product, config_schema: configSchema },
+      variants: variantsRes.rows,
+      images: imagesRes.rows
+    });
+  } catch (error) {
+    console.error('Get product error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get or create cart (works for both guests and logged-in users)
+app.get('/api/cart', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    let userId = null;
+    let guestId = req.headers['x-guest-id'] as string || null;
+    
+    // Try to authenticate if token provided
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+        const userRes = await pool.query('SELECT id FROM users WHERE id = $1 AND is_active = true', [decoded.user_id]);
+        if (userRes.rows.length > 0) {
+          userId = userRes.rows[0].id;
+        }
+      } catch (e) {
+        // Token invalid, continue as guest
+      }
+    }
+    
+    // Find existing cart
+    let cartRes;
+    if (userId) {
+      cartRes = await pool.query('SELECT * FROM carts WHERE user_id = $1', [userId]);
+    } else if (guestId) {
+      cartRes = await pool.query('SELECT * FROM carts WHERE guest_id = $1', [guestId]);
+    }
+    
+    let cart;
+    if (!cartRes || cartRes.rows.length === 0) {
+      // Create new cart
+      const cartId = uuidv4();
+      const newGuestId = guestId || uuidv4();
+      const now = new Date().toISOString();
+      await pool.query(
+        'INSERT INTO carts (id, user_id, guest_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)',
+        [cartId, userId, userId ? null : newGuestId, now, now]
+      );
+      cart = { id: cartId, user_id: userId, guest_id: userId ? null : newGuestId, created_at: now, updated_at: now };
+      guestId = newGuestId;
+    } else {
+      cart = cartRes.rows[0];
+    }
+    
+    // Get cart items with product info
+    const itemsRes = await pool.query(`
+      SELECT ci.*, p.name as product_name, p.slug as product_slug, p.thumbnail_url,
+             pv.label as variant_label, pv.quantity as variant_quantity
+      FROM cart_items ci
+      JOIN products p ON ci.product_id = p.id
+      LEFT JOIN product_variants pv ON ci.product_variant_id = pv.id
+      WHERE ci.cart_id = $1
+      ORDER BY ci.created_at
+    `, [cart.id]);
+    
+    // Calculate totals
+    let subtotal = 0;
+    const items = itemsRes.rows.map(item => {
+      subtotal += parseFloat(item.total_price);
+      return {
+        ...item,
+        config: item.config_snapshot ? JSON.parse(item.config_snapshot) : null
+      };
+    });
+    
+    res.json({
+      cart,
+      items,
+      subtotal,
+      guest_id: cart.guest_id
+    });
+  } catch (error) {
+    console.error('Get cart error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Add item to cart
+app.post('/api/cart/items', async (req, res) => {
+  try {
+    const { product_id, product_variant_id, quantity, config } = req.body;
+    
+    if (!product_id || !quantity) {
+      return res.status(400).json({ message: 'product_id and quantity required' });
+    }
+    
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    let userId = null;
+    let guestId = req.headers['x-guest-id'] as string || null;
+    
+    // Authenticate if token provided
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+        const userRes = await pool.query('SELECT id FROM users WHERE id = $1 AND is_active = true', [decoded.user_id]);
+        if (userRes.rows.length > 0) {
+          userId = userRes.rows[0].id;
+        }
+      } catch (e) {}
+    }
+    
+    // Find or create cart
+    let cartRes;
+    if (userId) {
+      cartRes = await pool.query('SELECT * FROM carts WHERE user_id = $1', [userId]);
+    } else if (guestId) {
+      cartRes = await pool.query('SELECT * FROM carts WHERE guest_id = $1', [guestId]);
+    }
+    
+    let cart;
+    if (!cartRes || cartRes.rows.length === 0) {
+      const cartId = uuidv4();
+      const newGuestId = guestId || uuidv4();
+      const now = new Date().toISOString();
+      await pool.query(
+        'INSERT INTO carts (id, user_id, guest_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)',
+        [cartId, userId, userId ? null : newGuestId, now, now]
+      );
+      cart = { id: cartId, guest_id: userId ? null : newGuestId };
+      guestId = newGuestId;
+    } else {
+      cart = cartRes.rows[0];
+    }
+    
+    // Get pricing from variant or product
+    let unitPrice = 0;
+    let totalPrice = 0;
+    
+    if (product_variant_id) {
+      const variantRes = await pool.query('SELECT * FROM product_variants WHERE id = $1', [product_variant_id]);
+      if (variantRes.rows.length > 0) {
+        unitPrice = parseFloat(variantRes.rows[0].unit_price);
+        totalPrice = parseFloat(variantRes.rows[0].total_price);
+      }
+    } else {
+      const productRes = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+      if (productRes.rows.length > 0) {
+        unitPrice = parseFloat(productRes.rows[0].base_price);
+        totalPrice = unitPrice * quantity;
+      }
+    }
+    
+    // Add cart item
+    const itemId = uuidv4();
+    const now = new Date().toISOString();
+    await pool.query(
+      `INSERT INTO cart_items (id, cart_id, product_id, product_variant_id, quantity, unit_price, total_price, config_snapshot, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [itemId, cart.id, product_id, product_variant_id || null, quantity, unitPrice, totalPrice, config ? JSON.stringify(config) : null, now, now]
+    );
+    
+    // Update cart timestamp
+    await pool.query('UPDATE carts SET updated_at = $1 WHERE id = $2', [now, cart.id]);
+    
+    const itemRes = await pool.query('SELECT * FROM cart_items WHERE id = $1', [itemId]);
+    
+    res.status(201).json({
+      item: itemRes.rows[0],
+      guest_id: cart.guest_id
+    });
+  } catch (error) {
+    console.error('Add to cart error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update cart item
+app.patch('/api/cart/items/:item_id', async (req, res) => {
+  try {
+    const { item_id } = req.params;
+    const { product_variant_id, quantity, config } = req.body;
+    
+    const existingRes = await pool.query('SELECT * FROM cart_items WHERE id = $1', [item_id]);
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Cart item not found' });
+    }
+    
+    const item = existingRes.rows[0];
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (product_variant_id !== undefined) {
+      params.push(product_variant_id);
+      updates.push(`product_variant_id = $${params.length}`);
+      
+      // Update pricing
+      const variantRes = await pool.query('SELECT * FROM product_variants WHERE id = $1', [product_variant_id]);
+      if (variantRes.rows.length > 0) {
+        params.push(variantRes.rows[0].unit_price);
+        updates.push(`unit_price = $${params.length}`);
+        params.push(variantRes.rows[0].total_price);
+        updates.push(`total_price = $${params.length}`);
+      }
+    }
+    
+    if (quantity !== undefined) {
+      params.push(quantity);
+      updates.push(`quantity = $${params.length}`);
+    }
+    
+    if (config !== undefined) {
+      params.push(JSON.stringify(config));
+      updates.push(`config_snapshot = $${params.length}`);
+    }
+    
+    if (updates.length > 0) {
+      params.push(new Date().toISOString());
+      updates.push(`updated_at = $${params.length}`);
+      params.push(item_id);
+      await pool.query(`UPDATE cart_items SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const updatedRes = await pool.query('SELECT * FROM cart_items WHERE id = $1', [item_id]);
+    res.json(updatedRes.rows[0]);
+  } catch (error) {
+    console.error('Update cart item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Remove cart item
+app.delete('/api/cart/items/:item_id', async (req, res) => {
+  try {
+    const { item_id } = req.params;
+    await pool.query('DELETE FROM cart_items WHERE id = $1', [item_id]);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Remove cart item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Product checkout (create order from cart)
+app.post('/api/checkout/product', async (req, res) => {
+  try {
+    const { cart_id, guest_name, guest_email, guest_phone, shipping_address, payment_method } = req.body;
+    
+    if (!cart_id) {
+      return res.status(400).json({ message: 'cart_id required' });
+    }
+    
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    let userId = null;
+    
+    // Authenticate if token provided
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+        const userRes = await pool.query('SELECT id FROM users WHERE id = $1 AND is_active = true', [decoded.user_id]);
+        if (userRes.rows.length > 0) {
+          userId = userRes.rows[0].id;
+        }
+      } catch (e) {}
+    }
+    
+    // Guest checkout validation
+    if (!userId && (!guest_name || !guest_email)) {
+      return res.status(400).json({ message: 'Guest checkout requires guest_name and guest_email' });
+    }
+    
+    // Get cart and items
+    const cartRes = await pool.query('SELECT * FROM carts WHERE id = $1', [cart_id]);
+    if (cartRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
+    
+    const itemsRes = await pool.query('SELECT * FROM cart_items WHERE cart_id = $1', [cart_id]);
+    if (itemsRes.rows.length === 0) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+    
+    // Calculate totals
+    let subtotal = 0;
+    for (const item of itemsRes.rows) {
+      subtotal += parseFloat(item.total_price);
+    }
+    const taxRate = 0.23;
+    const taxAmount = subtotal * taxRate;
+    const totalAmount = subtotal + taxAmount;
+    
+    // Create order (using a special tier for products or null)
+    const orderId = uuidv4();
+    const now = new Date().toISOString();
+    
+    // For product orders, we don't need a quote_id - we need to alter the orders table
+    // Since we can't modify the existing schema, we'll create a dummy quote for now
+    // In production, you'd add an ALTER TABLE to make quote_id nullable for product orders
+    
+    // Actually, let's store product orders with a special approach:
+    // We'll use the existing structure but mark it as a PRODUCT order type
+    // We need to check if order_type column exists, if not we'll handle it gracefully
+    
+    try {
+      // Try to insert with order_type (if column exists)
+      await pool.query(
+        `INSERT INTO orders (id, quote_id, customer_id, tier_id, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, created_at, updated_at)
+         VALUES ($1, NULL, $2, NULL, 'PAID', $3, $4, $5, 100, $5, $6, $7)`,
+        [orderId, userId, subtotal, taxAmount, totalAmount, now, now]
+      );
+    } catch (insertError: any) {
+      // If quote_id is required (NOT NULL), we need a different approach
+      // Create a minimal "ghost" quote for product orders
+      if (insertError.message.includes('null value in column "quote_id"') || insertError.message.includes('violates not-null constraint')) {
+        // Get a default service and tier for product orders
+        const defaultServiceRes = await pool.query('SELECT id FROM services LIMIT 1');
+        const defaultTierRes = await pool.query('SELECT id FROM tier_packages LIMIT 1');
+        
+        if (defaultServiceRes.rows.length === 0 || defaultTierRes.rows.length === 0) {
+          return res.status(500).json({ message: 'System configuration error' });
+        }
+        
+        // Create a ghost quote for this product order
+        const ghostQuoteId = uuidv4();
+        await pool.query(
+          `INSERT INTO quotes (id, customer_id, service_id, tier_id, status, estimate_subtotal, final_subtotal, notes, is_guest, guest_name, guest_email, guest_phone, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, 'PRODUCT_ORDER', $5, $5, 'Product order', $6, $7, $8, $9, $10, $11)`,
+          [ghostQuoteId, userId, defaultServiceRes.rows[0].id, defaultTierRes.rows[0].id, subtotal, !userId, guest_name || null, guest_email || null, guest_phone || null, now, now]
+        );
+        
+        await pool.query(
+          `INSERT INTO orders (id, quote_id, customer_id, tier_id, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, 'PAID', $5, $6, $7, 100, $7, $8, $9)`,
+          [orderId, ghostQuoteId, userId, defaultTierRes.rows[0].id, subtotal, taxAmount, totalAmount, now, now]
+        );
+      } else {
+        throw insertError;
+      }
+    }
+    
+    // Create order items
+    for (const item of itemsRes.rows) {
+      const orderItemId = uuidv4();
+      const productRes = await pool.query('SELECT name FROM products WHERE id = $1', [item.product_id]);
+      const productName = productRes.rows[0]?.name || 'Product';
+      
+      await pool.query(
+        `INSERT INTO order_items (id, order_id, product_id, product_variant_id, description, quantity, unit_price, total_price, config_snapshot, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [orderItemId, orderId, item.product_id, item.product_variant_id, productName, item.quantity, item.unit_price, item.total_price, item.config_snapshot, now]
+      );
+    }
+    
+    // Create payment record
+    const paymentId = uuidv4();
+    await pool.query(
+      `INSERT INTO payments (id, order_id, amount, method, status, transaction_ref, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'COMPLETED', $5, $6, $7)`,
+      [paymentId, orderId, totalAmount, payment_method || 'STRIPE', `pi_product_${orderId}`, now, now]
+    );
+    
+    // Create invoice
+    const invoiceId = uuidv4();
+    const invoiceNumber = `INV-PROD-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
+    await pool.query(
+      `INSERT INTO invoices (id, order_id, invoice_number, amount_due, issued_at, paid_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [invoiceId, orderId, invoiceNumber, totalAmount, now, now]
+    );
+    
+    // Clear cart
+    await pool.query('DELETE FROM cart_items WHERE cart_id = $1', [cart_id]);
+    
+    // Emit event
+    emitEvent('order/product_order_created', {
+      event_type: 'product_order_created',
+      timestamp: now,
+      order_id: orderId,
+      total_amount: totalAmount,
+      items_count: itemsRes.rows.length
+    });
+    
+    res.status(201).json({
+      order_id: orderId,
+      invoice_number: invoiceNumber,
+      total_amount: totalAmount,
+      status: 'PAID'
+    });
+  } catch (error: any) {
+    console.error('Product checkout error:', error);
+    res.status(500).json({ message: `Internal server error: ${error.message}` });
+  }
+});
+
+// Get product order details
+app.get('/api/orders/product/:order_id', async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    
+    const orderRes = await pool.query('SELECT * FROM orders WHERE id = $1', [order_id]);
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    const order = orderRes.rows[0];
+    const itemsRes = await pool.query(`
+      SELECT oi.*, p.name as product_name, p.slug as product_slug, p.thumbnail_url
+      FROM order_items oi
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = $1
+    `, [order_id]);
+    
+    const invoiceRes = await pool.query('SELECT * FROM invoices WHERE order_id = $1', [order_id]);
+    const paymentsRes = await pool.query('SELECT * FROM payments WHERE order_id = $1', [order_id]);
+    
+    res.json({
+      order,
+      items: itemsRes.rows.map(item => ({
+        ...item,
+        config: item.config_snapshot ? JSON.parse(item.config_snapshot) : null
+      })),
+      invoice: invoiceRes.rows[0] || null,
+      payments: paymentsRes.rows
+    });
+  } catch (error) {
+    console.error('Get product order error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Create Stripe payment intent for products
+app.post('/api/payments/stripe/create-product-intent', async (req, res) => {
+  try {
+    const { cart_id, amount } = req.body;
+    if (!cart_id || !amount) {
+      return res.status(400).json({ message: 'cart_id and amount required' });
+    }
+    
+    // Mock Stripe payment intent
+    const clientSecret = `pi_product_${uuidv4()}_secret_${uuidv4()}`;
+    const paymentIntentId = `pi_product_${uuidv4()}`;
+    
+    res.json({
+      client_secret: clientSecret,
+      payment_intent_id: paymentIntentId
+    });
+  } catch (error) {
+    console.error('Create product payment intent error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// =====================================================
+// ADMIN: Products Management
+// =====================================================
+
+app.get('/api/admin/products', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { category, is_active } = req.query;
+    let query = `SELECT p.*, pc.name as category_name, pc.slug as category_slug
+      FROM products p
+      LEFT JOIN product_categories pc ON p.category_id = pc.id
+      WHERE 1=1`;
+    const params: any[] = [];
+    
+    if (category) {
+      params.push(category);
+      query += ` AND pc.slug = $${params.length}`;
+    }
+    if (is_active !== undefined) {
+      params.push(is_active === 'true');
+      query += ` AND p.is_active = $${params.length}`;
+    }
+    query += ' ORDER BY p.name';
+    
+    const productsRes = await pool.query(query, params);
+    
+    // Get variants count for each product
+    const products = [];
+    for (const product of productsRes.rows) {
+      const variantsRes = await pool.query(
+        'SELECT COUNT(*) as count FROM product_variants WHERE product_id = $1',
+        [product.id]
+      );
+      products.push({
+        ...product,
+        variants_count: parseInt(variantsRes.rows[0].count)
+      });
+    }
+    
+    res.json(products);
+  } catch (error) {
+    console.error('List admin products error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/products', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { slug, name, description, base_price, thumbnail_url, category_id, config_schema } = req.body;
+    
+    if (!slug || !name) {
+      return res.status(400).json({ message: 'slug and name required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      `INSERT INTO products (id, slug, name, description, base_price, thumbnail_url, category_id, is_active, purchase_mode, config_schema, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true, 'DIRECT_ONLY', $8, $9, $10)`,
+      [id, slug, name, description || null, base_price || 0, thumbnail_url || null, category_id || null, config_schema ? JSON.stringify(config_schema) : null, now, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'PRODUCT', id, { slug, name }, req.ip);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create product error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/products/:product_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    const { name, description, base_price, thumbnail_url, category_id, is_active, config_schema } = req.body;
+    
+    const existing = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (name !== undefined) { params.push(name); updates.push(`name = $${params.length}`); }
+    if (description !== undefined) { params.push(description); updates.push(`description = $${params.length}`); }
+    if (base_price !== undefined) { params.push(base_price); updates.push(`base_price = $${params.length}`); }
+    if (thumbnail_url !== undefined) { params.push(thumbnail_url); updates.push(`thumbnail_url = $${params.length}`); }
+    if (category_id !== undefined) { params.push(category_id); updates.push(`category_id = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    if (config_schema !== undefined) { params.push(JSON.stringify(config_schema)); updates.push(`config_schema = $${params.length}`); }
+    
+    if (updates.length > 0) {
+      params.push(new Date().toISOString());
+      updates.push(`updated_at = $${params.length}`);
+      params.push(product_id);
+      await pool.query(`UPDATE products SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'PRODUCT', product_id, req.body, req.ip);
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/products/:product_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    await pool.query('UPDATE products SET is_active = false, updated_at = $1 WHERE id = $2', [new Date().toISOString(), product_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'PRODUCT', product_id, null, req.ip);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Product categories admin
+app.get('/api/admin/product-categories', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM product_categories ORDER BY sort_order');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List product categories error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/product-categories', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { name, slug, sort_order } = req.body;
+    if (!name || !slug) {
+      return res.status(400).json({ message: 'name and slug required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      'INSERT INTO product_categories (id, name, slug, sort_order, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, true, $5, $6)',
+      [id, name, slug, sort_order || 0, now, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM product_categories WHERE id = $1', [id]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create product category error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Product variants admin
+app.get('/api/admin/products/:product_id/variants', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    const result = await pool.query('SELECT * FROM product_variants WHERE product_id = $1 ORDER BY sort_order', [product_id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('List product variants error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/products/:product_id/variants', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    const { label, quantity, unit_price, total_price, compare_at_price, discount_label, sort_order } = req.body;
+    
+    if (!label || !quantity) {
+      return res.status(400).json({ message: 'label and quantity required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      `INSERT INTO product_variants (id, product_id, label, quantity, unit_price, total_price, compare_at_price, discount_label, sort_order, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $11)`,
+      [id, product_id, label, quantity, unit_price || 0, total_price || 0, compare_at_price || null, discount_label || null, sort_order || 0, now, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM product_variants WHERE id = $1', [id]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create product variant error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/product-variants/:variant_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { variant_id } = req.params;
+    const { label, quantity, unit_price, total_price, compare_at_price, discount_label, sort_order, is_active } = req.body;
+    
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (label !== undefined) { params.push(label); updates.push(`label = $${params.length}`); }
+    if (quantity !== undefined) { params.push(quantity); updates.push(`quantity = $${params.length}`); }
+    if (unit_price !== undefined) { params.push(unit_price); updates.push(`unit_price = $${params.length}`); }
+    if (total_price !== undefined) { params.push(total_price); updates.push(`total_price = $${params.length}`); }
+    if (compare_at_price !== undefined) { params.push(compare_at_price); updates.push(`compare_at_price = $${params.length}`); }
+    if (discount_label !== undefined) { params.push(discount_label); updates.push(`discount_label = $${params.length}`); }
+    if (sort_order !== undefined) { params.push(sort_order); updates.push(`sort_order = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    
+    if (updates.length > 0) {
+      params.push(new Date().toISOString());
+      updates.push(`updated_at = $${params.length}`);
+      params.push(variant_id);
+      await pool.query(`UPDATE product_variants SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const result = await pool.query('SELECT * FROM product_variants WHERE id = $1', [variant_id]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update product variant error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/product-variants/:variant_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { variant_id } = req.params;
+    await pool.query('DELETE FROM product_variants WHERE id = $1', [variant_id]);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete product variant error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });

@@ -951,3 +951,163 @@ INSERT INTO sessions (id, user_id, token, expires_at, ip_address, user_agent, cr
 ('sess_005', 'user_cust_002', 'session_cust_mno345', '2024-02-20T11:00:00Z', '203.0.113.46', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Edge/120.0.0.0', '2024-02-10T11:00:00Z'),
 ('sess_006', 'user_cust_007', 'session_cust_pqr678', '2024-02-20T11:00:00Z', '203.0.113.50', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0.0.0', '2024-02-10T11:00:00Z'),
 ('sess_007', 'user_cust_010', 'session_cust_stu901', '2024-02-20T10:00:00Z', '203.0.113.55', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0', '2024-02-10T10:00:00Z');
+
+-- =====================================================
+-- PRODUCTS EXTENSION (Additive Migration)
+-- =====================================================
+
+-- Product categories (separate from service_categories)
+CREATE TABLE IF NOT EXISTS product_categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    sort_order NUMERIC NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Products table
+CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    base_price NUMERIC NOT NULL DEFAULT 0,
+    thumbnail_url TEXT,
+    category_id TEXT REFERENCES product_categories(id),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    purchase_mode TEXT NOT NULL DEFAULT 'DIRECT_ONLY',
+    config_schema TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Product variants (quantity/option combos with pricing)
+CREATE TABLE IF NOT EXISTS product_variants (
+    id TEXT PRIMARY KEY,
+    product_id TEXT NOT NULL REFERENCES products(id),
+    label TEXT NOT NULL,
+    quantity NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    total_price NUMERIC NOT NULL DEFAULT 0,
+    compare_at_price NUMERIC,
+    discount_label TEXT,
+    sort_order NUMERIC NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Product images
+CREATE TABLE IF NOT EXISTS product_images (
+    id TEXT PRIMARY KEY,
+    product_id TEXT NOT NULL REFERENCES products(id),
+    image_url TEXT NOT NULL,
+    alt_text TEXT,
+    sort_order NUMERIC NOT NULL DEFAULT 0,
+    is_primary BOOLEAN NOT NULL DEFAULT false,
+    created_at TEXT NOT NULL
+);
+
+-- Shopping carts
+CREATE TABLE IF NOT EXISTS carts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id),
+    guest_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Cart items
+CREATE TABLE IF NOT EXISTS cart_items (
+    id TEXT PRIMARY KEY,
+    cart_id TEXT NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
+    product_id TEXT NOT NULL REFERENCES products(id),
+    product_variant_id TEXT REFERENCES product_variants(id),
+    quantity NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    total_price NUMERIC NOT NULL DEFAULT 0,
+    config_snapshot TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Order items (for product orders)
+CREATE TABLE IF NOT EXISTS order_items (
+    id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id TEXT REFERENCES products(id),
+    product_variant_id TEXT REFERENCES product_variants(id),
+    description TEXT,
+    quantity NUMERIC NOT NULL DEFAULT 1,
+    unit_price NUMERIC NOT NULL DEFAULT 0,
+    total_price NUMERIC NOT NULL DEFAULT 0,
+    config_snapshot TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- Add order_type column to orders (if not exists)
+-- Note: In PostgreSQL, we handle this with ALTER TABLE
+-- For SQLite/simple execution, we check if column exists first
+
+-- =====================================================
+-- SEED DATA FOR PRODUCTS
+-- =====================================================
+
+-- Insert product categories
+INSERT INTO product_categories (id, name, slug, sort_order, is_active, created_at, updated_at) VALUES
+('pcat_001', 'Business Essentials', 'business-essentials', 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcat_002', 'Marketing Materials', 'marketing-materials', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcat_003', 'Stickers & Labels', 'stickers-labels', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcat_004', 'Packaging', 'packaging', 4, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert products
+INSERT INTO products (id, slug, name, description, base_price, thumbnail_url, category_id, is_active, purchase_mode, config_schema, created_at, updated_at) VALUES
+('prod_001', 'business-cards', 'Business Cards', 'Premium business cards delivered to your doorstep. Choose from various paper types, finishes, and quantities.', 17.50, 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400', 'pcat_001', true, 'DIRECT_ONLY', '{"paperType":{"label":"Paper Type","options":[{"value":"standard","label":"Standard (350gsm)"},{"value":"premium","label":"Premium (400gsm)"}],"default":"standard"},"paperFinish":{"label":"Paper Finish","options":[{"value":"matte","label":"Matte"},{"value":"gloss","label":"Gloss"},{"value":"uncoated","label":"Uncoated"}],"default":"matte"},"printSides":{"label":"Print Sides","options":[{"value":"single","label":"Single-sided"},{"value":"double","label":"Double-sided"}],"default":"double"}}', '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('prod_002', 'flyers', 'Flyers', 'Eye-catching flyers for events, promotions, and announcements. Available in multiple sizes and finishes.', 25.00, 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400', 'pcat_002', true, 'DIRECT_ONLY', '{"size":{"label":"Size","options":[{"value":"a5","label":"A5 (148x210mm)"},{"value":"a4","label":"A4 (210x297mm)"},{"value":"dl","label":"DL (99x210mm)"}],"default":"a5"},"paperFinish":{"label":"Paper Finish","options":[{"value":"matte","label":"Matte"},{"value":"gloss","label":"Gloss"},{"value":"silk","label":"Silk"}],"default":"gloss"},"printSides":{"label":"Print Sides","options":[{"value":"single","label":"Single-sided"},{"value":"double","label":"Double-sided"}],"default":"single"}}', '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('prod_003', 'stickers', 'Custom Stickers', 'High-quality vinyl stickers perfect for branding, packaging, or promotions. Weather-resistant and durable.', 15.00, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400', 'pcat_003', true, 'DIRECT_ONLY', '{"shape":{"label":"Shape","options":[{"value":"circle","label":"Circle"},{"value":"square","label":"Square"},{"value":"rectangle","label":"Rectangle"},{"value":"custom","label":"Custom Die-Cut"}],"default":"circle"},"size":{"label":"Size","options":[{"value":"small","label":"Small (50x50mm)"},{"value":"medium","label":"Medium (75x75mm)"},{"value":"large","label":"Large (100x100mm)"}],"default":"medium"},"finish":{"label":"Finish","options":[{"value":"gloss","label":"Gloss"},{"value":"matte","label":"Matte"}],"default":"gloss"}}', '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('prod_004', 'postcards', 'Postcards', 'Beautiful postcards for direct mail campaigns, thank you notes, or event invitations.', 30.00, 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?w=400', 'pcat_002', true, 'DIRECT_ONLY', '{"size":{"label":"Size","options":[{"value":"standard","label":"Standard (4x6 in)"},{"value":"large","label":"Large (5x7 in)"}],"default":"standard"},"paperWeight":{"label":"Paper Weight","options":[{"value":"300gsm","label":"300gsm"},{"value":"400gsm","label":"400gsm (Premium)"}],"default":"300gsm"},"finish":{"label":"Finish","options":[{"value":"matte","label":"Matte"},{"value":"gloss","label":"Gloss UV"}],"default":"matte"}}', '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('prod_005', 'letterheads', 'Letterheads', 'Professional letterhead printing to elevate your business correspondence.', 35.00, 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400', 'pcat_001', true, 'DIRECT_ONLY', '{"paperType":{"label":"Paper Type","options":[{"value":"bond","label":"Bond (80gsm)"},{"value":"premium","label":"Premium (100gsm)"},{"value":"linen","label":"Linen Textured"}],"default":"bond"},"printType":{"label":"Print Type","options":[{"value":"digital","label":"Digital"},{"value":"offset","label":"Offset (Premium)"}],"default":"digital"}}', '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('prod_006', 'envelopes', 'Custom Envelopes', 'Branded envelopes to complete your professional stationery suite.', 40.00, 'https://images.unsplash.com/photo-1579751626657-72bc17010498?w=400', 'pcat_001', true, 'DIRECT_ONLY', '{"size":{"label":"Size","options":[{"value":"dl","label":"DL (110x220mm)"},{"value":"c5","label":"C5 (162x229mm)"},{"value":"c4","label":"C4 (229x324mm)"}],"default":"dl"},"printArea":{"label":"Print Area","options":[{"value":"front","label":"Front Only"},{"value":"front-back","label":"Front & Back"},{"value":"full","label":"Full Wrap"}],"default":"front"}}', '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert product variants (tiered pricing)
+INSERT INTO product_variants (id, product_id, label, quantity, unit_price, total_price, compare_at_price, discount_label, sort_order, is_active, created_at, updated_at) VALUES
+-- Business Cards variants
+('pvar_001', 'prod_001', '50 Business Cards', 50, 0.35, 17.50, NULL, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_002', 'prod_001', '100 Business Cards', 100, 0.25, 25.00, 35.00, '29% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_003', 'prod_001', '150 Business Cards', 150, 0.18, 27.00, 52.50, '49% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_004', 'prod_001', '200 Business Cards', 200, 0.17, 34.00, 70.00, '51% off', 4, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_005', 'prod_001', '500 Business Cards', 500, 0.12, 60.00, 175.00, '66% off', 5, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+-- Flyers variants
+('pvar_006', 'prod_002', '50 Flyers', 50, 0.50, 25.00, NULL, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_007', 'prod_002', '100 Flyers', 100, 0.40, 40.00, 50.00, '20% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_008', 'prod_002', '250 Flyers', 250, 0.30, 75.00, 125.00, '40% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_009', 'prod_002', '500 Flyers', 500, 0.22, 110.00, 250.00, '56% off', 4, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+-- Stickers variants
+('pvar_010', 'prod_003', '25 Stickers', 25, 0.60, 15.00, NULL, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_011', 'prod_003', '50 Stickers', 50, 0.50, 25.00, 30.00, '17% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_012', 'prod_003', '100 Stickers', 100, 0.40, 40.00, 60.00, '33% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_013', 'prod_003', '250 Stickers', 250, 0.28, 70.00, 150.00, '53% off', 4, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+-- Postcards variants
+('pvar_014', 'prod_004', '50 Postcards', 50, 0.60, 30.00, NULL, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_015', 'prod_004', '100 Postcards', 100, 0.45, 45.00, 60.00, '25% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_016', 'prod_004', '250 Postcards', 250, 0.32, 80.00, 150.00, '47% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+-- Letterheads variants
+('pvar_017', 'prod_005', '100 Letterheads', 100, 0.35, 35.00, NULL, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_018', 'prod_005', '250 Letterheads', 250, 0.28, 70.00, 87.50, '20% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_019', 'prod_005', '500 Letterheads', 500, 0.22, 110.00, 175.00, '37% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+-- Envelopes variants
+('pvar_020', 'prod_006', '100 Envelopes', 100, 0.40, 40.00, NULL, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_021', 'prod_006', '250 Envelopes', 250, 0.32, 80.00, 100.00, '20% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pvar_022', 'prod_006', '500 Envelopes', 500, 0.24, 120.00, 200.00, '40% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert product images
+INSERT INTO product_images (id, product_id, image_url, alt_text, sort_order, is_primary, created_at) VALUES
+('pimg_001', 'prod_001', 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800', 'Business cards stack', 1, true, '2024-01-01T08:00:00Z'),
+('pimg_002', 'prod_001', 'https://images.unsplash.com/photo-1611162618071-b39a2ec055fb?w=800', 'Business card close-up', 2, false, '2024-01-01T08:00:00Z'),
+('pimg_003', 'prod_002', 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800', 'Colorful flyers', 1, true, '2024-01-01T08:00:00Z'),
+('pimg_004', 'prod_003', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800', 'Custom stickers', 1, true, '2024-01-01T08:00:00Z'),
+('pimg_005', 'prod_004', 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?w=800', 'Postcards collection', 1, true, '2024-01-01T08:00:00Z'),
+('pimg_006', 'prod_005', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800', 'Professional letterhead', 1, true, '2024-01-01T08:00:00Z'),
+('pimg_007', 'prod_006', 'https://images.unsplash.com/photo-1579751626657-72bc17010498?w=800', 'Custom envelopes', 1, true, '2024-01-01T08:00:00Z');

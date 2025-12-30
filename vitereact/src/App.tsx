@@ -28,6 +28,13 @@ import UV_PUB_GuestQuoteWizard from '@/components/views/UV_PUB_GuestQuoteWizard'
 import UV_PUB_GuestQuoteConfirmation from '@/components/views/UV_PUB_GuestQuoteConfirmation';
 import UV_PUB_GuestQuoteView from '@/components/views/UV_PUB_GuestQuoteView';
 
+// Product views
+import UV_PUB_ProductsCatalog from '@/components/views/UV_PUB_ProductsCatalog';
+import UV_PUB_ProductDetail from '@/components/views/UV_PUB_ProductDetail';
+import UV_PUB_Cart from '@/components/views/UV_PUB_Cart';
+import UV_PUB_Checkout from '@/components/views/UV_PUB_Checkout';
+import UV_PUB_OrderConfirmation from '@/components/views/UV_PUB_OrderConfirmation';
+
 // Customer views
 import UV_CUST_Dashboard from '@/components/views/UV_CUST_Dashboard';
 import UV_CUST_QuotesList from '@/components/views/UV_CUST_QuotesList';
@@ -154,6 +161,13 @@ const App: React.FC = () => {
             <Route path="/case-study/:slug" element={<UV_PUB_CaseStudy />} />
             <Route path="/policies" element={<UV_PUB_Policies />} />
             
+            {/* ===== PRODUCTS ROUTES (PUBLIC - E-commerce) ===== */}
+            <Route path="/products" element={<UV_PUB_ProductsCatalog />} />
+            <Route path="/products/:slug" element={<UV_PUB_ProductDetail />} />
+            <Route path="/cart" element={<UV_PUB_Cart />} />
+            <Route path="/checkout" element={<UV_PUB_Checkout />} />
+            <Route path="/order-confirmation/:id" element={<UV_PUB_OrderConfirmation />} />
+
             {/* ===== QUOTE FLOW ROUTES (PUBLIC - No Auth Required) ===== */}
             <Route path="/quote/start" element={<UV_PUB_QuoteStart />} />
             <Route path="/quote/guest" element={<UV_PUB_GuestQuoteWizard />} />
