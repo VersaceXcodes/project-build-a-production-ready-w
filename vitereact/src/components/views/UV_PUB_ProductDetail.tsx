@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
+import { formatMoney } from '@/lib/utils';
 
 // ===========================
 // TYPE DEFINITIONS
@@ -61,7 +62,24 @@ interface ProductResponse {
 const fetchProduct = async (slug: string): Promise<ProductResponse> => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const response = await axios.get<ProductResponse>(`${API_BASE_URL}/api/public/products/${slug}`);
-  return response.data;
+  
+  // Ensure all numeric fields are actually numbers (PostgreSQL may return them as strings)
+  const data = response.data;
+  if (data.variants) {
+    data.variants = data.variants.map(v => ({
+      ...v,
+      quantity: Number(v.quantity),
+      unit_price: Number(v.unit_price),
+      total_price: Number(v.total_price),
+      compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null,
+      sort_order: Number(v.sort_order),
+    }));
+  }
+  if (data.product) {
+    data.product.base_price = Number(data.product.base_price);
+  }
+  
+  return data;
 };
 
 const addToCart = async (data: {
@@ -341,48 +359,60 @@ const UV_PUB_ProductDetail: React.FC = () => {
                   How many?
                 </label>
                 <div className="space-y-2">
-                  {variants.map((variant) => (
-                    <button
-                      key={variant.id}
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      className={`w-full flex items-center justify-between px-4 py-4 rounded-xl border-2 transition-all ${
-                        selectedVariantId === variant.id
-                          ? 'border-yellow-400 bg-yellow-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  {variants.map((variant) => {
+                    // Defensive check: ensure prices are valid numbers
+                    const totalPrice = Number(variant.total_price);
+                    const unitPrice = Number(variant.unit_price);
+                    const comparePrice = variant.compare_at_price ? Number(variant.compare_at_price) : null;
+                    
+                    if (!Number.isFinite(totalPrice) || !Number.isFinite(unitPrice)) {
+                      console.warn('Invalid pricing data for variant:', variant);
+                      return null; // Skip rendering this variant
+                    }
+                    
+                    return (
+                      <button
+                        key={variant.id}
+                        onClick={() => setSelectedVariantId(variant.id)}
+                        className={`w-full flex items-center justify-between px-4 py-4 rounded-xl border-2 transition-all ${
                           selectedVariantId === variant.id
-                            ? 'border-yellow-400 bg-yellow-400'
-                            : 'border-gray-300'
-                        }`}>
-                          {selectedVariantId === variant.id && (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
+                            ? 'border-yellow-400 bg-yellow-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            selectedVariantId === variant.id
+                              ? 'border-yellow-400 bg-yellow-400'
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedVariantId === variant.id && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium text-gray-900">{variant.label}</span>
                         </div>
-                        <span className="font-medium text-gray-900">{variant.label}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900">€{variant.total_price.toFixed(2)}</span>
-                          {variant.compare_at_price && (
-                            <span className="text-sm text-gray-400 line-through">€{variant.compare_at_price.toFixed(2)}</span>
-                          )}
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-900">{formatMoney(totalPrice)}</span>
+                            {comparePrice && Number.isFinite(comparePrice) && (
+                              <span className="text-sm text-gray-400 line-through">{formatMoney(comparePrice)}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">{formatMoney(unitPrice)} each</span>
+                            {variant.discount_label && (
+                              <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                                {variant.discount_label}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500">€{variant.unit_price.toFixed(2)} each</span>
-                          {variant.discount_label && (
-                            <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded">
-                              {variant.discount_label}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -393,9 +423,9 @@ const UV_PUB_ProductDetail: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-gray-600">Subtotal</span>
                   <div className="text-right">
-                    <span className="text-2xl font-bold text-gray-900">€{currentPrice.toFixed(2)}</span>
-                    {compareAtPrice && (
-                      <span className="ml-2 text-gray-400 line-through">€{compareAtPrice.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-gray-900">{formatMoney(currentPrice)}</span>
+                    {compareAtPrice && Number.isFinite(Number(compareAtPrice)) && (
+                      <span className="ml-2 text-gray-400 line-through">{formatMoney(compareAtPrice)}</span>
                     )}
                   </div>
                 </div>
@@ -432,9 +462,9 @@ const UV_PUB_ProductDetail: React.FC = () => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 shadow-lg">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <span className="text-2xl font-bold text-gray-900">€{currentPrice.toFixed(2)}</span>
-            {compareAtPrice && (
-              <span className="ml-2 text-sm text-gray-400 line-through">€{compareAtPrice.toFixed(2)}</span>
+            <span className="text-2xl font-bold text-gray-900">{formatMoney(currentPrice)}</span>
+            {compareAtPrice && Number.isFinite(Number(compareAtPrice)) && (
+              <span className="ml-2 text-sm text-gray-400 line-through">{formatMoney(compareAtPrice)}</span>
             )}
           </div>
           <span className="text-sm text-green-600">+ FREE delivery</span>

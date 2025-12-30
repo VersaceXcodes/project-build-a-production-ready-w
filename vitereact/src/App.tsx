@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '@/store/main';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Layout components
 import GV_HeaderPublic from '@/components/views/GV_HeaderPublic';
@@ -164,7 +165,7 @@ const App: React.FC = () => {
             
             {/* ===== PRODUCTS ROUTES (PUBLIC - E-commerce) ===== */}
             <Route path="/products" element={<UV_PUB_ProductsCatalog />} />
-            <Route path="/products/:slug" element={<UV_PUB_ProductDetail />} />
+            <Route path="/products/:slug" element={<ErrorBoundary><UV_PUB_ProductDetail /></ErrorBoundary>} />
             <Route path="/cart" element={<UV_PUB_Cart />} />
             <Route path="/checkout" element={<UV_PUB_Checkout />} />
             <Route path="/order-confirmation/:id" element={<UV_PUB_OrderConfirmation />} />
