@@ -1,0 +1,71 @@
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: project-build-a-production-ready-w
+  REGION: us-central1
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build --no-cache -t gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} .
+          docker tag gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }}
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          # Get the Cloud Run service URL after deployment
+          SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)' 2>/dev/null || echo "")
+          
+          # Deploy with production environment variables injected at runtime
+          # This preserves tunnel URLs in GitHub for browser agent testing
+          gcloud run deploy $SERVICE_NAME             --image gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }}             --region $REGION             --platform managed             --allow-unauthenticated             --port 8080             --memory 512Mi             --cpu 1             --min-instances 0             --max-instances 10             --set-env-vars "NODE_ENV=production"             --set-env-vars "HOST=0.0.0.0"             --set-env-vars "SINGLE_SERVER_MODE=true"             --set-env-vars "FRONTEND_URL=*"
+          
+          # Get the final service URL
+          DEPLOYED_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
+          echo "deployed_url=$DEPLOYED_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to: $DEPLOYED_URL"
+
+      - name: Verify deployment
+        run: |
+          DEPLOYED_URL="${{ steps.deploy.outputs.deployed_url }}"
+          echo "Checking health at $DEPLOYED_URL/api/health"
+          sleep 10
+          curl -sf "$DEPLOYED_URL/api/health" || echo "Health check pending..."
+
+    outputs:
+      deployed_url: ${{ steps.deploy.outputs.deployed_url }}
