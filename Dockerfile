@@ -1,5 +1,5 @@
 # Stage 1: Build the Vite React frontend
-FROM node:18-slim AS frontend-build
+FROM node:20-slim AS frontend-build
 WORKDIR /app/vitereact
 COPY vitereact/package*.json ./
 RUN npm ci --legacy-peer-deps
@@ -13,7 +13,7 @@ RUN npm run build
 RUN if [ -d "dist" ]; then mv dist build; elif [ -d "public" ]; then mv public build; fi
 
 # Stage 2: Production image with backend
-FROM node:18-slim
+FROM node:20-slim
 WORKDIR /app
 
 # Install backend dependencies

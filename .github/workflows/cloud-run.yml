@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: project-build-a-production-ready-w
@@ -48,9 +52,6 @@ jobs:
       - name: Deploy to Cloud Run
         id: deploy
         run: |
-          # Get the Cloud Run service URL after deployment
-          SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)' 2>/dev/null || echo "")
-          
           # Deploy with production environment variables injected at runtime
           # This preserves tunnel URLs in GitHub for browser agent testing
           gcloud run deploy $SERVICE_NAME             --image gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }}             --region $REGION             --platform managed             --allow-unauthenticated             --port 8080             --memory 512Mi             --cpu 1             --min-instances 0             --max-instances 10             --set-env-vars "NODE_ENV=production"             --set-env-vars "HOST=0.0.0.0"             --set-env-vars "SINGLE_SERVER_MODE=true"             --set-env-vars "FRONTEND_URL=*"
