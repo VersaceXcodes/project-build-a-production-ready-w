@@ -86,6 +86,7 @@ const GV_HeaderAuth: React.FC = () => {
       const base_links = [
         { label: 'Dashboard', path: '/admin/dashboard', icon: Home, section: '' },
         { label: 'Services', path: '/admin/services', icon: Briefcase, section: 'services' },
+        { label: 'Products', path: '/admin/products', icon: Package, section: 'products' },
         { label: 'Orders', path: '/admin/orders', icon: ShoppingCart, section: 'orders' },
         { label: 'Users', path: '/admin/users', icon: Users, section: 'users' },
         { label: 'Settings', path: '/admin/settings', icon: Settings, section: 'settings' },

@@ -25,6 +25,7 @@ interface Order {
   location_id: string | null;
   created_at: string;
   updated_at: string;
+  order_type?: 'SERVICE' | 'PRODUCT';
 }
 
 interface User {
@@ -769,6 +770,9 @@ const UV_ADMIN_OrdersManager: React.FC = () => {
                           Order ID
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Customer
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -817,6 +821,15 @@ const UV_ADMIN_OrdersManager: React.FC = () => {
                             <div className="text-sm font-medium text-gray-900">
                               #{item.order.id.slice(0, 8)}
                             </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              item.order.order_type === 'PRODUCT' 
+                                ? 'bg-purple-100 text-purple-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {item.order.order_type === 'PRODUCT' ? 'Product' : 'Service'}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{item.customer.name}</div>
@@ -927,6 +940,16 @@ const UV_ADMIN_OrdersManager: React.FC = () => {
 
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
+                          <span className="text-gray-600">Type:</span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            item.order.order_type === 'PRODUCT' 
+                              ? 'bg-purple-100 text-purple-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {item.order.order_type === 'PRODUCT' ? 'Product' : 'Service'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-gray-600">Customer:</span>
                           <span className="font-medium text-gray-900">{item.customer.name}</span>
                         </div>
@@ -934,12 +957,14 @@ const UV_ADMIN_OrdersManager: React.FC = () => {
                           <span className="text-gray-600">Service:</span>
                           <span className="text-gray-900">{item.service.name}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tier:</span>
-                          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
-                            {item.tier.name}
-                          </span>
-                        </div>
+                        {item.order.order_type !== 'PRODUCT' && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tier:</span>
+                            <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                              {item.tier.name}
+                            </span>
+                          </div>
+                        )}
                         {item.order.due_at && (
                           <div className="flex justify-between">
                             <span className="text-gray-600">Due:</span>

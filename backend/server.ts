@@ -1264,7 +1264,7 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
     const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
     const offset = (page - 1) * limit;
-    let query = 'SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name FROM orders o JOIN users u ON o.customer_id = u.id JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id LEFT JOIN users staff ON o.assigned_staff_id = staff.id WHERE 1=1';
+    let query = 'SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name, q.status as quote_status FROM orders o JOIN users u ON o.customer_id = u.id JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id LEFT JOIN users staff ON o.assigned_staff_id = staff.id WHERE 1=1';
     const params = [];
     if (status) {
       params.push(status);
@@ -1278,7 +1278,7 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
       params.push(`%${customer}%`);
       query += ` AND (u.name ILIKE $${params.length} OR u.email ILIKE $${params.length})`;
     }
-    const countQuery = query.replace('SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name', 'SELECT COUNT(*)');
+    const countQuery = query.replace('SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name, q.status as quote_status', 'SELECT COUNT(*)');
     const totalRes = await pool.query(countQuery, params);
     query += ' ORDER BY o.created_at DESC';
     params.push(limit, offset);
@@ -1302,7 +1302,8 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
         assigned_staff_id: row.assigned_staff_id,
         location_id: row.location_id,
         created_at: row.created_at,
-        updated_at: row.updated_at
+        updated_at: row.updated_at,
+        order_type: row.quote_status === 'PRODUCT_ORDER' ? 'PRODUCT' : 'SERVICE'
       },
       customer: {
         id: row.customer_id,
@@ -1311,12 +1312,12 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
       },
       service: {
         id: '',
-        name: row.service_name,
+        name: row.quote_status === 'PRODUCT_ORDER' ? 'Product Order' : row.service_name,
         slug: ''
       },
       tier: {
         id: row.tier_id,
-        name: row.tier_name,
+        name: row.quote_status === 'PRODUCT_ORDER' ? '-' : row.tier_name,
         slug: ''
       },
       assigned_staff: row.assigned_staff_id ? {
