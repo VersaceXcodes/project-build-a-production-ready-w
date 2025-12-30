@@ -109,6 +109,7 @@ const UV_PUB_ProductDetail: React.FC = () => {
   
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const show_toast = useAppStore(state => state.show_toast);
+  const incrementCartCount = useAppStore(state => state.increment_cart_count);
   
   // Local state
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
@@ -192,8 +193,10 @@ const UV_PUB_ProductDetail: React.FC = () => {
         duration: 3000,
       });
       
-      // Navigate to cart
-      navigate('/cart');
+      // Update the header cart count
+      incrementCartCount();
+      
+      // No navigation - user stays on product page to continue shopping
     } catch (err: any) {
       show_toast({
         type: 'error',

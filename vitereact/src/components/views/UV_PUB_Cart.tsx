@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
+import { formatMoney } from '@/lib/utils';
 
 // ===========================
 // TYPE DEFINITIONS
@@ -87,6 +88,7 @@ const UV_PUB_Cart: React.FC = () => {
   
   const authToken = useAppStore(state => state.authentication_state.auth_token);
   const show_toast = useAppStore(state => state.show_toast);
+  const updateCartCount = useAppStore(state => state.update_cart_count);
   
   const [guestId, setGuestId] = useState<string | null>(() => localStorage.getItem('guest_cart_id'));
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
@@ -103,15 +105,21 @@ const UV_PUB_Cart: React.FC = () => {
 
   const cart = data?.cart;
   const items = data?.items || [];
-  const subtotal = data?.subtotal || 0;
+  // Safely convert subtotal to number to prevent NaN issues
+  const rawSubtotal = data?.subtotal;
+  const subtotal = typeof rawSubtotal === 'number' ? rawSubtotal : Number(rawSubtotal) || 0;
 
-  // Save guest ID if returned
+  // Save guest ID if returned and sync cart count
   useEffect(() => {
     if (data?.guest_id && !authToken) {
       localStorage.setItem('guest_cart_id', data.guest_id);
       setGuestId(data.guest_id);
     }
-  }, [data?.guest_id, authToken]);
+    // Sync the global cart count with the fetched items
+    if (data?.items) {
+      updateCartCount(data.items.length);
+    }
+  }, [data?.guest_id, data?.items, authToken, updateCartCount]);
 
   // ===========================
   // ACTIONS
@@ -278,7 +286,7 @@ const UV_PUB_Cart: React.FC = () => {
                         >
                           Edit details
                         </Link>
-                        <span className="font-bold text-gray-900">€{item.total_price.toFixed(2)}</span>
+                        <span className="font-bold text-gray-900">{formatMoney(item.total_price)}</span>
                       </div>
                     </div>
                   </div>
@@ -294,11 +302,11 @@ const UV_PUB_Cart: React.FC = () => {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})</span>
-                    <span>€{subtotal.toFixed(2)}</span>
+                    <span>{formatMoney(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>VAT (23%)</span>
-                    <span>€{taxAmount.toFixed(2)}</span>
+                    <span>{formatMoney(taxAmount)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery</span>
@@ -306,7 +314,7 @@ const UV_PUB_Cart: React.FC = () => {
                   </div>
                   <div className="border-t pt-3 flex justify-between text-lg font-bold text-gray-900">
                     <span>Total</span>
-                    <span>€{total.toFixed(2)}</span>
+                    <span>{formatMoney(total)}</span>
                   </div>
                 </div>
 
@@ -332,7 +340,7 @@ const UV_PUB_Cart: React.FC = () => {
           <div className="flex items-center justify-between mb-3">
             <div>
               <span className="text-sm text-gray-600">{items.length} item{items.length !== 1 ? 's' : ''}</span>
-              <div className="text-xl font-bold text-gray-900">€{total.toFixed(2)}</div>
+              <div className="text-xl font-bold text-gray-900">{formatMoney(total)}</div>
             </div>
             <button
               onClick={handleCheckout}

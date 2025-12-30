@@ -134,6 +134,12 @@ interface SearchFilterState {
   sort_order: 'asc' | 'desc';
 }
 
+interface CartState {
+  items_count: number;
+  is_loading: boolean;
+  last_updated_at: string | null;
+}
+
 // ===========================
 // MAIN STORE INTERFACE
 // ===========================
@@ -147,6 +153,7 @@ interface AppStore {
   feature_flags: FeatureFlags;
   quote_wizard_state: QuoteWizardState;
   search_filter_state: SearchFilterState;
+  cart_state: CartState;
 
   // Authentication actions
   login_user: (email: string, password: string, role: 'CUSTOMER' | 'STAFF' | 'ADMIN') => Promise<void>;
@@ -201,6 +208,11 @@ interface AppStore {
   update_date_range: (range: { start: string | null; end: string | null }) => void;
   update_sort_config: (sort_by: string, sort_order: 'asc' | 'desc') => void;
   clear_all_filters: () => void;
+
+  // Cart actions
+  fetch_cart_count: () => Promise<void>;
+  update_cart_count: (count: number) => void;
+  increment_cart_count: () => void;
 }
 
 // ===========================
@@ -286,6 +298,12 @@ export const useAppStore = create<AppStore>()(
         },
         sort_by: 'created_at',
         sort_order: 'desc',
+      },
+
+      cart_state: {
+        items_count: 0,
+        is_loading: false,
+        last_updated_at: null,
       },
 
       // ===========================
@@ -1054,6 +1072,79 @@ export const useAppStore = create<AppStore>()(
           },
         });
       },
+
+      // ===========================
+      // CART ACTIONS
+      // ===========================
+
+      fetch_cart_count: async () => {
+        const { auth_token } = get().authentication_state;
+        const guestId = typeof localStorage !== 'undefined' ? localStorage.getItem('guest_cart_id') : null;
+        
+        // Need either auth token or guest ID to fetch cart
+        if (!auth_token && !guestId) {
+          set((state) => ({
+            cart_state: {
+              ...state.cart_state,
+              items_count: 0,
+              is_loading: false,
+            },
+          }));
+          return;
+        }
+
+        set((state) => ({
+          cart_state: {
+            ...state.cart_state,
+            is_loading: true,
+          },
+        }));
+
+        try {
+          const headers: Record<string, string> = {};
+          if (guestId) headers['x-guest-id'] = guestId;
+          if (auth_token) headers['Authorization'] = `Bearer ${auth_token}`;
+
+          const response = await axios.get(`${API_BASE_URL}/api/cart`, { headers });
+          const items = response.data?.items || [];
+
+          set((state) => ({
+            cart_state: {
+              items_count: items.length,
+              is_loading: false,
+              last_updated_at: new Date().toISOString(),
+            },
+          }));
+        } catch (error: any) {
+          console.error('Fetch cart count error:', error);
+          set((state) => ({
+            cart_state: {
+              ...state.cart_state,
+              is_loading: false,
+            },
+          }));
+        }
+      },
+
+      update_cart_count: (count: number) => {
+        set((state) => ({
+          cart_state: {
+            ...state.cart_state,
+            items_count: count,
+            last_updated_at: new Date().toISOString(),
+          },
+        }));
+      },
+
+      increment_cart_count: () => {
+        set((state) => ({
+          cart_state: {
+            ...state.cart_state,
+            items_count: state.cart_state.items_count + 1,
+            last_updated_at: new Date().toISOString(),
+          },
+        }));
+      },
     }),
     {
       name: 'sultanstamp-app-storage',
@@ -1112,5 +1203,6 @@ export type {
   FeatureFlags,
   QuoteWizardState,
   SearchFilterState,
+  CartState,
   AppStore,
 };

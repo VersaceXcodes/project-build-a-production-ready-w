@@ -3,6 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/main';
 import sultanstampLogo from '@/assets/sultanstamp_logo.jpeg';
 
+// Cart icon component for reuse
+const CartIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
 const GV_HeaderPublic: React.FC = () => {
   // ===========================
   // GLOBAL STATE ACCESS
@@ -13,6 +20,8 @@ const GV_HeaderPublic: React.FC = () => {
   const isMobile = useAppStore(state => state.ui_state.is_mobile);
   const logoutUser = useAppStore(state => state.logout_user);
   const toggleMobileNav = useAppStore(state => state.toggle_mobile_nav);
+  const cartItemsCount = useAppStore(state => state.cart_state.items_count);
+  const fetchCartCount = useAppStore(state => state.fetch_cart_count);
 
   // ===========================
   // LOCAL STATE
@@ -89,6 +98,13 @@ const GV_HeaderPublic: React.FC = () => {
       document.body.style.overflow = '';
     }
   };
+
+  // ===========================
+  // FETCH CART COUNT ON MOUNT
+  // ===========================
+  useEffect(() => {
+    fetchCartCount();
+  }, [fetchCartCount]);
 
   // ===========================
   // CLICK OUTSIDE HANDLER
@@ -200,9 +216,23 @@ const GV_HeaderPublic: React.FC = () => {
             )}
 
             {/* ===========================
-                RIGHT SECTION: CTA + LOGIN
+                RIGHT SECTION: CART + CTA + LOGIN
                 =========================== */}
             <div className="flex items-center space-x-3">
+              {/* Cart Icon with Badge */}
+              <Link
+                to="/cart"
+                className="relative p-2 text-gray-700 hover:text-black transition-colors"
+                aria-label="View cart"
+              >
+                <CartIcon className="w-6 h-6" />
+                {cartItemsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartItemsCount > 99 ? '99+' : cartItemsCount}
+                  </span>
+                )}
+              </Link>
+
               {/* Get a Quote Button */}
               <button
                 onClick={handleGetQuoteClick}
