@@ -389,7 +389,7 @@ const UV_PUB_ProductsCatalog: React.FC = () => {
                     {/* Price */}
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-lg font-bold text-gray-900">
-                        From €{(product.from_price || product.base_price).toFixed(2)}
+                        From €{Number(product.from_price || product.base_price).toFixed(2)}
                       </span>
                       {product.category_name && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
