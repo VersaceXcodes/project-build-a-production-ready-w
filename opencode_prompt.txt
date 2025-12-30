@@ -1,35 +1,643 @@
-## BUILD FAILURE - Fix Required (Attempt 1/3)
+CURRENT SITUATION
+- The app has a “Services” section where each service leads into a QUOTE flow.
+- Some things that should be simple PRODUCTS (e.g. business cards) are currently under Services and require a quotation, which is wrong.
+- We want to introduce a separate PRODUCT catalog & direct purchase flow while KEEPING the existing Services + Quote flow intact.
 
-The Vite build process failed. Analyze the error output below and fix the issue.
+GOAL
+Add a separate Products experience with:
+- A Products listing page
+- Product detail / configurator pages
+- Cart + Checkout with direct payment (no quotes, no deposits; pay in full)
+- Support for guest checkout and logged-in users
 
-## Build Error Output:
-```
+Do this WITHOUT:
+- Breaking existing Services routes or quote flows
+- Removing or refactoring existing database structures (only additive migrations allowed)
+- Breaking existing Admin dashboards (extend them safely)
 
-> conductor@0.0.0 build
-> vite build
+------------------------------------------------
+1) NAVIGATION / INFORMATION ARCHITECTURE
+------------------------------------------------
+Top navigation must become:
 
-vite v5.4.21 building for production...
-transforming...
+[ Logo ]  [ About Us | Gallery | Services | Products | Pricing | Contact ]  [ Get a Quote ] [ Log In ▼ ]
 
-```
+Rules:
+- “Services” continues to go to the existing services listing (quote-based).
+- Add a new top-level nav item “Products” that routes to `/products`.
+- “Get a Quote” continues to go to the quote flow and MUST NOT be used for products.
 
-## Build Directory: /app/vitereact
+On mobile:
+- The new “Products” item appears inside the hamburger/side menu.
+- Navigation remains fully mobile responsive.
 
-## Your Task:
-1. **Analyze the Error**: Read the error output carefully to understand what went wrong
-2. **Locate the Problem**: Find the file(s) mentioned in the error
-3. **Apply the Fix**: 
-   - Missing file/component? CREATE it with correct exports
-   - Wrong import path? FIX the import statement  
-   - Syntax error? FIX the syntax in the affected file
-   - Type error? FIX the TypeScript types
-   - Missing dependency? Check if it needs to be installed or if it's a local import issue
-4. **Verify**: After fixing, ensure all imports resolve correctly
+------------------------------------------------
+2) PRODUCT ROUTES (NEW)
+------------------------------------------------
+Add the following routes:
 
-## IMPORTANT:
-- The build CANNOT succeed until this error is fixed
-- If creating a missing component, ensure exports match what's being imported (default vs named)
-- If the error mentions a specific line number, check that line in the source file
-- Run `npx tsc --noEmit` after fixing to verify no TypeScript errors remain
+- `/products`                → Product catalog listing
+- `/products/[slug]`         → Product configurator/detail
+- `/cart`                    → Cart page
+- `/checkout`                → Checkout flow for products
+- `/order-confirmation/[id]` → Confirmation page after successful purchase
 
-Fix this error so the build can succeed on retry.
+These routes MUST NOT interfere with existing routes:
+- `/services`, `/quote`, `/app`, `/staff`, `/admin`, etc.
+
+------------------------------------------------
+3) DATA MODEL – ADDITIVE CHANGES ONLY
+------------------------------------------------
+Do not break or remove existing tables. Only add or extend.
+
+A) Product catalog
+Currently we have “services” used for quote-based work. We now need “products” for direct purchase.
+
+Add:
+
+`product_categories`:
+- id
+- name         // e.g. Business Cards, Flyers, Banners
+- slug
+- sortOrder
+- isActive
+
+`products`:
+- id (PK)
+- slug
+- name
+- description
+- basePrice (decimal)         // base unit or base tier price
+- thumbnailUrl
+- categoryId (FK to product_categories)
+- isActive (bool)
+- purchaseMode ENUM('DIRECT_ONLY')  // for future extension
+- configSchema JSON (optional; describes options for configurator)
+
+`product_variants` (quantity/option combos with pricing):
+- id
+- productId
+- label            // e.g. "100 Business cards"
+- quantity
+- unitPrice
+- totalPrice
+- compareAtPrice (optional)   // e.g. original price before discount
+- discountLabel (optional)    // e.g. "29% off"
+- sortOrder
+
+B) Cart & Orders for products
+Reuse existing `orders` infrastructure where possible.
+
+Extend existing `orders` table with:
+- `orderType` ENUM('SERVICE','PRODUCT') DEFAULT 'SERVICE'
+
+Rules:
+- Service orders: `orderType = 'SERVICE'` (existing logic unchanged).
+- Product orders: `orderType = 'PRODUCT'`, no quoteId required.
+
+Add new tables:
+
+`carts`:
+- id
+- userId (nullable; null = guest)
+- guestId (nullable; cookie-based ID)
+- createdAt
+- updatedAt
+
+`cart_items`:
+- id
+- cartId (FK)
+- productId
+- productVariantId (nullable)
+- quantity
+- unitPrice
+- totalPrice
+- configSnapshot JSON   // paper type, finish, size, etc.
+
+`order_items`:
+- id
+- orderId
+- productId (nullable for service orders)
+- productVariantId (nullable)
+- description
+- quantity
+- unitPrice
+- totalPrice
+- configSnapshot JSON
+
+IMPORTANT:
+- Service orders must keep working as-is.
+- Product orders populate `order_items` with product data and set `orderType = 'PRODUCT'`.
+
+------------------------------------------------
+4) PRODUCT UX – DETAIL / CONFIGURATOR
+------------------------------------------------
+
+A) `/products` – Product catalog
+- Display a grid of product cards.
+- Each card shows:
+  - product image
+  - name (e.g. “Business Cards”)
+  - short description
+  - optional “From €X”
+  - primary button: “Customize & Buy”
+- Filters by category using pill buttons:
+  - “All Products”, “Business Printing”, “Marketing Materials”, etc.
+- Search bar for products.
+
+B) `/products/[slug]` – Product configurator
+Mobile-first layout with the following sections:
+
+Header:
+- Back arrow to `/products`
+- Product name (“Business Cards”)
+- Cart icon with item count
+
+Sections (stacked vertically):
+
+1) Preview section
+- Large product image
+- Horizontal list of additional preview images (thumbnails) that can be tapped to change the main image.
+
+2) Product summary
+- Short tagline above the configurator (e.g. “High-quality business cards delivered to your door.”)
+- Optional size text (e.g. “3.5 x 2 in • Landscape”).
+
+3) Configuration panels (each as a card/section):
+   - Panel: “Select your pages to print” (if applicable)
+   - Panel: “Paper type”
+     - Options such as “Standard paper”, “Premium paper”.
+     - Each option is a large, tappable row with title, description, and small image.
+   - Panel: “Paper finish”
+     - Options such as “Matte finish”, “Gloss finish”, “Uncoated finish”.
+   - Panel: “How many?” (Quantity + tiered pricing)
+     - Dropdown or expandable list with options like:
+       - 50 Business cards — €17.50 — €0.35 each
+       - 100 Business cards — €25 — €0.25 each — “29% off (€35)”
+       - 150 Business cards — €27 — “49% off (€52.50)”
+       - 200 Business cards — €34 — “51% off (€70)”
+     - The current selection is clearly highlighted and shows a check mark.
+
+4) Sticky bottom bar
+- Always visible at the bottom on mobile.
+- Shows:
+  - Subtotal amount (e.g. “€25”)
+  - Optional text like “+ FREE delivery” (configurable)
+- Primary button:
+  - “Add to Cart” when creating a new cart item.
+  - “Update Cart Item” when editing from the cart.
+
+C) Cart (`/cart`)
+- List all items in the current cart.
+- For each item show:
+  - Product image
+  - Product name
+  - Short description or key options (e.g. “Premium paper, Matte finish, 100 cards”)
+  - Quantity/variant select (same dropdown as product detail; changing it updates the price)
+  - Total price for this line item
+  - “Edit details” link → opens `/products/[slug]` pre-filled with that configuration
+  - Delete icon to remove item
+- At bottom:
+  - Subtotal
+  - Primary button: “Checkout”
+
+D) Checkout (`/checkout`)
+- One-column, mobile-friendly checkout for PRODUCTS:
+  - Guest checkout:
+    - Full name (required)
+    - Email (required)
+    - Phone (optional)
+    - Shipping address (required if shipping is needed)
+  - Logged-in users:
+    - Pre-fill fields from profile; allow edits.
+- Payment:
+  - Customer pays 100% of the cart total.
+  - Use the existing payment provider used for deposits (Stripe or similar).
+- On successful payment:
+  - Create an `order` with:
+    - `orderType = 'PRODUCT'`
+    - appropriate `order_items`
+  - Clear the cart.
+  - Redirect to `/order-confirmation/[id]`.
+
+E) Order Confirmation (`/order-confirmation/[id]`)
+- Show:
+  - Order ID
+  - Items purchased
+  - Total paid
+  - Customer details
+  - Next steps (e.g. production timeline, shipping info).
+
+------------------------------------------------
+5) BUSINESS RULES – PRODUCTS VS SERVICES
+------------------------------------------------
+- Services:
+  - Remain quote-based.
+  - Continue to use existing flows: quote → booking → deposit → production.
+- Products:
+  - Direct purchase only.
+  - No quote steps, no booking calendar, no deposit logic.
+  - Payment in full at checkout.
+
+In the Admin “Orders” list:
+- Show a badge or column for `orderType`:
+  - “SERVICE” or “PRODUCT”.
+- For product orders:
+  - Columns like “Tier” or “Booking Date” can be empty or hidden.
+  - Show quantities and product names instead.
+
+------------------------------------------------
+6) ADMIN – PRODUCT MANAGEMENT
+------------------------------------------------
+Extend the Admin area without removing existing features.
+
+Add new admin section (route example):
+- `/admin/products` OR a new “Products” tab inside “Manage Services”.
+
+Admin must be able to:
+- Create, edit, and deactivate products.
+- Manage product categories.
+- Manage product variants:
+  - quantity, unitPrice, totalPrice, compareAtPrice, discountLabel, sortOrder.
+- Upload product images and thumbnails.
+- Configure text content used in the configurator (taglines, descriptions, etc.).
+
+Ensure:
+- Existing Services management UI continues to behave exactly the same.
+- No existing data is modified or removed.
+
+------------------------------------------------
+7) MOBILE RESPONSIVENESS
+------------------------------------------------
+Apply mobile-first design and ensure:
+
+- No horizontal scrolling on any product-related page.
+- Options are large, tappable rows or cards.
+- Product detail and checkout use a sticky bottom bar for the primary action.
+- Cart layout is readable and usable on small screens.
+- All tap targets are at least 44px tall.
+
+------------------------------------------------
+8) PAYMENT & AUTH INTEGRATION
+------------------------------------------------
+- Use the same payment integration and environment variables already configured.
+- For product orders:
+  - Create one payment intent for the full order total.
+- Guest checkout:
+  - Do NOT require account creation.
+  - Store guest info on the order:
+    - guestName, guestEmail, guestPhone (optional)
+  - Optionally, after successful purchase, offer to create an account using the same email.
+
+Do NOT change or break the existing quote/deposit logic for service orders.
+
+------------------------------------------------
+9) ACCEPTANCE CRITERIA
+------------------------------------------------
+We are finished ONLY when:
+
+1) A visitor can:
+   - Click “Products” in the main navigation.
+   - Browse available products on `/products`.
+   - Open a product detail page `/products/[slug]`.
+   - Configure options (paper type, finish, quantity, etc.).
+   - Add one or more items to the cart.
+   - Checkout and pay in full as a guest or logged-in user.
+   - See an order confirmation page.
+
+2) Existing “Services” and “Get a Quote” flows are unchanged and still work as before.
+
+3) Admin can:
+   - Manage products and product variants.
+   - See product orders in the Admin Orders list with an `orderType = PRODUCT` indicator.
+
+4) No existing routes or data structures are broken, and all database changes are additive.
+
+Implement this extension now with clean, typed code (TypeScript if applicable) and safe, additive database migrations.
+
+When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
+- If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
+- If the user says "sign up" or "register", search for "Create your account" or equivalent.
+- Always return an explicit list of changed file paths. If your first attempt doesn't change the UI, re-search by heading text and update the correct file.
+
+⚠️ PRIORITY INSTRUCTIONS:
+- The user's request above is the PRIMARY task. Complete it first.
+- Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
+- Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
+- Focus solely on implementing the user's request: "CURRENT SITUATION
+- The app has a “Services” section where each service leads into a QUOTE flow.
+- Some things that should be simple PRODUCTS (e.g. business cards) are currently under Services and require a quotation, which is wrong.
+- We want to introduce a separate PRODUCT catalog & direct purchase flow while KEEPING the existing Services + Quote flow intact.
+
+GOAL
+Add a separate Products experience with:
+- A Products listing page
+- Product detail / configurator pages
+- Cart + Checkout with direct payment (no quotes, no deposits; pay in full)
+- Support for guest checkout and logged-in users
+
+Do this WITHOUT:
+- Breaking existing Services routes or quote flows
+- Removing or refactoring existing database structures (only additive migrations allowed)
+- Breaking existing Admin dashboards (extend them safely)
+
+------------------------------------------------
+1) NAVIGATION / INFORMATION ARCHITECTURE
+------------------------------------------------
+Top navigation must become:
+
+[ Logo ]  [ About Us | Gallery | Services | Products | Pricing | Contact ]  [ Get a Quote ] [ Log In ▼ ]
+
+Rules:
+- “Services” continues to go to the existing services listing (quote-based).
+- Add a new top-level nav item “Products” that routes to `/products`.
+- “Get a Quote” continues to go to the quote flow and MUST NOT be used for products.
+
+On mobile:
+- The new “Products” item appears inside the hamburger/side menu.
+- Navigation remains fully mobile responsive.
+
+------------------------------------------------
+2) PRODUCT ROUTES (NEW)
+------------------------------------------------
+Add the following routes:
+
+- `/products`                → Product catalog listing
+- `/products/[slug]`         → Product configurator/detail
+- `/cart`                    → Cart page
+- `/checkout`                → Checkout flow for products
+- `/order-confirmation/[id]` → Confirmation page after successful purchase
+
+These routes MUST NOT interfere with existing routes:
+- `/services`, `/quote`, `/app`, `/staff`, `/admin`, etc.
+
+------------------------------------------------
+3) DATA MODEL – ADDITIVE CHANGES ONLY
+------------------------------------------------
+Do not break or remove existing tables. Only add or extend.
+
+A) Product catalog
+Currently we have “services” used for quote-based work. We now need “products” for direct purchase.
+
+Add:
+
+`product_categories`:
+- id
+- name         // e.g. Business Cards, Flyers, Banners
+- slug
+- sortOrder
+- isActive
+
+`products`:
+- id (PK)
+- slug
+- name
+- description
+- basePrice (decimal)         // base unit or base tier price
+- thumbnailUrl
+- categoryId (FK to product_categories)
+- isActive (bool)
+- purchaseMode ENUM('DIRECT_ONLY')  // for future extension
+- configSchema JSON (optional; describes options for configurator)
+
+`product_variants` (quantity/option combos with pricing):
+- id
+- productId
+- label            // e.g. "100 Business cards"
+- quantity
+- unitPrice
+- totalPrice
+- compareAtPrice (optional)   // e.g. original price before discount
+- discountLabel (optional)    // e.g. "29% off"
+- sortOrder
+
+B) Cart & Orders for products
+Reuse existing `orders` infrastructure where possible.
+
+Extend existing `orders` table with:
+- `orderType` ENUM('SERVICE','PRODUCT') DEFAULT 'SERVICE'
+
+Rules:
+- Service orders: `orderType = 'SERVICE'` (existing logic unchanged).
+- Product orders: `orderType = 'PRODUCT'`, no quoteId required.
+
+Add new tables:
+
+`carts`:
+- id
+- userId (nullable; null = guest)
+- guestId (nullable; cookie-based ID)
+- createdAt
+- updatedAt
+
+`cart_items`:
+- id
+- cartId (FK)
+- productId
+- productVariantId (nullable)
+- quantity
+- unitPrice
+- totalPrice
+- configSnapshot JSON   // paper type, finish, size, etc.
+
+`order_items`:
+- id
+- orderId
+- productId (nullable for service orders)
+- productVariantId (nullable)
+- description
+- quantity
+- unitPrice
+- totalPrice
+- configSnapshot JSON
+
+IMPORTANT:
+- Service orders must keep working as-is.
+- Product orders populate `order_items` with product data and set `orderType = 'PRODUCT'`.
+
+------------------------------------------------
+4) PRODUCT UX – DETAIL / CONFIGURATOR
+------------------------------------------------
+
+A) `/products` – Product catalog
+- Display a grid of product cards.
+- Each card shows:
+  - product image
+  - name (e.g. “Business Cards”)
+  - short description
+  - optional “From €X”
+  - primary button: “Customize & Buy”
+- Filters by category using pill buttons:
+  - “All Products”, “Business Printing”, “Marketing Materials”, etc.
+- Search bar for products.
+
+B) `/products/[slug]` – Product configurator
+Mobile-first layout with the following sections:
+
+Header:
+- Back arrow to `/products`
+- Product name (“Business Cards”)
+- Cart icon with item count
+
+Sections (stacked vertically):
+
+1) Preview section
+- Large product image
+- Horizontal list of additional preview images (thumbnails) that can be tapped to change the main image.
+
+2) Product summary
+- Short tagline above the configurator (e.g. “High-quality business cards delivered to your door.”)
+- Optional size text (e.g. “3.5 x 2 in • Landscape”).
+
+3) Configuration panels (each as a card/section):
+   - Panel: “Select your pages to print” (if applicable)
+   - Panel: “Paper type”
+     - Options such as “Standard paper”, “Premium paper”.
+     - Each option is a large, tappable row with title, description, and small image.
+   - Panel: “Paper finish”
+     - Options such as “Matte finish”, “Gloss finish”, “Uncoated finish”.
+   - Panel: “How many?” (Quantity + tiered pricing)
+     - Dropdown or expandable list with options like:
+       - 50 Business cards — €17.50 — €0.35 each
+       - 100 Business cards — €25 — €0.25 each — “29% off (€35)”
+       - 150 Business cards — €27 — “49% off (€52.50)”
+       - 200 Business cards — €34 — “51% off (€70)”
+     - The current selection is clearly highlighted and shows a check mark.
+
+4) Sticky bottom bar
+- Always visible at the bottom on mobile.
+- Shows:
+  - Subtotal amount (e.g. “€25”)
+  - Optional text like “+ FREE delivery” (configurable)
+- Primary button:
+  - “Add to Cart” when creating a new cart item.
+  - “Update Cart Item” when editing from the cart.
+
+C) Cart (`/cart`)
+- List all items in the current cart.
+- For each item show:
+  - Product image
+  - Product name
+  - Short description or key options (e.g. “Premium paper, Matte finish, 100 cards”)
+  - Quantity/variant select (same dropdown as product detail; changing it updates the price)
+  - Total price for this line item
+  - “Edit details” link → opens `/products/[slug]` pre-filled with that configuration
+  - Delete icon to remove item
+- At bottom:
+  - Subtotal
+  - Primary button: “Checkout”
+
+D) Checkout (`/checkout`)
+- One-column, mobile-friendly checkout for PRODUCTS:
+  - Guest checkout:
+    - Full name (required)
+    - Email (required)
+    - Phone (optional)
+    - Shipping address (required if shipping is needed)
+  - Logged-in users:
+    - Pre-fill fields from profile; allow edits.
+- Payment:
+  - Customer pays 100% of the cart total.
+  - Use the existing payment provider used for deposits (Stripe or similar).
+- On successful payment:
+  - Create an `order` with:
+    - `orderType = 'PRODUCT'`
+    - appropriate `order_items`
+  - Clear the cart.
+  - Redirect to `/order-confirmation/[id]`.
+
+E) Order Confirmation (`/order-confirmation/[id]`)
+- Show:
+  - Order ID
+  - Items purchased
+  - Total paid
+  - Customer details
+  - Next steps (e.g. production timeline, shipping info).
+
+------------------------------------------------
+5) BUSINESS RULES – PRODUCTS VS SERVICES
+------------------------------------------------
+- Services:
+  - Remain quote-based.
+  - Continue to use existing flows: quote → booking → deposit → production.
+- Products:
+  - Direct purchase only.
+  - No quote steps, no booking calendar, no deposit logic.
+  - Payment in full at checkout.
+
+In the Admin “Orders” list:
+- Show a badge or column for `orderType`:
+  - “SERVICE” or “PRODUCT”.
+- For product orders:
+  - Columns like “Tier” or “Booking Date” can be empty or hidden.
+  - Show quantities and product names instead.
+
+------------------------------------------------
+6) ADMIN – PRODUCT MANAGEMENT
+------------------------------------------------
+Extend the Admin area without removing existing features.
+
+Add new admin section (route example):
+- `/admin/products` OR a new “Products” tab inside “Manage Services”.
+
+Admin must be able to:
+- Create, edit, and deactivate products.
+- Manage product categories.
+- Manage product variants:
+  - quantity, unitPrice, totalPrice, compareAtPrice, discountLabel, sortOrder.
+- Upload product images and thumbnails.
+- Configure text content used in the configurator (taglines, descriptions, etc.).
+
+Ensure:
+- Existing Services management UI continues to behave exactly the same.
+- No existing data is modified or removed.
+
+------------------------------------------------
+7) MOBILE RESPONSIVENESS
+------------------------------------------------
+Apply mobile-first design and ensure:
+
+- No horizontal scrolling on any product-related page.
+- Options are large, tappable rows or cards.
+- Product detail and checkout use a sticky bottom bar for the primary action.
+- Cart layout is readable and usable on small screens.
+- All tap targets are at least 44px tall.
+
+------------------------------------------------
+8) PAYMENT & AUTH INTEGRATION
+------------------------------------------------
+- Use the same payment integration and environment variables already configured.
+- For product orders:
+  - Create one payment intent for the full order total.
+- Guest checkout:
+  - Do NOT require account creation.
+  - Store guest info on the order:
+    - guestName, guestEmail, guestPhone (optional)
+  - Optionally, after successful purchase, offer to create an account using the same email.
+
+Do NOT change or break the existing quote/deposit logic for service orders.
+
+------------------------------------------------
+9) ACCEPTANCE CRITERIA
+------------------------------------------------
+We are finished ONLY when:
+
+1) A visitor can:
+   - Click “Products” in the main navigation.
+   - Browse available products on `/products`.
+   - Open a product detail page `/products/[slug]`.
+   - Configure options (paper type, finish, quantity, etc.).
+   - Add one or more items to the cart.
+   - Checkout and pay in full as a guest or logged-in user.
+   - See an order confirmation page.
+
+2) Existing “Services” and “Get a Quote” flows are unchanged and still work as before.
+
+3) Admin can:
+   - Manage products and product variants.
+   - See product orders in the Admin Orders list with an `orderType = PRODUCT` indicator.
+
+4) No existing routes or data structures are broken, and all database changes are additive.
+
+Implement this extension now with clean, typed code (TypeScript if applicable) and safe, additive database migrations."
+- Only address errors if they block the specific functionality requested by the user.
