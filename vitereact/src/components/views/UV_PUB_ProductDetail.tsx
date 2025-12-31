@@ -78,7 +78,15 @@ interface UploadedDesign {
 }
 
 interface PageMapping {
-  [sideKey: string]: number | null;
+  [sideKey: string]: {
+    fileId: string | null;
+    pageIndex: number | null;
+  };
+}
+
+interface DesignUploads {
+  front: UploadedDesign | null;
+  back: UploadedDesign | null;
 }
 
 // ===========================
@@ -412,8 +420,11 @@ const UV_PUB_ProductDetail: React.FC = () => {
   const [guestId, setGuestId] = useState<string | null>(() => localStorage.getItem('guest_cart_id'));
   
   // Design upload state
-  const [uploadedDesign, setUploadedDesign] = useState<UploadedDesign | null>(null);
-  const [pageMapping, setPageMapping] = useState<PageMapping>({});
+  const [uploadedDesigns, setUploadedDesigns] = useState<DesignUploads>({ front: null, back: null });
+  const [pageMapping, setPageMapping] = useState<PageMapping>({
+    front: { fileId: null, pageIndex: null },
+    back: { fileId: null, pageIndex: null },
+  });
   const [sessionId] = useState<string>(() => {
     let sid = sessionStorage.getItem('design_session_id');
     if (!sid) {
@@ -496,13 +507,32 @@ const UV_PUB_ProductDetail: React.FC = () => {
     return displayImages;
   };
 
+  // Determine if double-sided printing is selected
+  const isDoubleSided = selectedConfig?.print_sides === 'double_sided' || 
+                        selectedConfig?.print_sides === 'double-sided' ||
+                        selectedConfig?.printSides === 'double_sided' ||
+                        selectedConfig?.printSides === 'double-sided' ||
+                        printConfig?.sides?.some(s => s.key === 'back' && s.required);
+
   // Check if design requirements are met
   const isDesignRequired = printConfig?.requires_design_upload ?? false;
-  const requiredSides = printConfig?.sides?.filter(s => s.required) || [];
-  const allRequiredSidesMapped = requiredSides.every(
-    side => pageMapping[side.key] !== null && pageMapping[side.key] !== undefined
+  
+  // Validate front side - always required if design upload is required
+  const frontMapped = pageMapping.front?.fileId !== null && pageMapping.front?.pageIndex !== null;
+  
+  // Validate back side - required only if double-sided
+  const backMapped = pageMapping.back?.fileId !== null && pageMapping.back?.pageIndex !== null;
+  const backRequired = isDoubleSided;
+  
+  // Design is valid if:
+  // - No design required, OR
+  // - Front is uploaded AND mapped AND (back not required OR back is mapped)
+  const hasRequiredDesigns = uploadedDesigns.front !== null || uploadedDesigns.back !== null;
+  const isDesignValid = !isDesignRequired || (
+    hasRequiredDesigns && 
+    frontMapped && 
+    (!backRequired || backMapped)
   );
-  const isDesignValid = !isDesignRequired || (uploadedDesign !== null && allRequiredSidesMapped);
   const canAddToCart = selectedVariantId !== null && isDesignValid;
 
   // ===========================
@@ -520,6 +550,7 @@ const UV_PUB_ProductDetail: React.FC = () => {
         quantity: number;
         config: Record<string, string>;
         design_upload_id?: string;
+        design_uploads?: { front_id?: string; back_id?: string };
         page_mapping?: PageMapping;
       } = {
         product_id: product.id,
@@ -528,22 +559,45 @@ const UV_PUB_ProductDetail: React.FC = () => {
         config: selectedConfig,
       };
       
-      if (uploadedDesign) {
-        cartData.design_upload_id = uploadedDesign.id;
+      // Add design uploads to cart data
+      if (uploadedDesigns.front || uploadedDesigns.back) {
+        cartData.design_uploads = {};
+        if (uploadedDesigns.front) {
+          cartData.design_uploads.front_id = uploadedDesigns.front.id;
+          cartData.design_upload_id = uploadedDesigns.front.id; // Keep for backward compatibility
+        }
+        if (uploadedDesigns.back) {
+          cartData.design_uploads.back_id = uploadedDesigns.back.id;
+        }
         cartData.page_mapping = pageMapping;
       }
       
       const result = await addToCart(cartData, guestId, authToken);
       
-      if (uploadedDesign && result.item?.id) {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-        try {
-          await axios.patch(`${API_BASE_URL}/api/design-uploads/${uploadedDesign.id}/link-cart`, {
-            cart_item_id: result.item.id,
-          });
-        } catch (linkErr) {
-          console.error('Failed to link design to cart item:', linkErr);
+      // Link designs to cart item
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      if (result.item?.id) {
+        const linkPromises: Promise<any>[] = [];
+        
+        if (uploadedDesigns.front) {
+          linkPromises.push(
+            axios.patch(`${API_BASE_URL}/api/design-uploads/${uploadedDesigns.front.id}/link-cart`, {
+              cart_item_id: result.item.id,
+              side: 'front',
+            }).catch(err => console.error('Failed to link front design:', err))
+          );
         }
+        
+        if (uploadedDesigns.back && uploadedDesigns.back.id !== uploadedDesigns.front?.id) {
+          linkPromises.push(
+            axios.patch(`${API_BASE_URL}/api/design-uploads/${uploadedDesigns.back.id}/link-cart`, {
+              cart_item_id: result.item.id,
+              side: 'back',
+            }).catch(err => console.error('Failed to link back design:', err))
+          );
+        }
+        
+        await Promise.all(linkPromises);
       }
       
       if (result.guest_id && !authToken) {
@@ -561,8 +615,11 @@ const UV_PUB_ProductDetail: React.FC = () => {
       incrementCartCount();
       
       // Reset design state
-      setUploadedDesign(null);
-      setPageMapping({});
+      setUploadedDesigns({ front: null, back: null });
+      setPageMapping({
+        front: { fileId: null, pageIndex: null },
+        back: { fileId: null, pageIndex: null },
+      });
       
     } catch (err: any) {
       show_toast({
@@ -579,8 +636,11 @@ const UV_PUB_ProductDetail: React.FC = () => {
     setSelectedConfig(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleDesignChange = (design: UploadedDesign | null, mapping: PageMapping) => {
-    setUploadedDesign(design);
+  const handleDesignChange = (
+    designs: { front: UploadedDesign | null; back: UploadedDesign | null },
+    mapping: PageMapping
+  ) => {
+    setUploadedDesigns(designs);
     setPageMapping(mapping);
   };
 
@@ -943,7 +1003,9 @@ const UV_PUB_ProductDetail: React.FC = () => {
             {product && (
               <DesignUploadSection
                 productId={product.id}
+                productSlug={product.slug}
                 printConfig={printConfig || null}
+                selectedConfig={selectedConfig}
                 onDesignChange={handleDesignChange}
                 sessionId={sessionId}
               />
@@ -960,12 +1022,14 @@ const UV_PUB_ProductDetail: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-amber-800">
-                      {!uploadedDesign ? 'Design Required' : 'Complete Setup'}
+                      {!hasRequiredDesigns ? 'Design Required' : !frontMapped ? 'Front Design Required' : 'Back Design Required'}
                     </p>
                     <p className="text-sm text-amber-700 mt-1">
-                      {!uploadedDesign
+                      {!hasRequiredDesigns
                         ? 'Please upload your design file to continue'
-                        : 'Please assign pages to all required print sides'}
+                        : !frontMapped
+                          ? 'Please upload and assign a page for the front side'
+                          : 'Please upload or assign a page for the back side (double-sided printing selected)'}
                     </p>
                   </div>
                 </div>

@@ -347,6 +347,74 @@ const letterheadsMockups: MockupTemplate[] = [
   },
 ];
 
+// Brochures Mockups
+const brochuresMockups: MockupTemplate[] = [
+  {
+    id: 'br-open-front',
+    label: 'Open View',
+    imageUrl: '/mockups/brochure-open.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 15,
+      y: 15,
+      width: 70,
+      height: 55,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 0.95,
+    },
+    aspectRatio: '16/9',
+  },
+  {
+    id: 'br-folded-front',
+    label: 'Folded',
+    imageUrl: '/mockups/brochure-folded.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 25,
+      y: 20,
+      width: 50,
+      height: 60,
+      rotationDeg: -5,
+      borderRadius: 0,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'br-stack-front',
+    label: 'Stack',
+    imageUrl: '/mockups/brochure-stack.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 20,
+      y: 25,
+      width: 55,
+      height: 50,
+      rotationDeg: 3,
+      borderRadius: 0,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'br-hand-front',
+    label: 'In Hand',
+    imageUrl: '/mockups/brochure-hand.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 22,
+      y: 18,
+      width: 52,
+      height: 58,
+      rotationDeg: 8,
+      borderRadius: 0,
+      opacity: 0.92,
+    },
+    aspectRatio: '4/3',
+  },
+];
+
 // ===========================
 // PRODUCT MOCKUP CONFIGURATIONS
 // Maps product slugs to their mockup templates
@@ -377,6 +445,10 @@ export const productMockupConfigs: ProductMockupConfig[] = [
     productSlug: 'letterheads',
     templates: letterheadsMockups,
   },
+  {
+    productSlug: 'brochures',
+    templates: brochuresMockups,
+  },
 ];
 
 // ===========================
@@ -385,11 +457,24 @@ export const productMockupConfigs: ProductMockupConfig[] = [
 
 /**
  * Get mockup templates for a specific product by slug
+ * Supports partial matching (e.g., "business-card" matches "business-cards")
  */
 export function getMockupTemplatesForProduct(productSlug: string): MockupTemplate[] {
-  const config = productMockupConfigs.find(
-    (c) => c.productSlug.toLowerCase() === productSlug.toLowerCase()
+  const normalizedSlug = productSlug.toLowerCase();
+  
+  // First try exact match
+  let config = productMockupConfigs.find(
+    (c) => c.productSlug.toLowerCase() === normalizedSlug
   );
+  
+  // If no exact match, try partial match
+  if (!config) {
+    config = productMockupConfigs.find(
+      (c) => c.productSlug.toLowerCase().includes(normalizedSlug) ||
+             normalizedSlug.includes(c.productSlug.toLowerCase())
+    );
+  }
+  
   return config?.templates || [];
 }
 
