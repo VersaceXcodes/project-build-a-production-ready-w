@@ -9,6 +9,23 @@ import { formatMoney } from '@/lib/utils';
 // TYPE DEFINITIONS
 // ===========================
 
+interface DesignUploadInfo {
+  front?: {
+    id: string;
+    original_filename: string;
+    preview_url?: string;
+  };
+  back?: {
+    id: string;
+    original_filename: string;
+    preview_url?: string;
+  };
+  page_mapping?: {
+    front?: { fileId: string; pageIndex: number };
+    back?: { fileId: string; pageIndex: number };
+  };
+}
+
 interface CartItem {
   id: string;
   cart_id: string;
@@ -23,6 +40,7 @@ interface CartItem {
   variant_label: string | null;
   variant_quantity: number | null;
   config: Record<string, string> | null;
+  design_uploads?: DesignUploadInfo;
 }
 
 interface CartResponse {
@@ -276,6 +294,50 @@ const UV_PUB_Cart: React.FC = () => {
                               {value}
                             </span>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Design Upload Info */}
+                      {item.design_uploads && (item.design_uploads.front || item.design_uploads.back) && (
+                        <div className="mt-3 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-100">
+                          <div className="flex items-center gap-2 mb-2">
+                            <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-xs font-semibold text-yellow-800">Design Files Attached</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {item.design_uploads.front && (
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold bg-yellow-200 text-yellow-800 rounded uppercase">
+                                  Front
+                                </span>
+                                <span className="text-xs text-gray-600 truncate flex-1">
+                                  {item.design_uploads.front.original_filename}
+                                </span>
+                                {item.design_uploads.page_mapping?.front && (
+                                  <span className="text-[10px] text-gray-500">
+                                    Page {(item.design_uploads.page_mapping.front.pageIndex || 0) + 1}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {item.design_uploads.back && (
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold bg-purple-200 text-purple-800 rounded uppercase">
+                                  Back
+                                </span>
+                                <span className="text-xs text-gray-600 truncate flex-1">
+                                  {item.design_uploads.back.original_filename}
+                                </span>
+                                {item.design_uploads.page_mapping?.back && (
+                                  <span className="text-[10px] text-gray-500">
+                                    Page {(item.design_uploads.page_mapping.back.pageIndex || 0) + 1}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
 

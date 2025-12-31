@@ -1,6 +1,7 @@
 // ===========================
 // MOCKUP TEMPLATE SYSTEM
 // Configuration for realistic product mockups
+// Enhanced for Canva-style preview experience
 // ===========================
 
 export interface DesignPlacement {
@@ -33,39 +34,24 @@ export interface ProductMockupConfig {
 
 // ===========================
 // MOCKUP TEMPLATES BY PRODUCT TYPE
+// Enhanced with multiple lifestyle views
 // ===========================
 
-// Business Cards Mockups
+// Business Cards Mockups - Enhanced with 5 views including back
 const businessCardsMockups: MockupTemplate[] = [
   {
-    id: 'bc-desk-front',
-    label: 'On Desk',
-    imageUrl: '/mockups/business-card-desk.jpg',
+    id: 'bc-flat-single',
+    label: 'Single Flat Card',
+    imageUrl: '/mockups/business-card-flat.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 25,
-      y: 30,
-      width: 50,
-      height: 35,
-      rotationDeg: -3,
+      x: 15,
+      y: 15,
+      width: 70,
+      height: 70,
+      rotationDeg: 0,
       borderRadius: 4,
-      opacity: 0.95,
-    },
-    aspectRatio: '4/3',
-  },
-  {
-    id: 'bc-hand-front',
-    label: 'In Hand',
-    imageUrl: '/mockups/business-card-hand.jpg',
-    designPlacement: {
-      sideKey: 'front',
-      x: 30,
-      y: 25,
-      width: 45,
-      height: 30,
-      rotationDeg: 5,
-      borderRadius: 4,
-      opacity: 0.92,
+      opacity: 1,
     },
     aspectRatio: '4/3',
   },
@@ -75,49 +61,115 @@ const businessCardsMockups: MockupTemplate[] = [
     imageUrl: '/mockups/business-card-stack.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 28,
+      x: 20,
+      y: 18,
+      width: 60,
+      height: 55,
+      rotationDeg: -3,
+      borderRadius: 4,
+      opacity: 0.98,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'bc-perspective-front',
+    label: 'Perspective View',
+    imageUrl: '/mockups/business-card-perspective.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 22,
       y: 20,
-      width: 48,
-      height: 32,
+      width: 56,
+      height: 52,
       rotationDeg: 0,
+      skewX: -8,
+      skewY: 4,
       borderRadius: 4,
       opacity: 0.95,
     },
     aspectRatio: '4/3',
   },
+  {
+    id: 'bc-floating',
+    label: 'Floating',
+    imageUrl: '/mockups/business-card-floating.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 18,
+      y: 22,
+      width: 64,
+      height: 56,
+      rotationDeg: 5,
+      borderRadius: 4,
+      opacity: 0.98,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'bc-back-view',
+    label: 'Back Side',
+    imageUrl: '/mockups/business-card-back.jpg',
+    designPlacement: {
+      sideKey: 'back',
+      x: 15,
+      y: 15,
+      width: 70,
+      height: 70,
+      rotationDeg: 0,
+      borderRadius: 4,
+      opacity: 1,
+    },
+    aspectRatio: '4/3',
+  },
 ];
 
-// Flyers Mockups
+// Flyers Mockups - Enhanced with lifestyle views
 const flyersMockups: MockupTemplate[] = [
+  {
+    id: 'fl-flat-front',
+    label: 'Flat View',
+    imageUrl: '/mockups/flyer-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 12,
+      y: 8,
+      width: 76,
+      height: 84,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
   {
     id: 'fl-desk-front',
     label: 'On Desk',
     imageUrl: '/mockups/flyer-desk.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 20,
-      y: 15,
-      width: 60,
-      height: 70,
+      x: 18,
+      y: 12,
+      width: 64,
+      height: 76,
       rotationDeg: -2,
-      borderRadius: 2,
-      opacity: 0.95,
+      borderRadius: 0,
+      opacity: 0.98,
     },
     aspectRatio: '4/3',
   },
   {
-    id: 'fl-hand-front',
-    label: 'Held in Hand',
-    imageUrl: '/mockups/flyer-hand.jpg',
+    id: 'fl-stack',
+    label: 'Stacked',
+    imageUrl: '/mockups/flyer-stack.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 25,
-      y: 10,
-      width: 55,
-      height: 65,
-      rotationDeg: 8,
+      x: 20,
+      y: 15,
+      width: 60,
+      height: 70,
+      rotationDeg: -4,
       borderRadius: 0,
-      opacity: 0.92,
+      opacity: 0.95,
     },
     aspectRatio: '4/3',
   },
@@ -127,32 +179,82 @@ const flyersMockups: MockupTemplate[] = [
     imageUrl: '/mockups/flyer-display.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 30,
-      y: 12,
-      width: 45,
-      height: 60,
+      x: 25,
+      y: 10,
+      width: 50,
+      height: 70,
       rotationDeg: 0,
+      skewX: -3,
+      skewY: 2,
       borderRadius: 0,
       opacity: 0.95,
     },
     aspectRatio: '4/3',
   },
+  {
+    id: 'fl-back-view',
+    label: 'Back Side',
+    imageUrl: '/mockups/flyer-back.jpg',
+    designPlacement: {
+      sideKey: 'back',
+      x: 12,
+      y: 8,
+      width: 76,
+      height: 84,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
 ];
 
-// Postcards Mockups
+// Postcards Mockups - Enhanced
 const postcardsMockups: MockupTemplate[] = [
+  {
+    id: 'pc-flat-front',
+    label: 'Flat View',
+    imageUrl: '/mockups/postcard-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 12,
+      y: 12,
+      width: 76,
+      height: 76,
+      rotationDeg: 0,
+      borderRadius: 2,
+      opacity: 1,
+    },
+    aspectRatio: '4/3',
+  },
   {
     id: 'pc-table-front',
     label: 'On Table',
     imageUrl: '/mockups/postcard-table.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 22,
-      y: 25,
-      width: 55,
-      height: 40,
+      x: 18,
+      y: 20,
+      width: 64,
+      height: 55,
       rotationDeg: -5,
       borderRadius: 3,
+      opacity: 0.98,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'pc-stack',
+    label: 'Stacked',
+    imageUrl: '/mockups/postcard-stack.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 20,
+      y: 18,
+      width: 60,
+      height: 58,
+      rotationDeg: 3,
+      borderRadius: 2,
       opacity: 0.95,
     },
     aspectRatio: '4/3',
@@ -163,10 +265,10 @@ const postcardsMockups: MockupTemplate[] = [
     imageUrl: '/mockups/postcard-mail.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 28,
-      y: 20,
-      width: 50,
-      height: 38,
+      x: 22,
+      y: 15,
+      width: 56,
+      height: 52,
       rotationDeg: 3,
       borderRadius: 2,
       opacity: 0.95,
@@ -174,51 +276,67 @@ const postcardsMockups: MockupTemplate[] = [
     aspectRatio: '4/3',
   },
   {
-    id: 'pc-hand-back',
+    id: 'pc-back-view',
     label: 'Writing Side',
     imageUrl: '/mockups/postcard-writing.jpg',
     designPlacement: {
       sideKey: 'back',
-      x: 25,
-      y: 22,
-      width: 52,
-      height: 38,
+      x: 12,
+      y: 12,
+      width: 76,
+      height: 76,
       rotationDeg: 0,
       borderRadius: 2,
-      opacity: 0.95,
+      opacity: 1,
     },
     aspectRatio: '4/3',
   },
 ];
 
-// Envelopes Mockups
+// Envelopes Mockups - Enhanced
 const envelopesMockups: MockupTemplate[] = [
+  {
+    id: 'env-flat-front',
+    label: 'Flat View',
+    imageUrl: '/mockups/envelope-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 10,
+      y: 18,
+      width: 80,
+      height: 64,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '4/3',
+  },
   {
     id: 'env-desk-front',
     label: 'On Wood Surface',
     imageUrl: '/mockups/envelope-wood.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 18,
-      y: 25,
-      width: 65,
-      height: 45,
+      x: 15,
+      y: 22,
+      width: 70,
+      height: 55,
       rotationDeg: -4,
       borderRadius: 0,
-      opacity: 0.95,
+      opacity: 0.98,
     },
     aspectRatio: '4/3',
   },
   {
     id: 'env-stack-front',
-    label: 'Stacked Envelopes',
+    label: 'Stacked',
     imageUrl: '/mockups/envelope-stack.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 20,
-      y: 18,
-      width: 60,
-      height: 42,
+      x: 18,
+      y: 15,
+      width: 65,
+      height: 55,
       rotationDeg: 2,
       borderRadius: 0,
       opacity: 0.95,
@@ -231,30 +349,62 @@ const envelopesMockups: MockupTemplate[] = [
     imageUrl: '/mockups/envelope-mail.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 22,
-      y: 28,
-      width: 58,
-      height: 40,
+      x: 20,
+      y: 25,
+      width: 62,
+      height: 50,
       rotationDeg: -6,
       borderRadius: 0,
       opacity: 0.95,
     },
     aspectRatio: '4/3',
   },
+  {
+    id: 'env-back-view',
+    label: 'Back / Flap',
+    imageUrl: '/mockups/envelope-back.jpg',
+    designPlacement: {
+      sideKey: 'back',
+      x: 10,
+      y: 18,
+      width: 80,
+      height: 64,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '4/3',
+  },
 ];
 
-// Stickers Mockups
+// Stickers Mockups - Enhanced with lifestyle scenes
 const stickersMockups: MockupTemplate[] = [
+  {
+    id: 'st-flat-front',
+    label: 'Single Sticker',
+    imageUrl: '/mockups/sticker-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 25,
+      y: 20,
+      width: 50,
+      height: 60,
+      rotationDeg: 0,
+      borderRadius: 8,
+      opacity: 1,
+    },
+    aspectRatio: '1/1',
+  },
   {
     id: 'st-laptop-front',
     label: 'On Laptop',
     imageUrl: '/mockups/sticker-laptop.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 35,
-      y: 30,
-      width: 30,
-      height: 30,
+      x: 32,
+      y: 28,
+      width: 36,
+      height: 44,
       rotationDeg: 0,
       borderRadius: 8,
       opacity: 0.95,
@@ -267,11 +417,12 @@ const stickersMockups: MockupTemplate[] = [
     imageUrl: '/mockups/sticker-bottle.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 38,
-      y: 35,
-      width: 25,
-      height: 25,
+      x: 35,
+      y: 32,
+      width: 30,
+      height: 36,
       rotationDeg: 5,
+      skewX: 3,
       borderRadius: 50,
       opacity: 0.92,
     },
@@ -283,33 +434,65 @@ const stickersMockups: MockupTemplate[] = [
     imageUrl: '/mockups/sticker-sheet.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 30,
+      x: 22,
+      y: 18,
+      width: 56,
+      height: 64,
+      rotationDeg: -2,
+      borderRadius: 4,
+      opacity: 0.98,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'st-scattered',
+    label: 'Scattered View',
+    imageUrl: '/mockups/sticker-scattered.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 28,
       y: 25,
-      width: 40,
+      width: 44,
       height: 50,
-      rotationDeg: 0,
-      borderRadius: 0,
+      rotationDeg: 15,
+      borderRadius: 8,
       opacity: 0.95,
     },
     aspectRatio: '4/3',
   },
 ];
 
-// Letterheads Mockups
+// Letterheads Mockups - Enhanced
 const letterheadsMockups: MockupTemplate[] = [
+  {
+    id: 'lh-flat-front',
+    label: 'Flat View',
+    imageUrl: '/mockups/letterhead-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 12,
+      y: 6,
+      width: 76,
+      height: 88,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
   {
     id: 'lh-desk-front',
     label: 'On Desk',
     imageUrl: '/mockups/letterhead-desk.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 20,
-      y: 10,
-      width: 60,
-      height: 75,
+      x: 18,
+      y: 8,
+      width: 65,
+      height: 82,
       rotationDeg: 0,
       borderRadius: 0,
-      opacity: 0.95,
+      opacity: 0.98,
     },
     aspectRatio: '4/3',
   },
@@ -319,10 +502,10 @@ const letterheadsMockups: MockupTemplate[] = [
     imageUrl: '/mockups/letterhead-folder.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 25,
-      y: 12,
-      width: 55,
-      height: 70,
+      x: 22,
+      y: 10,
+      width: 58,
+      height: 75,
       rotationDeg: -3,
       borderRadius: 0,
       opacity: 0.95,
@@ -335,11 +518,29 @@ const letterheadsMockups: MockupTemplate[] = [
     imageUrl: '/mockups/letterhead-brand.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 22,
-      y: 15,
-      width: 55,
-      height: 68,
+      x: 20,
+      y: 12,
+      width: 60,
+      height: 72,
       rotationDeg: 2,
+      borderRadius: 0,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'lh-perspective',
+    label: 'Perspective',
+    imageUrl: '/mockups/letterhead-perspective.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 25,
+      y: 15,
+      width: 52,
+      height: 68,
+      rotationDeg: 0,
+      skewX: -5,
+      skewY: 3,
       borderRadius: 0,
       opacity: 0.95,
     },
@@ -347,34 +548,50 @@ const letterheadsMockups: MockupTemplate[] = [
   },
 ];
 
-// Brochures Mockups
+// Brochures Mockups - Enhanced with folded/open views
 const brochuresMockups: MockupTemplate[] = [
+  {
+    id: 'br-cover-front',
+    label: 'Cover',
+    imageUrl: '/mockups/brochure-cover.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 18,
+      y: 10,
+      width: 64,
+      height: 80,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
   {
     id: 'br-open-front',
     label: 'Open View',
     imageUrl: '/mockups/brochure-open.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 15,
+      x: 10,
       y: 15,
-      width: 70,
-      height: 55,
+      width: 80,
+      height: 60,
       rotationDeg: 0,
       borderRadius: 0,
-      opacity: 0.95,
+      opacity: 0.98,
     },
     aspectRatio: '16/9',
   },
   {
     id: 'br-folded-front',
-    label: 'Folded',
+    label: 'Tri-Fold',
     imageUrl: '/mockups/brochure-folded.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 25,
-      y: 20,
-      width: 50,
-      height: 60,
+      x: 22,
+      y: 18,
+      width: 56,
+      height: 64,
       rotationDeg: -5,
       borderRadius: 0,
       opacity: 0.95,
@@ -387,10 +604,10 @@ const brochuresMockups: MockupTemplate[] = [
     imageUrl: '/mockups/brochure-stack.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 20,
-      y: 25,
-      width: 55,
-      height: 50,
+      x: 18,
+      y: 22,
+      width: 60,
+      height: 56,
       rotationDeg: 3,
       borderRadius: 0,
       opacity: 0.95,
@@ -398,20 +615,260 @@ const brochuresMockups: MockupTemplate[] = [
     aspectRatio: '4/3',
   },
   {
-    id: 'br-hand-front',
-    label: 'In Hand',
-    imageUrl: '/mockups/brochure-hand.jpg',
+    id: 'br-back-view',
+    label: 'Back Cover',
+    imageUrl: '/mockups/brochure-back.jpg',
+    designPlacement: {
+      sideKey: 'back',
+      x: 18,
+      y: 10,
+      width: 64,
+      height: 80,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
+];
+
+// Booklets Mockups
+const bookletsMockups: MockupTemplate[] = [
+  {
+    id: 'bk-cover-front',
+    label: 'Cover',
+    imageUrl: '/mockups/booklet-cover.jpg',
     designPlacement: {
       sideKey: 'front',
-      x: 22,
-      y: 18,
-      width: 52,
-      height: 58,
-      rotationDeg: 8,
-      borderRadius: 0,
-      opacity: 0.92,
+      x: 15,
+      y: 8,
+      width: 70,
+      height: 84,
+      rotationDeg: 0,
+      borderRadius: 2,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
+  {
+    id: 'bk-open',
+    label: 'Open Spread',
+    imageUrl: '/mockups/booklet-open.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 8,
+      y: 12,
+      width: 84,
+      height: 65,
+      rotationDeg: 0,
+      borderRadius: 2,
+      opacity: 0.98,
+    },
+    aspectRatio: '16/9',
+  },
+  {
+    id: 'bk-standing',
+    label: 'Standing',
+    imageUrl: '/mockups/booklet-standing.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 28,
+      y: 8,
+      width: 44,
+      height: 80,
+      rotationDeg: 0,
+      skewX: -3,
+      skewY: 2,
+      borderRadius: 2,
+      opacity: 0.95,
     },
     aspectRatio: '4/3',
+  },
+  {
+    id: 'bk-stack',
+    label: 'Stacked',
+    imageUrl: '/mockups/booklet-stack.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 20,
+      y: 15,
+      width: 60,
+      height: 65,
+      rotationDeg: -4,
+      borderRadius: 2,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'bk-back',
+    label: 'Back Cover',
+    imageUrl: '/mockups/booklet-back.jpg',
+    designPlacement: {
+      sideKey: 'back',
+      x: 15,
+      y: 8,
+      width: 70,
+      height: 84,
+      rotationDeg: 0,
+      borderRadius: 2,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
+];
+
+// Posters Mockups
+const postersMockups: MockupTemplate[] = [
+  {
+    id: 'ps-flat-front',
+    label: 'Flat View',
+    imageUrl: '/mockups/poster-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 8,
+      y: 5,
+      width: 84,
+      height: 90,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 1,
+    },
+    aspectRatio: '2/3',
+  },
+  {
+    id: 'ps-frame',
+    label: 'Framed',
+    imageUrl: '/mockups/poster-frame.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 15,
+      y: 10,
+      width: 70,
+      height: 80,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 0.98,
+    },
+    aspectRatio: '3/4',
+  },
+  {
+    id: 'ps-wall',
+    label: 'On Wall',
+    imageUrl: '/mockups/poster-wall.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 25,
+      y: 15,
+      width: 50,
+      height: 65,
+      rotationDeg: 0,
+      borderRadius: 0,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'ps-rolled',
+    label: 'Rolled',
+    imageUrl: '/mockups/poster-rolled.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 18,
+      y: 12,
+      width: 64,
+      height: 75,
+      rotationDeg: 3,
+      borderRadius: 0,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+];
+
+// Menus Mockups
+const menusMockups: MockupTemplate[] = [
+  {
+    id: 'mn-flat-front',
+    label: 'Flat View',
+    imageUrl: '/mockups/menu-flat.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 10,
+      y: 5,
+      width: 80,
+      height: 90,
+      rotationDeg: 0,
+      borderRadius: 2,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
+  },
+  {
+    id: 'mn-table',
+    label: 'On Table',
+    imageUrl: '/mockups/menu-table.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 18,
+      y: 12,
+      width: 65,
+      height: 76,
+      rotationDeg: -3,
+      borderRadius: 2,
+      opacity: 0.98,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'mn-holder',
+    label: 'In Holder',
+    imageUrl: '/mockups/menu-holder.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 25,
+      y: 8,
+      width: 50,
+      height: 80,
+      rotationDeg: 0,
+      skewX: -2,
+      skewY: 1,
+      borderRadius: 2,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'mn-stack',
+    label: 'Stacked',
+    imageUrl: '/mockups/menu-stack.jpg',
+    designPlacement: {
+      sideKey: 'front',
+      x: 20,
+      y: 15,
+      width: 60,
+      height: 68,
+      rotationDeg: 4,
+      borderRadius: 2,
+      opacity: 0.95,
+    },
+    aspectRatio: '4/3',
+  },
+  {
+    id: 'mn-back',
+    label: 'Back Side',
+    imageUrl: '/mockups/menu-back.jpg',
+    designPlacement: {
+      sideKey: 'back',
+      x: 10,
+      y: 5,
+      width: 80,
+      height: 90,
+      rotationDeg: 0,
+      borderRadius: 2,
+      opacity: 1,
+    },
+    aspectRatio: '3/4',
   },
 ];
 
@@ -449,6 +906,18 @@ export const productMockupConfigs: ProductMockupConfig[] = [
     productSlug: 'brochures',
     templates: brochuresMockups,
   },
+  {
+    productSlug: 'booklets',
+    templates: bookletsMockups,
+  },
+  {
+    productSlug: 'posters',
+    templates: postersMockups,
+  },
+  {
+    productSlug: 'menus',
+    templates: menusMockups,
+  },
 ];
 
 // ===========================
@@ -460,7 +929,7 @@ export const productMockupConfigs: ProductMockupConfig[] = [
  * Supports partial matching (e.g., "business-card" matches "business-cards")
  */
 export function getMockupTemplatesForProduct(productSlug: string): MockupTemplate[] {
-  const normalizedSlug = productSlug.toLowerCase();
+  const normalizedSlug = productSlug.toLowerCase().replace(/\s+/g, '-');
   
   // First try exact match
   let config = productMockupConfigs.find(
@@ -472,6 +941,17 @@ export function getMockupTemplatesForProduct(productSlug: string): MockupTemplat
     config = productMockupConfigs.find(
       (c) => c.productSlug.toLowerCase().includes(normalizedSlug) ||
              normalizedSlug.includes(c.productSlug.toLowerCase())
+    );
+  }
+  
+  // Try singular/plural variations
+  if (!config) {
+    const singularSlug = normalizedSlug.endsWith('s') ? normalizedSlug.slice(0, -1) : normalizedSlug;
+    const pluralSlug = normalizedSlug.endsWith('s') ? normalizedSlug : normalizedSlug + 's';
+    
+    config = productMockupConfigs.find(
+      (c) => c.productSlug.toLowerCase() === singularSlug ||
+             c.productSlug.toLowerCase() === pluralSlug
     );
   }
   
@@ -490,6 +970,22 @@ export function getMockupTemplateById(templateId: string): MockupTemplate | unde
 }
 
 /**
+ * Get templates that show a specific side (front or back)
+ */
+export function getTemplatesForSide(productSlug: string, side: 'front' | 'back'): MockupTemplate[] {
+  const allTemplates = getMockupTemplatesForProduct(productSlug);
+  return allTemplates.filter(t => t.designPlacement.sideKey === side);
+}
+
+/**
+ * Get the default template for a product (usually the first front-facing template)
+ */
+export function getDefaultTemplate(productSlug: string): MockupTemplate | undefined {
+  const templates = getMockupTemplatesForProduct(productSlug);
+  return templates.find(t => t.designPlacement.sideKey === 'front') || templates[0];
+}
+
+/**
  * Generate a placeholder mockup image URL based on product type
  * This can be replaced with actual mockup images later
  */
@@ -503,7 +999,19 @@ export function getPlaceholderMockupImage(productSlug: string, scene: string): s
     'envelopes': '#f0fff0,#98fb98',
     'stickers': '#e0ffff,#afeeee',
     'letterheads': '#fff8dc,#faebd7',
+    'brochures': '#f0f8ff,#e6e6fa',
+    'booklets': '#faf0e6,#ffe4c4',
+    'posters': '#f5f5f5,#e8e8e8',
+    'menus': '#fffaf0,#ffefd5',
   };
   const color = colors[productSlug] || '#f0f0f0,#e0e0e0';
   return `https://via.placeholder.com/800x600/${color.split(',')[0].slice(1)}/${color.split(',')[1].slice(1)}?text=${encodeURIComponent(scene)}`;
+}
+
+/**
+ * Check if a product requires double-sided mockups
+ */
+export function productHasBackMockup(productSlug: string): boolean {
+  const templates = getMockupTemplatesForProduct(productSlug);
+  return templates.some(t => t.designPlacement.sideKey === 'back');
 }
