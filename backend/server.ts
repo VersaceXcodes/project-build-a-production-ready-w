@@ -4007,6 +4007,46 @@ io.on('connection', (socket) => {
 
 export { app, pool };
 
-httpServer.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT} and listening on 0.0.0.0`);
-});
+// Database migrations - run before server starts
+async function runMigrations() {
+  console.log('Running database migrations...');
+  
+  try {
+    // Migration: Allow NULL customer_id for guest checkout
+    // This is idempotent - PostgreSQL will not error if the constraint doesn't exist
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        -- Check if customer_id column has NOT NULL constraint and drop it
+        IF EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'orders' 
+            AND column_name = 'customer_id' 
+            AND is_nullable = 'NO'
+        ) THEN
+          ALTER TABLE orders ALTER COLUMN customer_id DROP NOT NULL;
+          RAISE NOTICE 'Dropped NOT NULL constraint from orders.customer_id';
+        ELSE
+          RAISE NOTICE 'orders.customer_id is already nullable or does not exist';
+        END IF;
+      END $$;
+    `);
+    console.log('Migration complete: orders.customer_id is now nullable for guest checkout');
+  } catch (error) {
+    console.error('Migration error:', error);
+    // Don't throw - allow server to start even if migration fails
+    // The constraint might not exist or there could be other issues
+  }
+}
+
+// Start server with migrations
+async function startServer() {
+  await runMigrations();
+  
+  httpServer.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT} and listening on 0.0.0.0`);
+  });
+}
+
+startServer();
