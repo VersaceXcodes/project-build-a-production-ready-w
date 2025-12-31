@@ -440,9 +440,10 @@ export type CreateQuoteAnswerInput = z.infer<typeof createQuoteAnswerInputSchema
 
 export const orderSchema = z.object({
   id: z.string(),
-  quote_id: z.string(),
-  customer_id: z.string(),
-  tier_id: z.string(),
+  quote_id: z.string().nullable(),
+  customer_id: z.string().nullable(),
+  tier_id: z.string().nullable(),
+  order_type: z.string().default('SERVICE'),
   status: z.string(),
   due_at: z.string().nullable(),
   total_subtotal: z.number(),
@@ -453,15 +454,20 @@ export const orderSchema = z.object({
   revision_count: z.number(),
   assigned_staff_id: z.string().nullable(),
   location_id: z.string().nullable(),
+  guest_name: z.string().nullable(),
+  guest_email: z.string().nullable(),
+  guest_phone: z.string().nullable(),
+  guest_address: z.string().nullable(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 });
 
 export const createOrderInputSchema = z.object({
-  quote_id: z.string(),
-  customer_id: z.string(),
-  tier_id: z.string(),
-  status: z.enum(['QUOTE_REQUESTED', 'APPROVED', 'IN_PRODUCTION', 'PROOF_SENT', 'AWAITING_APPROVAL', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED']).default('QUOTE_REQUESTED'),
+  quote_id: z.string().nullable().optional(),
+  customer_id: z.string().nullable().optional(),
+  tier_id: z.string().nullable().optional(),
+  order_type: z.enum(['SERVICE', 'PRODUCT']).default('SERVICE'),
+  status: z.enum(['QUOTE_REQUESTED', 'APPROVED', 'IN_PRODUCTION', 'PROOF_SENT', 'AWAITING_APPROVAL', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED', 'PAID', 'PENDING_PAYMENT']).default('QUOTE_REQUESTED'),
   due_at: z.string().nullable(),
   total_subtotal: z.number().nonnegative().default(0),
   tax_amount: z.number().nonnegative().default(0),
@@ -469,7 +475,11 @@ export const createOrderInputSchema = z.object({
   deposit_pct: z.number().min(0).max(100).default(50),
   deposit_amount: z.number().nonnegative().default(0),
   assigned_staff_id: z.string().nullable(),
-  location_id: z.string().nullable()
+  location_id: z.string().nullable(),
+  guest_name: z.string().nullable().optional(),
+  guest_email: z.string().email().nullable().optional(),
+  guest_phone: z.string().nullable().optional(),
+  guest_address: z.string().nullable().optional()
 });
 
 export const updateOrderInputSchema = z.object({

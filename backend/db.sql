@@ -206,9 +206,10 @@ CREATE TABLE quote_answers (
 -- Orders
 CREATE TABLE orders (
     id TEXT PRIMARY KEY,
-    quote_id TEXT NOT NULL REFERENCES quotes(id),
-    customer_id TEXT NOT NULL REFERENCES users(id),
-    tier_id TEXT NOT NULL REFERENCES tier_packages(id),
+    quote_id TEXT REFERENCES quotes(id),
+    customer_id TEXT REFERENCES users(id),
+    tier_id TEXT REFERENCES tier_packages(id),
+    order_type TEXT NOT NULL DEFAULT 'SERVICE',
     status TEXT NOT NULL DEFAULT 'QUOTE_REQUESTED',
     due_at TEXT,
     total_subtotal NUMERIC NOT NULL DEFAULT 0,
@@ -219,6 +220,10 @@ CREATE TABLE orders (
     revision_count NUMERIC NOT NULL DEFAULT 0,
     assigned_staff_id TEXT REFERENCES users(id),
     location_id TEXT REFERENCES b2b_locations(id),
+    guest_name TEXT,
+    guest_email TEXT,
+    guest_phone TEXT,
+    guest_address TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

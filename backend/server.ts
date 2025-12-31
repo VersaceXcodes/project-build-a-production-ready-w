@@ -1264,8 +1264,21 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
     const page = parseInt((req.query.page as string) || '1');
     const limit = 20;
     const offset = (page - 1) * limit;
-    let query = 'SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name, q.status as quote_status FROM orders o JOIN users u ON o.customer_id = u.id JOIN quotes q ON o.quote_id = q.id JOIN services s ON q.service_id = s.id JOIN tier_packages t ON o.tier_id = t.id LEFT JOIN users staff ON o.assigned_staff_id = staff.id WHERE 1=1';
-    const params = [];
+    // LEFT JOINs to handle both service orders (with quote/user) and product orders (with guest info)
+    let query = `SELECT o.*, 
+      u.name as customer_name, u.email as customer_email,
+      s.name as service_name, 
+      t.name as tier_name, 
+      staff.name as assigned_staff_name, 
+      q.status as quote_status 
+      FROM orders o 
+      LEFT JOIN users u ON o.customer_id = u.id 
+      LEFT JOIN quotes q ON o.quote_id = q.id 
+      LEFT JOIN services s ON q.service_id = s.id 
+      LEFT JOIN tier_packages t ON o.tier_id = t.id 
+      LEFT JOIN users staff ON o.assigned_staff_id = staff.id 
+      WHERE 1=1`;
+    const params: any[] = [];
     if (status) {
       params.push(status);
       query += ` AND o.status = $${params.length}`;
@@ -1276,56 +1289,72 @@ app.get('/api/admin/orders', authenticateToken, requireRole(['ADMIN']), async (r
     }
     if (customer) {
       params.push(`%${customer}%`);
-      query += ` AND (u.name ILIKE $${params.length} OR u.email ILIKE $${params.length})`;
+      // Search in both customer name/email AND guest name/email
+      query += ` AND (u.name ILIKE $${params.length} OR u.email ILIKE $${params.length} OR o.guest_name ILIKE $${params.length} OR o.guest_email ILIKE $${params.length})`;
     }
-    const countQuery = query.replace('SELECT o.*, u.name as customer_name, s.name as service_name, t.name as tier_name, staff.name as assigned_staff_name, q.status as quote_status', 'SELECT COUNT(*)');
+    const countQuery = query.replace(/SELECT o\.\*[\s\S]*?FROM orders o/, 'SELECT COUNT(*) FROM orders o');
     const totalRes = await pool.query(countQuery, params);
     query += ' ORDER BY o.created_at DESC';
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const result = await pool.query(query, params);
     // Transform flat rows into nested structure for frontend
-    const orders = result.rows.map((row: any) => ({
-      order: {
-        id: row.id,
-        quote_id: row.quote_id,
-        customer_id: row.customer_id,
-        tier_id: row.tier_id,
-        status: row.status,
-        due_at: row.due_at,
-        total_subtotal: row.total_subtotal,
-        tax_amount: row.tax_amount,
-        total_amount: row.total_amount,
-        deposit_pct: row.deposit_pct,
-        deposit_amount: row.deposit_amount,
-        revision_count: row.revision_count || 0,
-        assigned_staff_id: row.assigned_staff_id,
-        location_id: row.location_id,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        order_type: row.quote_status === 'PRODUCT_ORDER' ? 'PRODUCT' : 'SERVICE'
-      },
-      customer: {
-        id: row.customer_id,
-        name: row.customer_name,
-        email: ''
-      },
-      service: {
-        id: '',
-        name: row.quote_status === 'PRODUCT_ORDER' ? 'Product Order' : row.service_name,
-        slug: ''
-      },
-      tier: {
-        id: row.tier_id,
-        name: row.quote_status === 'PRODUCT_ORDER' ? '-' : row.tier_name,
-        slug: ''
-      },
-      assigned_staff: row.assigned_staff_id ? {
-        id: row.assigned_staff_id,
-        name: row.assigned_staff_name,
-        email: ''
-      } : null
-    }));
+    const orders = result.rows.map((row: any) => {
+      const isGuestOrder = !row.customer_id && row.guest_email;
+      const isProductOrder = row.order_type === 'PRODUCT' || row.quote_status === 'PRODUCT_ORDER' || (!row.quote_id && !row.customer_id);
+      
+      return {
+        order: {
+          id: row.id,
+          quote_id: row.quote_id,
+          customer_id: row.customer_id,
+          tier_id: row.tier_id,
+          order_type: row.order_type || (isProductOrder ? 'PRODUCT' : 'SERVICE'),
+          status: row.status,
+          due_at: row.due_at,
+          total_subtotal: row.total_subtotal,
+          tax_amount: row.tax_amount,
+          total_amount: row.total_amount,
+          deposit_pct: row.deposit_pct,
+          deposit_amount: row.deposit_amount,
+          revision_count: row.revision_count || 0,
+          assigned_staff_id: row.assigned_staff_id,
+          location_id: row.location_id,
+          guest_name: row.guest_name,
+          guest_email: row.guest_email,
+          guest_phone: row.guest_phone,
+          guest_address: row.guest_address,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        },
+        customer: isGuestOrder ? {
+          id: null,
+          name: row.guest_name || 'Guest',
+          email: row.guest_email || '',
+          is_guest: true
+        } : {
+          id: row.customer_id,
+          name: row.customer_name || 'Unknown',
+          email: row.customer_email || '',
+          is_guest: false
+        },
+        service: {
+          id: '',
+          name: isProductOrder ? 'Product Order' : (row.service_name || 'N/A'),
+          slug: ''
+        },
+        tier: {
+          id: row.tier_id,
+          name: isProductOrder ? '-' : (row.tier_name || 'N/A'),
+          slug: ''
+        },
+        assigned_staff: row.assigned_staff_id ? {
+          id: row.assigned_staff_id,
+          name: row.assigned_staff_name,
+          email: ''
+        } : null
+      };
+    });
     res.json({ orders, total: parseInt(totalRes.rows[0].count) });
   } catch (error: any) {
     const errMsg = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
@@ -3552,9 +3581,16 @@ app.post('/api/checkout/product', async (req, res) => {
       } catch (e) {}
     }
     
-    // Guest checkout validation
-    if (!userId && (!guest_name || !guest_email)) {
-      return res.status(400).json({ message: 'Guest checkout requires guest_name and guest_email' });
+    const isLoggedIn = !!userId;
+    
+    // Guest checkout validation - require name, email, and address for guests
+    if (!isLoggedIn) {
+      if (!guest_name || !guest_email) {
+        return res.status(400).json({ message: 'Guest checkout requires guest_name and guest_email' });
+      }
+      if (!shipping_address) {
+        return res.status(400).json({ message: 'Guest checkout requires shipping_address' });
+      }
     }
     
     // Get cart and items
@@ -3577,54 +3613,29 @@ app.post('/api/checkout/product', async (req, res) => {
     const taxAmount = subtotal * taxRate;
     const totalAmount = subtotal + taxAmount;
     
-    // Create order (using a special tier for products or null)
     const orderId = uuidv4();
     const now = new Date().toISOString();
     
-    // For product orders, we don't need a quote_id - we need to alter the orders table
-    // Since we can't modify the existing schema, we'll create a dummy quote for now
-    // In production, you'd add an ALTER TABLE to make quote_id nullable for product orders
-    
-    // Actually, let's store product orders with a special approach:
-    // We'll use the existing structure but mark it as a PRODUCT order type
-    // We need to check if order_type column exists, if not we'll handle it gracefully
-    
-    try {
-      // Try to insert with order_type (if column exists)
-      await pool.query(
-        `INSERT INTO orders (id, quote_id, customer_id, tier_id, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, created_at, updated_at)
-         VALUES ($1, NULL, $2, NULL, 'PAID', $3, $4, $5, 100, $5, $6, $7)`,
-        [orderId, userId, subtotal, taxAmount, totalAmount, now, now]
-      );
-    } catch (insertError: any) {
-      // If quote_id is required (NOT NULL), we need a different approach
-      // Create a minimal "ghost" quote for product orders
-      if (insertError.message.includes('null value in column "quote_id"') || insertError.message.includes('violates not-null constraint')) {
-        // Get a default service and tier for product orders
-        const defaultServiceRes = await pool.query('SELECT id FROM services LIMIT 1');
-        const defaultTierRes = await pool.query('SELECT id FROM tier_packages LIMIT 1');
-        
-        if (defaultServiceRes.rows.length === 0 || defaultTierRes.rows.length === 0) {
-          return res.status(500).json({ message: 'System configuration error' });
-        }
-        
-        // Create a ghost quote for this product order
-        const ghostQuoteId = uuidv4();
-        await pool.query(
-          `INSERT INTO quotes (id, customer_id, service_id, tier_id, status, estimate_subtotal, final_subtotal, notes, is_guest, guest_name, guest_email, guest_phone, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, 'PRODUCT_ORDER', $5, $5, 'Product order', $6, $7, $8, $9, $10, $11)`,
-          [ghostQuoteId, userId, defaultServiceRes.rows[0].id, defaultTierRes.rows[0].id, subtotal, !userId, guest_name || null, guest_email || null, guest_phone || null, now, now]
-        );
-        
-        await pool.query(
-          `INSERT INTO orders (id, quote_id, customer_id, tier_id, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, 'PAID', $5, $6, $7, 100, $7, $8, $9)`,
-          [orderId, ghostQuoteId, userId, defaultTierRes.rows[0].id, subtotal, taxAmount, totalAmount, now, now]
-        );
-      } else {
-        throw insertError;
-      }
-    }
+    // Create product order - customer_id is nullable, guest fields store guest info
+    // For logged-in users: customer_id is set, guest_* fields are null
+    // For guests: customer_id is null, guest_* fields are filled
+    await pool.query(
+      `INSERT INTO orders (id, quote_id, customer_id, tier_id, order_type, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, guest_name, guest_email, guest_phone, guest_address, created_at, updated_at)
+       VALUES ($1, NULL, $2, NULL, 'PRODUCT', 'PAID', $3, $4, $5, 100, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        orderId,
+        isLoggedIn ? userId : null,
+        subtotal,
+        taxAmount,
+        totalAmount,
+        isLoggedIn ? null : guest_name,
+        isLoggedIn ? null : guest_email,
+        isLoggedIn ? null : (guest_phone || null),
+        isLoggedIn ? null : shipping_address,
+        now,
+        now
+      ]
+    );
     
     // Create order items
     for (const item of itemsRes.rows) {
@@ -3665,7 +3676,8 @@ app.post('/api/checkout/product', async (req, res) => {
       timestamp: now,
       order_id: orderId,
       total_amount: totalAmount,
-      items_count: itemsRes.rows.length
+      items_count: itemsRes.rows.length,
+      is_guest: !isLoggedIn
     });
     
     res.status(201).json({
