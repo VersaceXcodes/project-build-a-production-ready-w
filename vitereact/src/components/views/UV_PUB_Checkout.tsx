@@ -12,7 +12,7 @@ interface CartItem {
   id: string;
   product_name: string;
   variant_label: string | null;
-  total_price: number;
+  total_price: number | string;
   thumbnail_url: string | null;
 }
 
@@ -389,7 +389,7 @@ const UV_PUB_Checkout: React.FC = () => {
                         {item.variant_label && (
                           <p className="text-xs text-gray-500">{item.variant_label}</p>
                         )}
-                        <p className="text-sm font-semibold text-gray-900 mt-1">€{item.total_price.toFixed(2)}</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">€{Number(item.total_price).toFixed(2)}</p>
                       </div>
                     </div>
                   ))}

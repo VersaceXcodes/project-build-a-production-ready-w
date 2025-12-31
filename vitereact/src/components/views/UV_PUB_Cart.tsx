@@ -15,8 +15,8 @@ interface CartItem {
   product_id: string;
   product_variant_id: string | null;
   quantity: number;
-  unit_price: number;
-  total_price: number;
+  unit_price: number | string;
+  total_price: number | string;
   product_name: string;
   product_slug: string;
   thumbnail_url: string | null;

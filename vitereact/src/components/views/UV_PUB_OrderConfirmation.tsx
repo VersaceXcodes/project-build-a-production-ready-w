@@ -14,17 +14,17 @@ interface OrderItem {
   product_slug: string;
   thumbnail_url: string | null;
   quantity: number;
-  unit_price: number;
-  total_price: number;
+  unit_price: number | string;
+  total_price: number | string;
   config: Record<string, string> | null;
 }
 
 interface Order {
   id: string;
   status: string;
-  total_subtotal: number;
-  tax_amount: number;
-  total_amount: number;
+  total_subtotal: number | string;
+  tax_amount: number | string;
+  total_amount: number | string;
   created_at: string;
 }
 
@@ -177,7 +177,7 @@ const UV_PUB_OrderConfirmation: React.FC = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">€{item.total_price.toFixed(2)}</p>
+                    <p className="font-semibold text-gray-900">€{Number(item.total_price).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -187,11 +187,11 @@ const UV_PUB_OrderConfirmation: React.FC = () => {
             <div className="border-t mt-6 pt-6 space-y-2">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>€{order.total_subtotal.toFixed(2)}</span>
+                <span>€{Number(order.total_subtotal).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>VAT (23%)</span>
-                <span>€{order.tax_amount.toFixed(2)}</span>
+                <span>€{Number(order.tax_amount).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Delivery</span>
@@ -199,7 +199,7 @@ const UV_PUB_OrderConfirmation: React.FC = () => {
               </div>
               <div className="border-t pt-2 flex justify-between text-xl font-bold text-gray-900">
                 <span>Total Paid</span>
-                <span>€{order.total_amount.toFixed(2)}</span>
+                <span>€{Number(order.total_amount).toFixed(2)}</span>
               </div>
             </div>
           </div>
