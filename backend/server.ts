@@ -4107,6 +4107,243 @@ app.delete('/api/admin/product-variants/:variant_id', authenticateToken, require
   }
 });
 
+// =====================================================
+// DESIGN UPLOADS API (for product configurator)
+// =====================================================
+
+// Upload design file (PDF/PNG/JPG) - works for guests and logged-in users
+app.post('/api/design-uploads', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'File required' });
+    }
+    
+    const { product_id, session_id } = req.body;
+    
+    if (!product_id) {
+      return res.status(400).json({ message: 'product_id required' });
+    }
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ message: 'File must be PDF, PNG, or JPG' });
+    }
+    
+    // Determine file type
+    let fileType = 'pdf';
+    if (req.file.mimetype.startsWith('image/')) {
+      fileType = req.file.mimetype.split('/')[1];
+    }
+    
+    // For PDFs, we simulate page extraction (in production, use pdf-lib or similar)
+    // For images, it's always 1 page
+    let numPages = 1;
+    const previewImages: string[] = [];
+    
+    // Create preview image URL (in production, generate actual thumbnails)
+    // For now, use the uploaded file as the preview
+    const fileUrl = `/storage/${req.file.filename}`;
+    
+    if (fileType === 'pdf') {
+      // Simulate PDF with 2 pages for demo
+      // In production, use pdf-lib to extract actual page count
+      numPages = 2;
+      previewImages.push(`${fileUrl}#page=1`);
+      previewImages.push(`${fileUrl}#page=2`);
+    } else {
+      previewImages.push(fileUrl);
+    }
+    
+    const uploadId = uuidv4();
+    const now = new Date().toISOString();
+    
+    // Create design upload record
+    await pool.query(
+      `INSERT INTO design_uploads (id, cart_item_id, order_item_id, product_id, file_url, file_type, original_filename, num_pages, preview_images, meta, session_id, created_at, updated_at)
+       VALUES ($1, NULL, NULL, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        uploadId,
+        product_id,
+        fileUrl,
+        fileType,
+        req.file.originalname,
+        numPages,
+        JSON.stringify(previewImages),
+        JSON.stringify({ file_size: req.file.size, mime_type: req.file.mimetype }),
+        session_id || null,
+        now,
+        now
+      ]
+    );
+    
+    const result = await pool.query('SELECT * FROM design_uploads WHERE id = $1', [uploadId]);
+    
+    // Parse JSON fields for response
+    const upload = result.rows[0];
+    
+    res.status(201).json({
+      id: upload.id,
+      designUploadId: upload.id,
+      file_url: upload.file_url,
+      file_type: upload.file_type,
+      original_filename: upload.original_filename,
+      num_pages: upload.num_pages,
+      numPages: upload.num_pages,
+      preview_images: JSON.parse(upload.preview_images || '[]'),
+      previewImages: JSON.parse(upload.preview_images || '[]'),
+      meta: JSON.parse(upload.meta || '{}'),
+      created_at: upload.created_at
+    });
+  } catch (error: any) {
+    console.error('Design upload error:', error);
+    res.status(500).json({ message: `Upload failed: ${error.message}` });
+  }
+});
+
+// Get design upload by ID
+app.get('/api/design-uploads/:upload_id', async (req, res) => {
+  try {
+    const { upload_id } = req.params;
+    
+    const result = await pool.query('SELECT * FROM design_uploads WHERE id = $1', [upload_id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Design upload not found' });
+    }
+    
+    const upload = result.rows[0];
+    
+    res.json({
+      id: upload.id,
+      file_url: upload.file_url,
+      file_type: upload.file_type,
+      original_filename: upload.original_filename,
+      num_pages: upload.num_pages,
+      preview_images: JSON.parse(upload.preview_images || '[]'),
+      meta: JSON.parse(upload.meta || '{}'),
+      created_at: upload.created_at
+    });
+  } catch (error: any) {
+    console.error('Get design upload error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Delete design upload
+app.delete('/api/design-uploads/:upload_id', async (req, res) => {
+  try {
+    const { upload_id } = req.params;
+    
+    // Get file info before deleting
+    const result = await pool.query('SELECT file_url FROM design_uploads WHERE id = $1', [upload_id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Design upload not found' });
+    }
+    
+    // Delete file from storage
+    const filePath = path.join(storageDir, path.basename(result.rows[0].file_url));
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    // Delete from database
+    await pool.query('DELETE FROM design_uploads WHERE id = $1', [upload_id]);
+    
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Delete design upload error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Get product print configuration (sides)
+app.get('/api/public/products/:slug/print-config', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    
+    // Get product ID from slug
+    const productRes = await pool.query('SELECT id FROM products WHERE slug = $1', [slug]);
+    
+    if (productRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    const productId = productRes.rows[0].id;
+    
+    // Get print config
+    const configRes = await pool.query('SELECT * FROM product_print_config WHERE product_id = $1', [productId]);
+    
+    if (configRes.rows.length === 0) {
+      // Return default config if not found
+      return res.json({
+        product_id: productId,
+        sides: [
+          { key: 'front', label: 'Front', required: true },
+          { key: 'back', label: 'Back', required: false }
+        ],
+        requires_design_upload: true
+      });
+    }
+    
+    const config = configRes.rows[0];
+    
+    res.json({
+      product_id: config.product_id,
+      sides: JSON.parse(config.sides),
+      requires_design_upload: config.requires_design_upload
+    });
+  } catch (error: any) {
+    console.error('Get print config error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Link design upload to cart item
+app.patch('/api/design-uploads/:upload_id/link-cart', async (req, res) => {
+  try {
+    const { upload_id } = req.params;
+    const { cart_item_id } = req.body;
+    
+    if (!cart_item_id) {
+      return res.status(400).json({ message: 'cart_item_id required' });
+    }
+    
+    await pool.query(
+      'UPDATE design_uploads SET cart_item_id = $1, updated_at = $2 WHERE id = $3',
+      [cart_item_id, new Date().toISOString(), upload_id]
+    );
+    
+    res.json({ message: 'Design upload linked to cart item' });
+  } catch (error: any) {
+    console.error('Link design to cart error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Link design upload to order item
+app.patch('/api/design-uploads/:upload_id/link-order', async (req, res) => {
+  try {
+    const { upload_id } = req.params;
+    const { order_item_id } = req.body;
+    
+    if (!order_item_id) {
+      return res.status(400).json({ message: 'order_item_id required' });
+    }
+    
+    await pool.query(
+      'UPDATE design_uploads SET order_item_id = $1, updated_at = $2 WHERE id = $3',
+      [order_item_id, new Date().toISOString(), upload_id]
+    );
+    
+    res.json({ message: 'Design upload linked to order item' });
+  } catch (error: any) {
+    console.error('Link design to order error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -4153,6 +4390,60 @@ async function runMigrations() {
       END $$;
     `);
     console.log('Migration complete: orders.customer_id is now nullable for guest checkout');
+    
+    // Migration: Create design_uploads table for product configurator
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS design_uploads (
+        id TEXT PRIMARY KEY,
+        cart_item_id TEXT REFERENCES cart_items(id) ON DELETE SET NULL,
+        order_item_id TEXT REFERENCES order_items(id) ON DELETE SET NULL,
+        product_id TEXT NOT NULL REFERENCES products(id),
+        file_url TEXT NOT NULL,
+        file_type TEXT NOT NULL DEFAULT 'pdf',
+        original_filename TEXT NOT NULL,
+        num_pages INTEGER NOT NULL DEFAULT 1,
+        preview_images TEXT,
+        meta TEXT,
+        session_id TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: design_uploads table created');
+    
+    // Migration: Create product_print_config table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS product_print_config (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL REFERENCES products(id) UNIQUE,
+        sides TEXT NOT NULL DEFAULT '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back","required":false}]',
+        requires_design_upload BOOLEAN NOT NULL DEFAULT false,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: product_print_config table created');
+    
+    // Insert default print configs for existing products if not exists
+    const productsRes = await pool.query('SELECT id, slug FROM products WHERE is_active = true');
+    for (const product of productsRes.rows) {
+      const existingConfig = await pool.query('SELECT id FROM product_print_config WHERE product_id = $1', [product.id]);
+      if (existingConfig.rows.length === 0) {
+        const configId = uuidv4();
+        const now = new Date().toISOString();
+        // Default: front (required) and back (optional) for most print products
+        const sides = JSON.stringify([
+          { key: 'front', label: 'Front', required: true },
+          { key: 'back', label: 'Back', required: false }
+        ]);
+        await pool.query(
+          'INSERT INTO product_print_config (id, product_id, sides, requires_design_upload, created_at, updated_at) VALUES ($1, $2, $3, true, $4, $5)',
+          [configId, product.id, sides, now, now]
+        );
+      }
+    }
+    console.log('Migration complete: default print configs inserted for products');
+    
   } catch (error) {
     console.error('Migration error:', error);
     // Don't throw - allow server to start even if migration fails

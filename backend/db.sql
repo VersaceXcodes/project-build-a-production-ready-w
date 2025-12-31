@@ -1107,6 +1107,33 @@ INSERT INTO product_variants (id, product_id, label, quantity, unit_price, total
 ('pvar_021', 'prod_006', '250 Envelopes', 250, 0.32, 80.00, 100.00, '20% off', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
 ('pvar_022', 'prod_006', '500 Envelopes', 500, 0.24, 120.00, 200.00, '40% off', 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
 
+-- Design uploads table (for customer-uploaded designs in product configurator)
+CREATE TABLE IF NOT EXISTS design_uploads (
+    id TEXT PRIMARY KEY,
+    cart_item_id TEXT REFERENCES cart_items(id) ON DELETE SET NULL,
+    order_item_id TEXT REFERENCES order_items(id) ON DELETE SET NULL,
+    product_id TEXT NOT NULL REFERENCES products(id),
+    file_url TEXT NOT NULL,
+    file_type TEXT NOT NULL DEFAULT 'pdf',
+    original_filename TEXT NOT NULL,
+    num_pages INTEGER NOT NULL DEFAULT 1,
+    preview_images TEXT,  -- JSON array of preview image URLs
+    meta TEXT,            -- JSON metadata (dpi, dimensions, warnings)
+    session_id TEXT,      -- For guest users before cart
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Print sides configuration table (defines which sides each product has)
+CREATE TABLE IF NOT EXISTS product_print_config (
+    id TEXT PRIMARY KEY,
+    product_id TEXT NOT NULL REFERENCES products(id) UNIQUE,
+    sides TEXT NOT NULL DEFAULT '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back","required":false}]',
+    requires_design_upload BOOLEAN NOT NULL DEFAULT false,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- Insert product images
 INSERT INTO product_images (id, product_id, image_url, alt_text, sort_order, is_primary, created_at) VALUES
 ('pimg_001', 'prod_001', 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800', 'Business cards stack', 1, true, '2024-01-01T08:00:00Z'),
@@ -1116,3 +1143,12 @@ INSERT INTO product_images (id, product_id, image_url, alt_text, sort_order, is_
 ('pimg_005', 'prod_004', 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?w=800', 'Postcards collection', 1, true, '2024-01-01T08:00:00Z'),
 ('pimg_006', 'prod_005', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800', 'Professional letterhead', 1, true, '2024-01-01T08:00:00Z'),
 ('pimg_007', 'prod_006', 'https://images.unsplash.com/photo-1579751626657-72bc17010498?w=800', 'Custom envelopes', 1, true, '2024-01-01T08:00:00Z');
+
+-- Insert print configurations for products
+INSERT INTO product_print_config (id, product_id, sides, requires_design_upload, created_at, updated_at) VALUES
+('ppc_001', 'prod_001', '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back","required":false}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ppc_002', 'prod_002', '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back","required":false}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ppc_003', 'prod_003', '[{"key":"front","label":"Front","required":true}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ppc_004', 'prod_004', '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back","required":false}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ppc_005', 'prod_005', '[{"key":"front","label":"Front","required":true}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ppc_006', 'prod_006', '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back (Flap)","required":false}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');

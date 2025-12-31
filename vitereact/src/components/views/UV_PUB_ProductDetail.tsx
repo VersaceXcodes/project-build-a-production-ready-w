@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
 import { formatMoney } from '@/lib/utils';
+import DesignUploadSection from './DesignUploadSection';
 
 // ===========================
 // TYPE DEFINITIONS
@@ -55,6 +56,31 @@ interface ProductResponse {
   images: ProductImage[];
 }
 
+interface PrintSide {
+  key: string;
+  label: string;
+  required: boolean;
+}
+
+interface PrintConfig {
+  product_id: string;
+  sides: PrintSide[];
+  requires_design_upload: boolean;
+}
+
+interface UploadedDesign {
+  id: string;
+  file_url: string;
+  file_type: string;
+  original_filename: string;
+  num_pages: number;
+  preview_images: string[];
+}
+
+interface PageMapping {
+  [sideKey: string]: number | null;
+}
+
 // ===========================
 // API FUNCTIONS
 // ===========================
@@ -82,11 +108,24 @@ const fetchProduct = async (slug: string): Promise<ProductResponse> => {
   return data;
 };
 
+const fetchPrintConfig = async (slug: string): Promise<PrintConfig | null> => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  try {
+    const response = await axios.get<PrintConfig>(`${API_BASE_URL}/api/public/products/${slug}/print-config`);
+    return response.data;
+  } catch (err) {
+    console.error('Failed to fetch print config:', err);
+    return null;
+  }
+};
+
 const addToCart = async (data: {
   product_id: string;
   product_variant_id: string | null;
   quantity: number;
   config: Record<string, string>;
+  design_upload_id?: string;
+  page_mapping?: PageMapping;
 }, guestId: string | null, authToken: string | null): Promise<{ item: any; guest_id: string }> => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -117,6 +156,19 @@ const UV_PUB_ProductDetail: React.FC = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(() => localStorage.getItem('guest_cart_id'));
+  
+  // Design upload state
+  const [uploadedDesign, setUploadedDesign] = useState<UploadedDesign | null>(null);
+  const [pageMapping, setPageMapping] = useState<PageMapping>({});
+  const [sessionId] = useState<string>(() => {
+    // Generate or retrieve a session ID for guest design uploads
+    let sid = sessionStorage.getItem('design_session_id');
+    if (!sid) {
+      sid = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem('design_session_id', sid);
+    }
+    return sid;
+  });
 
   // ===========================
   // DATA FETCHING
@@ -125,6 +177,14 @@ const UV_PUB_ProductDetail: React.FC = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['product', slug],
     queryFn: () => fetchProduct(slug!),
+    enabled: !!slug,
+    staleTime: 60000,
+  });
+
+  // Fetch print configuration for design upload
+  const { data: printConfig } = useQuery({
+    queryKey: ['print-config', slug],
+    queryFn: () => fetchPrintConfig(slug!),
     enabled: !!slug,
     staleTime: 60000,
   });
@@ -165,21 +225,57 @@ const UV_PUB_ProductDetail: React.FC = () => {
   const primaryImage = images.find(img => img.is_primary) || images[0];
   const displayImages = images.length > 0 ? images : [{ id: '1', image_url: product?.thumbnail_url || '', alt_text: product?.name || '', sort_order: 0, is_primary: true, product_id: '' }];
 
+  // Check if design requirements are met
+  const isDesignRequired = printConfig?.requires_design_upload ?? false;
+  const requiredSides = printConfig?.sides?.filter(s => s.required) || [];
+  const allRequiredSidesMapped = requiredSides.every(
+    side => pageMapping[side.key] !== null && pageMapping[side.key] !== undefined
+  );
+  const isDesignValid = !isDesignRequired || (uploadedDesign !== null && allRequiredSidesMapped);
+  const canAddToCart = selectedVariantId !== null && isDesignValid;
+
   // ===========================
   // ACTIONS
   // ===========================
 
   const handleAddToCart = async () => {
-    if (!product) return;
+    if (!product || !canAddToCart) return;
     
     setIsAddingToCart(true);
     try {
-      const result = await addToCart({
+      const cartData: {
+        product_id: string;
+        product_variant_id: string | null;
+        quantity: number;
+        config: Record<string, string>;
+        design_upload_id?: string;
+        page_mapping?: PageMapping;
+      } = {
         product_id: product.id,
         product_variant_id: selectedVariantId,
         quantity: 1,
         config: selectedConfig,
-      }, guestId, authToken);
+      };
+      
+      // Include design data if uploaded
+      if (uploadedDesign) {
+        cartData.design_upload_id = uploadedDesign.id;
+        cartData.page_mapping = pageMapping;
+      }
+      
+      const result = await addToCart(cartData, guestId, authToken);
+      
+      // Link design upload to cart item if applicable
+      if (uploadedDesign && result.item?.id) {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        try {
+          await axios.patch(`${API_BASE_URL}/api/design-uploads/${uploadedDesign.id}/link-cart`, {
+            cart_item_id: result.item.id,
+          });
+        } catch (linkErr) {
+          console.error('Failed to link design to cart item:', linkErr);
+        }
+      }
       
       // Save guest ID for future requests
       if (result.guest_id && !authToken) {
@@ -196,6 +292,10 @@ const UV_PUB_ProductDetail: React.FC = () => {
       // Update the header cart count
       incrementCartCount();
       
+      // Reset design state for next order
+      setUploadedDesign(null);
+      setPageMapping({});
+      
       // No navigation - user stays on product page to continue shopping
     } catch (err: any) {
       show_toast({
@@ -210,6 +310,11 @@ const UV_PUB_ProductDetail: React.FC = () => {
 
   const handleConfigChange = (key: string, value: string) => {
     setSelectedConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleDesignChange = (design: UploadedDesign | null, mapping: PageMapping) => {
+    setUploadedDesign(design);
+    setPageMapping(mapping);
   };
 
   // ===========================
@@ -420,6 +525,32 @@ const UV_PUB_ProductDetail: React.FC = () => {
               </div>
             )}
 
+            {/* Design Upload Section */}
+            {product && (
+              <DesignUploadSection
+                productId={product.id}
+                printConfig={printConfig || null}
+                onDesignChange={handleDesignChange}
+                sessionId={sessionId}
+              />
+            )}
+
+            {/* Design Validation Warning */}
+            {isDesignRequired && !isDesignValid && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-amber-800 text-sm font-medium">
+                    {!uploadedDesign
+                      ? 'Please upload your design file to continue'
+                      : 'Please assign pages to all required print sides'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Desktop Add to Cart */}
             <div className="hidden lg:block">
               <div className="bg-gray-50 rounded-xl p-6">
@@ -435,8 +566,12 @@ const UV_PUB_ProductDetail: React.FC = () => {
                 <p className="text-sm text-green-600 mb-4">+ FREE delivery</p>
                 <button
                   onClick={handleAddToCart}
-                  disabled={isAddingToCart}
-                  className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-300 text-black font-bold py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  disabled={isAddingToCart || !canAddToCart}
+                  className={`w-full font-bold py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
+                    canAddToCart
+                      ? 'bg-yellow-400 hover:bg-yellow-500 text-black'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
                   {isAddingToCart ? (
                     <>
@@ -474,8 +609,12 @@ const UV_PUB_ProductDetail: React.FC = () => {
         </div>
         <button
           onClick={handleAddToCart}
-          disabled={isAddingToCart}
-          className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-300 text-black font-bold py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+          disabled={isAddingToCart || !canAddToCart}
+          className={`w-full font-bold py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
+            canAddToCart
+              ? 'bg-yellow-400 hover:bg-yellow-500 text-black'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
           {isAddingToCart ? (
             <>
