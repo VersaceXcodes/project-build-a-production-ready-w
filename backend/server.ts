@@ -3404,7 +3404,7 @@ app.get('/api/cart', async (req, res) => {
 // Add item to cart
 app.post('/api/cart/items', async (req, res) => {
   try {
-    const { product_id, product_variant_id, quantity, config } = req.body;
+    const { product_id, product_variant_id, quantity, config, design_upload_id, page_mapping } = req.body;
     
     if (!product_id || !quantity) {
       return res.status(400).json({ message: 'product_id and quantity required' });
@@ -3467,13 +3467,28 @@ app.post('/api/cart/items', async (req, res) => {
       }
     }
     
-    // Add cart item
+    // Add cart item - include design upload data in config_snapshot
     const itemId = uuidv4();
     const now = new Date().toISOString();
+    
+    // Build config_snapshot with both config options and design data
+    const configSnapshot: Record<string, any> = {};
+    if (config) {
+      Object.assign(configSnapshot, config);
+    }
+    if (design_upload_id) {
+      configSnapshot.designUploadId = design_upload_id;
+    }
+    if (page_mapping) {
+      configSnapshot.pageMapping = page_mapping;
+    }
+    
+    const configSnapshotJson = Object.keys(configSnapshot).length > 0 ? JSON.stringify(configSnapshot) : null;
+    
     await pool.query(
       `INSERT INTO cart_items (id, cart_id, product_id, product_variant_id, quantity, unit_price, total_price, config_snapshot, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [itemId, cart.id, product_id, product_variant_id || null, quantity, unitPrice, totalPrice, config ? JSON.stringify(config) : null, now, now]
+      [itemId, cart.id, product_id, product_variant_id || null, quantity, unitPrice, totalPrice, configSnapshotJson, now, now]
     );
     
     // Update cart timestamp
@@ -3635,7 +3650,7 @@ app.post('/api/checkout/prepare', async (req, res) => {
       ]
     );
     
-    // Create order items
+    // Create order items and link design uploads
     for (const item of itemsRes.rows) {
       const orderItemId = uuidv4();
       const productRes = await pool.query('SELECT name FROM products WHERE id = $1', [item.product_id]);
@@ -3646,6 +3661,15 @@ app.post('/api/checkout/prepare', async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [orderItemId, orderId, item.product_id, item.product_variant_id, productName, item.quantity, item.unit_price, item.total_price, item.config_snapshot, now]
       );
+      
+      // Link design upload to order item if present in config_snapshot
+      const configSnapshot = item.config_snapshot ? (typeof item.config_snapshot === 'string' ? JSON.parse(item.config_snapshot) : item.config_snapshot) : null;
+      if (configSnapshot?.designUploadId) {
+        await pool.query(
+          'UPDATE design_uploads SET order_item_id = $1, updated_at = $2 WHERE id = $3',
+          [orderItemId, now, configSnapshot.designUploadId]
+        );
+      }
     }
     
     // Create a PENDING payment record (not completed yet)
