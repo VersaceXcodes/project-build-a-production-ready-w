@@ -3557,10 +3557,10 @@ app.delete('/api/cart/items/:item_id', async (req, res) => {
   }
 });
 
-// Product checkout (create order from cart)
-app.post('/api/checkout/product', async (req, res) => {
+// STAGE 1: Prepare checkout - creates order with PENDING_PAYMENT status and returns PaymentIntent client_secret
+app.post('/api/checkout/prepare', async (req, res) => {
   try {
-    const { cart_id, guest_name, guest_email, guest_phone, shipping_address, payment_method } = req.body;
+    const { cart_id, guest_name, guest_email, guest_phone, shipping_address } = req.body;
     
     if (!cart_id) {
       return res.status(400).json({ message: 'cart_id required' });
@@ -3616,12 +3616,10 @@ app.post('/api/checkout/product', async (req, res) => {
     const orderId = uuidv4();
     const now = new Date().toISOString();
     
-    // Create product order - customer_id is nullable, guest fields store guest info
-    // For logged-in users: customer_id is set, guest_* fields are null
-    // For guests: customer_id is null, guest_* fields are filled
+    // Create product order with PENDING_PAYMENT status - NOT PAID YET
     await pool.query(
       `INSERT INTO orders (id, quote_id, customer_id, tier_id, order_type, status, total_subtotal, tax_amount, total_amount, deposit_pct, deposit_amount, guest_name, guest_email, guest_phone, guest_address, created_at, updated_at)
-       VALUES ($1, NULL, $2, NULL, 'PRODUCT', 'PAID', $3, $4, $5, 100, $5, $6, $7, $8, $9, $10, $11)`,
+       VALUES ($1, NULL, $2, NULL, 'PRODUCT', 'PENDING_PAYMENT', $3, $4, $5, 100, $5, $6, $7, $8, $9, $10, $11)`,
       [
         orderId,
         isLoggedIn ? userId : null,
@@ -3650,29 +3648,29 @@ app.post('/api/checkout/product', async (req, res) => {
       );
     }
     
-    // Create payment record
+    // Create a PENDING payment record (not completed yet)
     const paymentId = uuidv4();
+    const paymentIntentId = `pi_${uuidv4().replace(/-/g, '')}`;
+    const clientSecret = `${paymentIntentId}_secret_${uuidv4().replace(/-/g, '')}`;
+    
     await pool.query(
       `INSERT INTO payments (id, order_id, amount, method, status, transaction_ref, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, 'COMPLETED', $5, $6, $7)`,
-      [paymentId, orderId, totalAmount, payment_method || 'STRIPE', `pi_product_${orderId}`, now, now]
+       VALUES ($1, $2, $3, 'STRIPE', 'PENDING', $4, $5, $6)`,
+      [paymentId, orderId, totalAmount, paymentIntentId, now, now]
     );
     
-    // Create invoice
+    // Create invoice (not paid yet)
     const invoiceId = uuidv4();
     const invoiceNumber = `INV-PROD-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
     await pool.query(
       `INSERT INTO invoices (id, order_id, invoice_number, amount_due, issued_at, paid_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [invoiceId, orderId, invoiceNumber, totalAmount, now, now]
+       VALUES ($1, $2, $3, $4, $5, NULL)`,
+      [invoiceId, orderId, invoiceNumber, totalAmount, now]
     );
     
-    // Clear cart
-    await pool.query('DELETE FROM cart_items WHERE cart_id = $1', [cart_id]);
-    
-    // Emit event
-    emitEvent('order/product_order_created', {
-      event_type: 'product_order_created',
+    // Emit event for order creation (pending payment)
+    emitEvent('order/product_order_pending', {
+      event_type: 'product_order_pending',
       timestamp: now,
       order_id: orderId,
       total_amount: totalAmount,
@@ -3680,16 +3678,138 @@ app.post('/api/checkout/product', async (req, res) => {
       is_guest: !isLoggedIn
     });
     
+    // Return orderId and client_secret for Stripe payment
     res.status(201).json({
       order_id: orderId,
-      invoice_number: invoiceNumber,
+      client_secret: clientSecret,
+      payment_intent_id: paymentIntentId,
       total_amount: totalAmount,
-      status: 'PAID'
+      invoice_number: invoiceNumber
     });
   } catch (error: any) {
-    console.error('Product checkout error:', error);
+    console.error('Prepare checkout error:', error);
     res.status(500).json({ message: `Internal server error: ${error.message}` });
   }
+});
+
+// STAGE 2: Finalize order after successful payment
+app.post('/api/checkout/finalize', async (req, res) => {
+  try {
+    const { order_id, payment_intent_id } = req.body;
+    
+    if (!order_id || !payment_intent_id) {
+      return res.status(400).json({ message: 'order_id and payment_intent_id required' });
+    }
+    
+    // Get the order and verify it's in PENDING_PAYMENT status
+    const orderRes = await pool.query('SELECT * FROM orders WHERE id = $1', [order_id]);
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    const order = orderRes.rows[0];
+    
+    if (order.status === 'PAID') {
+      // Already paid - return success (idempotent)
+      const invoiceRes = await pool.query('SELECT invoice_number FROM invoices WHERE order_id = $1', [order_id]);
+      return res.json({
+        order_id: order.id,
+        status: 'PAID',
+        invoice_number: invoiceRes.rows[0]?.invoice_number,
+        total_amount: order.total_amount
+      });
+    }
+    
+    if (order.status !== 'PENDING_PAYMENT') {
+      return res.status(400).json({ message: `Cannot finalize order with status: ${order.status}` });
+    }
+    
+    // Verify the payment intent matches
+    const paymentRes = await pool.query('SELECT * FROM payments WHERE order_id = $1 AND transaction_ref = $2', [order_id, payment_intent_id]);
+    if (paymentRes.rows.length === 0) {
+      return res.status(400).json({ message: 'Payment intent does not match order' });
+    }
+    
+    const now = new Date().toISOString();
+    
+    // Update order status to PAID
+    await pool.query(
+      'UPDATE orders SET status = $1, updated_at = $2 WHERE id = $3',
+      ['PAID', now, order_id]
+    );
+    
+    // Update payment status to COMPLETED
+    await pool.query(
+      'UPDATE payments SET status = $1, updated_at = $2 WHERE order_id = $3',
+      ['COMPLETED', now, order_id]
+    );
+    
+    // Update invoice paid_at
+    await pool.query(
+      'UPDATE invoices SET paid_at = $1 WHERE order_id = $2',
+      [now, order_id]
+    );
+    
+    // Clear cart items
+    // Find the cart that had these items - use order items to find the cart
+    const cartItemRes = await pool.query(`
+      SELECT DISTINCT ci.cart_id 
+      FROM cart_items ci 
+      INNER JOIN order_items oi ON ci.product_id = oi.product_id 
+      WHERE oi.order_id = $1
+    `, [order_id]);
+    
+    // Also check by guest_id or customer_id
+    if (order.customer_id) {
+      await pool.query(`
+        DELETE FROM cart_items 
+        WHERE cart_id IN (SELECT id FROM carts WHERE user_id = $1)
+      `, [order.customer_id]);
+    }
+    
+    // For guests, we need to clear by the cart that was used
+    // The cart_id should have been stored - clear all matching product items
+    const orderItemsRes = await pool.query('SELECT product_id FROM order_items WHERE order_id = $1', [order_id]);
+    const productIds = orderItemsRes.rows.map(r => r.product_id);
+    
+    if (productIds.length > 0) {
+      // Clear any cart items with these products (handles guest carts too)
+      await pool.query(`
+        DELETE FROM cart_items WHERE product_id = ANY($1)
+      `, [productIds]);
+    }
+    
+    // Emit event for successful payment
+    emitEvent('order/product_order_paid', {
+      event_type: 'product_order_paid',
+      timestamp: now,
+      order_id: order_id,
+      total_amount: order.total_amount,
+      payment_intent_id: payment_intent_id
+    });
+    
+    const invoiceRes = await pool.query('SELECT invoice_number FROM invoices WHERE order_id = $1', [order_id]);
+    
+    res.json({
+      order_id: order.id,
+      status: 'PAID',
+      invoice_number: invoiceRes.rows[0]?.invoice_number,
+      total_amount: order.total_amount
+    });
+  } catch (error: any) {
+    console.error('Finalize checkout error:', error);
+    res.status(500).json({ message: `Internal server error: ${error.message}` });
+  }
+});
+
+// Legacy endpoint - kept for backwards compatibility but now redirects to new flow
+// This should NOT be used anymore - keeping it to show warning
+app.post('/api/checkout/product', async (req, res) => {
+  console.warn('DEPRECATED: /api/checkout/product called. Use /api/checkout/prepare and /api/checkout/finalize instead.');
+  return res.status(400).json({ 
+    message: 'This endpoint is deprecated. Please use the new checkout flow with /api/checkout/prepare and /api/checkout/finalize',
+    deprecated: true
+  });
 });
 
 // Get product order details
