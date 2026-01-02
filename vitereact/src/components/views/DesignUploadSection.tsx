@@ -1111,7 +1111,7 @@ const DesignUploadSection: React.FC<DesignUploadSectionProps> = ({
                         selectedConfig?.print_sides === 'double-sided' ||
                         selectedConfig?.printSides === 'double_sided' ||
                         selectedConfig?.printSides === 'double-sided' ||
-                        printConfig?.sides?.some(s => s.key === 'back' && s.required);
+                        (printConfig?.sides?.some(s => s.key === 'back' && s.required) ?? false);
 
   const sides: PrintSide[] = printConfig?.sides || [
     { key: 'front', label: 'Front', required: true },

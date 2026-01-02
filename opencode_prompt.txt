@@ -4,19 +4,12 @@ The Vite build process failed. Analyze the error output below and fix the issue.
 
 ## Build Error Output:
 ```
-x Build failed in 3.64s
-error during build:
-[commonjs--resolver] Failed to resolve entry for package "lucide-react". The package may have incorrect main/module/exports specified in its package.json.
-    at packageEntryFailure (file:///app/vitereact/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46638:15)
-    at resolvePackageEntry (file:///app/vitereact/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46635:3)
-    at tryNodeResolve (file:///app/vitereact/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46451:16)
-    at Object.resolveId (file:///app/vitereact/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:46201:19)
-    at file:///app/vitereact/node_modules/rollup/dist/es/shared/node-entry.js:22522:40
-    at async PluginDriver.hookFirstAndGetPlugin (file:///app/vitereact/node_modules/rollup/dist/es/shared/node-entry.js:22404:28)
-    at async resolveId (file:///app/vitereact/node_modules/rollup/dist/es/shared/node-entry.js:20880:26)
-    at async ModuleLoader.resolveId (file:///app/vitereact/node_modules/rollup/dist/es/shared/node-entry.js:21317:15)
-    at async Object.resolveId (file:///app/vitereact/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:12834:10)
-    at async PluginDriver.hookFirstAndGetPlugin (file:///app/vitereact/node_modules/rollup/dist/es/shared/node-entry.js:22404:28)
+
+> conductor@0.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
 
 ```
 
