@@ -292,90 +292,335 @@ const UV_PUB_Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Top Selling Services Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      {/* SECTION 2: Popular Print Categories */}
+      <section className="py-20 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Our Top Services
+          <div className="text-center mb-16">
+            <div className="inline-block mb-4">
+              <span className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-700 text-sm font-semibold tracking-wider uppercase">
+                Shop by Category
+              </span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              Popular Print Categories
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Explore our most popular printing, signage, and branding solutions
+            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+              Explore our wide range of premium print products — from business essentials to eye-catching marketing materials
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Business Cards */}
+            <Link
+              to="/products/business-cards"
+              className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-yellow-500/20 rounded-bl-full -z-0"></div>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-amber-600 transition-colors">
+                  Business Cards
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Professional business cards with premium finishes. Make a lasting first impression.
+                </p>
+                <span className="inline-flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">
+                  Shop Now
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </Link>
+
+            {/* Flyers */}
+            <Link
+              to="/products/flyers"
+              className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400/20 to-amber-500/20 rounded-bl-full -z-0"></div>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors">
+                  Flyers & Brochures
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Eye-catching promotional materials to spread your message effectively.
+                </p>
+                <span className="inline-flex items-center gap-2 text-orange-600 font-semibold group-hover:gap-3 transition-all">
+                  Shop Now
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </Link>
+
+            {/* Stickers */}
+            <Link
+              to="/products/stickers"
+              className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400/20 to-amber-500/20 rounded-bl-full -z-0"></div>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-yellow-600 transition-colors">
+                  Custom Stickers
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Durable vinyl stickers for branding, packaging, and promotional use.
+                </p>
+                <span className="inline-flex items-center gap-2 text-yellow-600 font-semibold group-hover:gap-3 transition-all">
+                  Shop Now
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </Link>
+
+            {/* Postcards */}
+            <Link
+              to="/products/postcards"
+              className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-bl-full -z-0"></div>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-amber-600 transition-colors">
+                  Postcards
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Direct mail postcards that get noticed and drive engagement.
+                </p>
+                <span className="inline-flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">
+                  Shop Now
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </Link>
+
+            {/* Letterheads */}
+            <Link
+              to="/products/letterheads"
+              className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-bl-full -z-0"></div>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-yellow-600 transition-colors">
+                  Letterheads
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Professional letterhead printing for official correspondence.
+                </p>
+                <span className="inline-flex items-center gap-2 text-yellow-600 font-semibold group-hover:gap-3 transition-all">
+                  Shop Now
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </Link>
+
+            {/* Envelopes */}
+            <Link
+              to="/products/envelopes"
+              className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400/20 to-yellow-500/20 rounded-bl-full -z-0"></div>
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors">
+                  Branded Envelopes
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Custom printed envelopes to complete your professional stationery set.
+                </p>
+                <span className="inline-flex items-center gap-2 text-orange-600 font-semibold group-hover:gap-3 transition-all">
+                  Shop Now
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          {/* View All Products Link */}
+          <div className="text-center mt-12">
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold rounded-xl hover:from-amber-400 hover:to-yellow-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              View All Products
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: Premium Branding & Installation Services (Dark Band) */}
+      <section className="relative py-20 lg:py-32 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white overflow-hidden">
+        {/* Premium overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+        
+        {/* Subtle dot pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+            backgroundSize: '48px 48px'
+          }}></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-block mb-4">
+              <span className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 text-sm font-semibold tracking-wider uppercase">
+                Premium Services
+              </span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+                Branding & Installation Services
+              </span>
+            </h2>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Professional signage, vehicle branding, and custom installations for your business
             </p>
           </div>
 
           {is_loading_services ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-gray-100 rounded-xl p-6 animate-pulse">
-                  <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
-                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
+                <div key={i} className="bg-slate-800/50 rounded-2xl p-8 animate-pulse backdrop-blur-sm border border-slate-700/50">
+                  <div className="h-16 w-16 bg-slate-700 rounded-xl mb-6"></div>
+                  <div className="h-6 bg-slate-700 rounded mb-3"></div>
+                  <div className="h-4 bg-slate-700 rounded mb-6"></div>
+                  <div className="h-10 bg-slate-700 rounded"></div>
                 </div>
               ))}
             </div>
           ) : services_error ? (
             <div className="text-center py-12">
-              <p className="text-red-600 mb-4">Failed to load services</p>
+              <p className="text-red-400 mb-4">Failed to load services</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-6 py-3 bg-amber-500 text-black rounded-lg hover:bg-amber-400 transition-colors font-semibold"
               >
                 Retry
               </button>
             </div>
           ) : top_selling_services.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600">No featured services available</p>
+              <p className="text-gray-400">No featured services available</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {top_selling_services.map((service) => (
                 <div
                   key={service.id}
-                  className="bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden group cursor-pointer"
                   onClick={() => navigate_to_service_detail(service.slug)}
+                  className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50 hover:border-amber-500/50 transition-all duration-300 cursor-pointer hover:-translate-y-1 shadow-xl hover:shadow-2xl hover:shadow-amber-500/10"
                 >
-                  <div className="p-6">
-                    <div className="h-12 w-12 bg-yellow-400 rounded-lg flex items-center justify-center mb-4">
-                      <svg className="w-6 h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Premium corner accent */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative">
+                    {/* Icon */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                      <svg className="w-8 h-8 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-yellow-600 transition-colors">
+
+                    {/* Service name */}
+                    <h3 className="text-2xl font-bold mb-3 group-hover:text-amber-400 transition-colors">
                       {service.name}
                     </h3>
-                    <p className="text-gray-600 leading-relaxed mb-6 line-clamp-2">
-                      {service.description || 'Professional service with premium quality and reliable delivery'}
+
+                    {/* Description */}
+                    <p className="text-gray-400 leading-relaxed mb-6 line-clamp-2">
+                      {service.description || 'Premium service with professional quality and expert installation'}
                     </p>
-                    <span className="inline-block px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium group-hover:bg-yellow-400 transition-colors">
-                      Learn More →
+
+                    {/* CTA */}
+                    <span className="inline-flex items-center gap-2 text-amber-400 font-semibold group-hover:gap-3 transition-all">
+                      Learn More
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
                     </span>
                   </div>
                 </div>
               ))}
             </div>
           )}
+
+          {/* View All Services Link */}
+          <div className="text-center mt-12">
+            <Link
+              to="/services"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 font-bold rounded-xl hover:from-amber-300 hover:to-yellow-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Explore All Services
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Gallery Preview Section */}
-      <section className="py-16 lg:py-24 bg-gray-50">
+      {/* SECTION 4: Gallery Preview — View Our Portfolio */}
+      <section className="py-20 lg:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              See Previous Work
+          <div className="text-center mb-16">
+            <div className="inline-block mb-4">
+              <span className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-700 text-sm font-semibold tracking-wider uppercase">
+                Our Work
+              </span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              View Our Portfolio
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Explore our portfolio of completed projects and successful deliveries
+            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+              See the quality and craftsmanship in our completed projects
             </p>
           </div>
 
           {is_loading_gallery ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
+                <div key={i} className="aspect-square bg-gray-200 rounded-xl animate-pulse"></div>
               ))}
             </div>
           ) : gallery_error ? (
@@ -387,12 +632,12 @@ const UV_PUB_Landing: React.FC = () => {
               <p className="text-gray-600">Gallery images coming soon</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-              {gallery_preview_images.map((image) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
+              {gallery_preview_images.slice(0, 6).map((image) => (
                 <Link
                   key={image.id}
                   to="/gallery"
-                  className="relative aspect-square group overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="relative aspect-square group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
                 >
                   <img
                     src={image.thumbnail_url || image.image_url}
@@ -400,9 +645,16 @@ const UV_PUB_Landing: React.FC = () => {
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-12 h-12 text-white transform scale-75 group-hover:scale-100 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-white font-medium text-sm">
+                      <p className="text-white font-semibold text-sm">
                         {image.title}
                       </p>
                     </div>
@@ -415,190 +667,98 @@ const UV_PUB_Landing: React.FC = () => {
           <div className="text-center">
             <button
               onClick={navigate_to_gallery}
-              className="px-8 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white font-bold rounded-xl hover:from-gray-800 hover:to-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              View Our Portfolio
+              View Full Portfolio
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
             </button>
           </div>
         </div>
       </section>
 
-      {/* How It Works Process */}
-      <section className="py-16 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our streamlined process takes you from concept to completion
-            </p>
-          </div>
+      {/* SECTION 5: Enhanced Call to Action Section with Premium Styling */}
+      <section className="relative py-24 lg:py-32 bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 overflow-hidden">
+        {/* Animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
+        
+        {/* Decorative shapes */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/20 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-            {[
-              {
-                number: 1,
-                title: 'Choose Service',
-                description: 'Select from our range of printing, signage, and branding services',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                )
-              },
-              {
-                number: 2,
-                title: 'Configure Project',
-                description: 'Provide specifications and upload your design files',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                )
-              },
-              {
-                number: 3,
-                title: 'Choose Tier',
-                description: 'Select your service level from Basic to Enterprise',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                  </svg>
-                )
-              },
-              {
-                number: 4,
-                title: 'Book & Pay Deposit',
-                description: 'Schedule your project and secure your slot with a deposit',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                )
-              },
-              {
-                number: 5,
-                title: 'Track Your Order',
-                description: 'Monitor progress from production to delivery',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
-                )
-              }
-            ].map((step) => (
-              <div key={step.number} className="text-center">
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 mx-auto bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xl shadow-lg">
-                    {step.number}
-                  </div>
-                  {step.number < 5 && (
-                    <div className="hidden lg:block absolute top-1/2 left-full w-full h-1 bg-gray-200 transform -translate-y-1/2"></div>
-                  )}
-                </div>
-                <div className="lg:hidden w-16 h-16 mx-auto mb-4 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-lg">
-                  {step.icon}
-                </div>
-                <div className="hidden lg:block mb-4 text-yellow-600">
-                  {step.icon}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {step.description}
-                </p>
-              </div>
-            ))}
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="mb-6">
+            <span className="inline-block px-5 py-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full text-white text-sm font-semibold tracking-wider uppercase shadow-lg">
+              Ready to Transform Your Brand?
+            </span>
           </div>
-        </div>
-      </section>
-
-      {/* Trust/Value Proposition Blocks */}
-      <section className="py-16 lg:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose SultanStamp
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our commitment to excellence sets us apart
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Consistent Quality',
-                description: 'High standards maintained across every project. No compromises on materials, processes, or final output.',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )
-              },
-              {
-                title: 'Disciplined Timelines',
-                description: 'Tier-based turnarounds that are respected. From express delivery to standard timelines, we honor our commitments.',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )
-              },
-              {
-                title: 'Transparent Pricing',
-                description: 'Clear tier structure with no hidden fees. You know exactly what you\'re paying for before you commit.',
-                icon: (
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )
-              }
-            ].map((block, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-xl p-8 shadow-lg border border-gray-100 text-center"
-              >
-                <div className="w-16 h-16 mx-auto bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 mb-6 shadow-lg">
-                  {block.icon}
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  {block.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {block.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action Section */}
-      <section className="py-16 lg:py-24 bg-gradient-to-br from-yellow-400 to-yellow-500">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            Ready to Get Started?
+          
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+            Let's Bring Your Vision to Life
           </h2>
-          <p className="text-xl text-gray-800 mb-8">
-            Let's bring your vision to life with professional branding solutions
+          
+          <p className="text-xl lg:text-2xl text-slate-800 mb-10 max-w-3xl mx-auto leading-relaxed font-medium">
+            Professional branding solutions with transparent pricing, disciplined timelines, and exceptional quality
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          
+          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
             <button
               onClick={navigate_to_quote_wizard}
-              className="px-8 py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="group px-10 py-5 bg-slate-900 text-white font-bold text-lg rounded-xl hover:bg-slate-800 transition-all duration-300 shadow-2xl shadow-slate-900/30 hover:shadow-slate-900/50 transform hover:scale-105 min-w-[240px]"
             >
-              Get a Quote
+              <span className="flex items-center justify-center gap-3">
+                Get Your Free Quote
+                <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
             </button>
+            
             <Link
               to="/contact"
-              className="px-8 py-4 bg-white text-gray-900 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl border-2 border-gray-900 inline-block"
+              className="group px-10 py-5 bg-white text-slate-900 font-bold text-lg rounded-xl hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-xl border-3 border-slate-900/10 inline-flex items-center justify-center gap-3 min-w-[240px]"
             >
-              Contact Us
+              Contact Our Team
+              <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
             </Link>
+          </div>
+
+          {/* Trust indicators */}
+          <div className="mt-16 pt-12 border-t border-white/20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              <div className="text-center">
+                <div className="w-14 h-14 mx-auto bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <svg className="w-7 h-7 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Premium Quality</h3>
+                <p className="text-slate-800 font-medium">Industry-leading materials and processes</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-14 h-14 mx-auto bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <svg className="w-7 h-7 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Fast Turnaround</h3>
+                <p className="text-slate-800 font-medium">Express, standard, and economy options</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-14 h-14 mx-auto bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <svg className="w-7 h-7 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Clear Pricing</h3>
+                <p className="text-slate-800 font-medium">Transparent quotes with no hidden fees</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
