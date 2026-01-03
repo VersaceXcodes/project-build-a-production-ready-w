@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
+import BestSellersSection from '@/components/BestSellersSection';
 
 // =====================================================
 // TYPE DEFINITIONS (matching Zod schemas)
@@ -291,6 +292,9 @@ const UV_PUB_Landing: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Best Sellers Section */}
+      <BestSellersSection />
 
       {/* SECTION 2: Popular Print Categories */}
       <section className="py-20 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
