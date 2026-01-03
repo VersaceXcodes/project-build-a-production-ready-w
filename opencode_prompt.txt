@@ -1,35 +1,55 @@
-## BUILD FAILURE - Fix Required (Attempt 1/3)
+UI-only redesign: update ONLY the Landing Page HERO section to a premium modern look.
 
-The Vite build process failed. Analyze the error output below and fix the issue.
+Constraints:
+- Do NOT change any backend or data fetching.
+- Do NOT change component behavior or handlers.
+- Reuse the existing hero component and its current CTA buttons and links.
+- Do NOT add new routes.
 
-## Build Error Output:
-```
+Hero UI requirements:
+- Premium dark gradient background (subtle, high-end).
+- Add a small top tag line above the headline:
+  “PREMIUM PRINT & BRANDING SOLUTIONS”
+- Headline style: bold modern typography similar to premium references.
+  Suggested headline:
+  “Personalise First, Deliver Excellence”
+  (you may adjust wording, but keep it short and premium)
+- Subheadline stays similar meaning to current.
+- Keep 2 CTAs:
+  Primary button (same handler as current “Get a Quote”): label “Get Your Custom Quote”
+  Secondary button (same handler as current “View Gallery”/gallery link): label “View Our Portfolio”
+- Improve spacing, alignment, and responsiveness (mobile-first).
+- Do not modify anything outside the hero section.
 
-> conductor@0.0.0 build
-> vite build
+When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
+- If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
+- If the user says "sign up" or "register", search for "Create your account" or equivalent.
+- Always return an explicit list of changed file paths. If your first attempt doesn't change the UI, re-search by heading text and update the correct file.
 
-vite v5.4.21 building for production...
-transforming...
+⚠️ PRIORITY INSTRUCTIONS:
+- The user's request above is the PRIMARY task. Complete it first.
+- Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
+- Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
+- Focus solely on implementing the user's request: "UI-only redesign: update ONLY the Landing Page HERO section to a premium modern look.
 
-```
+Constraints:
+- Do NOT change any backend or data fetching.
+- Do NOT change component behavior or handlers.
+- Reuse the existing hero component and its current CTA buttons and links.
+- Do NOT add new routes.
 
-## Build Directory: /app/vitereact
-
-## Your Task:
-1. **Analyze the Error**: Read the error output carefully to understand what went wrong
-2. **Locate the Problem**: Find the file(s) mentioned in the error
-3. **Apply the Fix**: 
-   - Missing file/component? CREATE it with correct exports
-   - Wrong import path? FIX the import statement  
-   - Syntax error? FIX the syntax in the affected file
-   - Type error? FIX the TypeScript types
-   - Missing dependency? Check if it needs to be installed or if it's a local import issue
-4. **Verify**: After fixing, ensure all imports resolve correctly
-
-## IMPORTANT:
-- The build CANNOT succeed until this error is fixed
-- If creating a missing component, ensure exports match what's being imported (default vs named)
-- If the error mentions a specific line number, check that line in the source file
-- Run `npx tsc --noEmit` after fixing to verify no TypeScript errors remain
-
-Fix this error so the build can succeed on retry.
+Hero UI requirements:
+- Premium dark gradient background (subtle, high-end).
+- Add a small top tag line above the headline:
+  “PREMIUM PRINT & BRANDING SOLUTIONS”
+- Headline style: bold modern typography similar to premium references.
+  Suggested headline:
+  “Personalise First, Deliver Excellence”
+  (you may adjust wording, but keep it short and premium)
+- Subheadline stays similar meaning to current.
+- Keep 2 CTAs:
+  Primary button (same handler as current “Get a Quote”): label “Get Your Custom Quote”
+  Secondary button (same handler as current “View Gallery”/gallery link): label “View Our Portfolio”
+- Improve spacing, alignment, and responsiveness (mobile-first).
+- Do not modify anything outside the hero section."
+- Only address errors if they block the specific functionality requested by the user.
