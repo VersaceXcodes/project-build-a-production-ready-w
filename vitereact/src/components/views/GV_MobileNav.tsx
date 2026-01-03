@@ -76,7 +76,7 @@ const GV_MobileNav: React.FC = () => {
   const publicLinks = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/about', label: 'About Us', icon: Info },
-    { path: '/gallery', label: 'Gallery', icon: Image },
+    { path: '/gallery', label: 'Portfolio', icon: Image },
     { path: '/services', label: 'Services', icon: Layers },
     { path: '/pricing', label: 'Pricing', icon: DollarSign },
     { path: '/contact', label: 'Contact', icon: Mail },

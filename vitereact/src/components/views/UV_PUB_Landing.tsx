@@ -246,7 +246,7 @@ const UV_PUB_Landing: React.FC = () => {
                 onClick={navigate_to_gallery}
                 className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-black transition-all duration-200"
               >
-                View Gallery
+                View Our Portfolio
               </button>
             </div>
           </div>
@@ -378,7 +378,7 @@ const UV_PUB_Landing: React.FC = () => {
               onClick={navigate_to_gallery}
               className="px-8 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              View Full Gallery
+              View Our Portfolio
             </button>
           </div>
         </div>

@@ -41,7 +41,7 @@ const GV_HeaderPublic: React.FC = () => {
   // ===========================
   const navLinks = [
     { label: 'About Us', path: '/about' },
-    { label: 'Gallery', path: '/gallery' },
+    { label: 'Portfolio', path: '/gallery' },
     { label: 'Services', path: '/services' },
     { label: 'Products', path: '/products' },
     { label: 'Pricing', path: '/pricing' },
