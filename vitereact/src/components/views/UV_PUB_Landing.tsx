@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
 import BestSellersSection from '@/components/BestSellersSection';
+import PromoStrip from '@/components/PromoStrip';
+import TrustRow from '@/components/TrustRow';
 
 // =====================================================
 // TYPE DEFINITIONS (matching Zod schemas)
@@ -295,6 +297,12 @@ const UV_PUB_Landing: React.FC = () => {
 
       {/* Best Sellers Section */}
       <BestSellersSection />
+
+      {/* Promo Strip */}
+      <PromoStrip />
+
+      {/* Trust Row */}
+      <TrustRow />
 
       {/* SECTION 2: Popular Print Categories */}
       <section className="py-20 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
