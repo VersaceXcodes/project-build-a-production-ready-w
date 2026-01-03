@@ -215,38 +215,77 @@ const UV_PUB_Landing: React.FC = () => {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white py-20 lg:py-32">
-        <div className="absolute inset-0 bg-black opacity-40"></div>
+      <section className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white py-24 lg:py-40 overflow-hidden">
+        {/* Premium gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+        
+        {/* Subtle animated background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+            backgroundSize: '48px 48px'
+          }}></div>
+        </div>
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
+          <div className="text-center max-w-5xl mx-auto">
             {is_loading_content ? (
               <>
-                <div className="h-16 bg-gray-700 rounded-lg mb-6 animate-pulse"></div>
-                <div className="h-24 bg-gray-700 rounded-lg mb-8 animate-pulse"></div>
+                <div className="h-6 bg-gray-700/50 rounded-lg mb-6 animate-pulse max-w-sm mx-auto"></div>
+                <div className="h-20 bg-gray-700/50 rounded-lg mb-8 animate-pulse"></div>
+                <div className="h-16 bg-gray-700/50 rounded-lg mb-10 animate-pulse"></div>
               </>
             ) : (
               <>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                  {marketing_content.hero_headline}
+                {/* Premium tagline */}
+                <div className="mb-6 animate-fade-in">
+                  <span className="inline-block px-5 py-2 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-full text-amber-400 text-xs sm:text-sm font-semibold tracking-wider uppercase backdrop-blur-sm">
+                    PREMIUM PRINT & BRANDING SOLUTIONS
+                  </span>
+                </div>
+
+                {/* Premium headline */}
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 tracking-tight">
+                  <span className="bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
+                    Personalise First,
+                  </span>
+                  <br />
+                  <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 bg-clip-text text-transparent">
+                    Deliver Excellence
+                  </span>
                 </h1>
-                <p className="text-xl md:text-2xl text-gray-200 leading-relaxed mb-8">
-                  {marketing_content.hero_subtext}
+
+                {/* Subheadline */}
+                <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 leading-relaxed mb-10 max-w-3xl mx-auto font-light">
+                  Professional branding that is accessible and dependable
                 </p>
               </>
             )}
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
                 onClick={navigate_to_quote_wizard}
-                className="px-8 py-4 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="group relative px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold rounded-xl hover:from-amber-400 hover:to-yellow-400 transition-all duration-300 shadow-2xl shadow-amber-500/25 hover:shadow-amber-500/40 transform hover:scale-105 hover:-translate-y-0.5 min-w-[240px]"
               >
-                {marketing_content.hero_cta_text}
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  Get Your Custom Quote
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
               </button>
+              
               <button
                 onClick={navigate_to_gallery}
-                className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-black transition-all duration-200"
+                className="group px-8 py-4 bg-transparent border-2 border-white/20 backdrop-blur-sm text-white font-bold rounded-xl hover:bg-white/10 hover:border-white/40 transition-all duration-300 min-w-[240px]"
               >
-                View Our Portfolio
+                <span className="flex items-center justify-center gap-2">
+                  View Our Portfolio
+                  <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </span>
               </button>
             </div>
           </div>
