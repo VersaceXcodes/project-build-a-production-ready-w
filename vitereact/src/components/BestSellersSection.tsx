@@ -92,13 +92,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Link
       to={product.slug}
-      className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+      className="group relative bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
     >
       {/* Colored gradient top area */}
-      <div className={`relative h-40 bg-gradient-to-br ${product.gradientFrom} ${product.gradientTo} flex items-center justify-center`}>
+      <div className={`relative h-24 sm:h-32 md:h-36 lg:h-40 bg-gradient-to-br ${product.gradientFrom} ${product.gradientTo} flex items-center justify-center`}>
         {/* Badge in top-right corner */}
-        <div className="absolute top-4 right-4">
-          <span className={`${product.badgeColor} text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg`}>
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4">
+          <span className={`${product.badgeColor} text-white text-[10px] sm:text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg`}>
             {product.badge}
           </span>
         </div>
@@ -110,21 +110,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
 
       {/* Card content */}
-      <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">
+      <div className="p-3 sm:p-4 md:p-5 lg:p-6">
+        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-amber-600 transition-colors">
           {product.name}
         </h3>
         
         {product.startingPrice && (
-          <p className="text-gray-600 font-semibold mb-4">
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 font-semibold mb-2 sm:mb-3 md:mb-4">
             From {product.startingPrice}
           </p>
         )}
 
         {/* CTA Button */}
-        <button className="w-full bg-black text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-2 group-hover:gap-3">
+        <button className="w-full bg-black text-white font-bold text-xs sm:text-sm md:text-base py-2 sm:py-2.5 md:py-3 px-2 sm:px-3 md:px-4 rounded-lg hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 group-hover:gap-2 sm:group-hover:gap-3">
           Order Now
-          <ArrowRight className="w-5 h-5" />
+          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
     </Link>
@@ -150,7 +150,7 @@ const BestSellersSection: React.FC = () => {
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
           {BEST_SELLERS.map((product) => (
             <ProductCard key={product.name} product={product} />
           ))}
