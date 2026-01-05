@@ -138,14 +138,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
 const BestSellersSection: React.FC = () => {
   return (
-    <section className="py-8 sm:py-12 lg:py-28 bg-white pb-24 sm:pb-12 lg:pb-28">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    <section className="py-6 sm:py-12 lg:py-28 bg-white pb-28 sm:pb-12 lg:pb-28">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header - Compact on mobile, premium on desktop */}
-        <div className="text-center mb-6 sm:mb-12 lg:mb-16">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4">
+        <div className="text-center mb-5 sm:mb-12 lg:mb-16">
+          <h2 className="text-xl sm:text-3xl lg:text-5xl font-bold text-gray-900 mb-1.5 sm:mb-3 lg:mb-4">
             Best Sellers — Our Most Ordered Print Products
           </h2>
-          <p className="text-sm sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-snug sm:leading-relaxed">
             Fast turnaround, premium finish, and clear pricing — trusted by businesses across Ireland.
           </p>
         </div>

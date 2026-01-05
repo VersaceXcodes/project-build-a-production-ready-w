@@ -305,18 +305,18 @@ const UV_PUB_Landing: React.FC = () => {
       <TrustRow />
 
       {/* SECTION 2: Popular Print Categories */}
-      <section className="py-8 sm:py-12 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 pb-24 sm:pb-12 lg:pb-28">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="text-center mb-6 sm:mb-12 lg:mb-16">
-            <div className="inline-block mb-2 sm:mb-3 lg:mb-4">
-              <span className="px-3 py-1 sm:px-4 sm:py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-700 text-xs sm:text-sm font-semibold tracking-wider uppercase">
+      <section className="py-6 sm:py-12 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 pb-28 sm:pb-12 lg:pb-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-5 sm:mb-12 lg:mb-16">
+            <div className="inline-block mb-1.5 sm:mb-3 lg:mb-4">
+              <span className="px-2.5 py-0.5 sm:px-4 sm:py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-700 text-[10px] sm:text-sm font-semibold tracking-wider uppercase">
                 Shop by Category
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-gray-900 mb-2 sm:mb-4 lg:mb-6">
+            <h2 className="text-xl sm:text-3xl lg:text-5xl font-bold text-gray-900 mb-1.5 sm:mb-4 lg:mb-6">
               Popular Print Categories
             </h2>
-            <p className="text-sm sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed px-2">
+            <p className="text-sm sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto leading-snug sm:leading-relaxed">
               Explore our wide range of premium print products — from business essentials to eye-catching marketing materials
             </p>
           </div>
