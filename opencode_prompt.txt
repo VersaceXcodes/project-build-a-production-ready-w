@@ -1,55 +1,61 @@
-UI-only redesign: update ONLY the Landing Page HERO section to a premium modern look.
+BACKEND STARTUP FAILURE - Immediate Fix Required
 
-Constraints:
-- Do NOT change any backend or data fetching.
-- Do NOT change component behavior or handlers.
-- Reuse the existing hero component and its current CTA buttons and links.
-- Do NOT add new routes.
+The backend server failed to start due to a critical error. You need to fix this NOW.
 
-Hero UI requirements:
-- Premium dark gradient background (subtle, high-end).
-- Add a small top tag line above the headline:
-  “PREMIUM PRINT & BRANDING SOLUTIONS”
-- Headline style: bold modern typography similar to premium references.
-  Suggested headline:
-  “Personalise First, Deliver Excellence”
-  (you may adjust wording, but keep it short and premium)
-- Subheadline stays similar meaning to current.
-- Keep 2 CTAs:
-  Primary button (same handler as current “Get a Quote”): label “Get Your Custom Quote”
-  Secondary button (same handler as current “View Gallery”/gallery link): label “View Our Portfolio”
-- Improve spacing, alignment, and responsiveness (mobile-first).
-- Do not modify anything outside the hero section.
+## Error Type: Backend unhealthy or critical errors present
 
-When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
-- If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
-- If the user says "sign up" or "register", search for "Create your account" or equivalent.
-- Always return an explicit list of changed file paths. If your first attempt doesn't change the UI, re-search by heading text and update the correct file.
+## Backend Error Output (stderr):
+node:internal/modules/cjs/loader:1207
+  const err = new Error(message);
+              ^
 
-⚠️ PRIORITY INSTRUCTIONS:
-- The user's request above is the PRIMARY task. Complete it first.
-- Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
-- Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "UI-only redesign: update ONLY the Landing Page HERO section to a premium modern look.
+Error: Cannot find module 'escape-html'
+Require stack:
+- /app/backend/node_modules/finalhandler/index.js
+- /app/backend/node_modules/express/lib/application.js
+- /app/backend/node_modules/express/lib/express.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at nextResolveSimple (/app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1004)
+    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:3:2630
+    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1542
+    at resolveTsPaths (/app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:760)
+    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1102
+    at m._resolveFilename (file:///app/backend/node_modules/tsx/dist/register-B7jrtLTO.mjs:1:789)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/app/backend/node_modules/finalhandler/index.js',
+    '/app/backend/node_modules/express/lib/application.js',
+    '/app/backend/node_modules/express/lib/express.js'
+  ]
+}
 
-Constraints:
-- Do NOT change any backend or data fetching.
-- Do NOT change component behavior or handlers.
-- Reuse the existing hero component and its current CTA buttons and links.
-- Do NOT add new routes.
+Node.js v20.19.5
 
-Hero UI requirements:
-- Premium dark gradient background (subtle, high-end).
-- Add a small top tag line above the headline:
-  “PREMIUM PRINT & BRANDING SOLUTIONS”
-- Headline style: bold modern typography similar to premium references.
-  Suggested headline:
-  “Personalise First, Deliver Excellence”
-  (you may adjust wording, but keep it short and premium)
-- Subheadline stays similar meaning to current.
-- Keep 2 CTAs:
-  Primary button (same handler as current “Get a Quote”): label “Get Your Custom Quote”
-  Secondary button (same handler as current “View Gallery”/gallery link): label “View Our Portfolio”
-- Improve spacing, alignment, and responsiveness (mobile-first).
-- Do not modify anything outside the hero section."
-- Only address errors if they block the specific functionality requested by the user.
+
+## Backend Console Output (stdout):
+
+up to date, audited 505 packages in 1s
+
+63 packages are looking for funding
+  run `npm fund` for details
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+
+
+## Working Directory: /app/vitereact
+
+## Your Task:
+1. **Analyze the Error**: Identify the exact TypeScript/JavaScript syntax error or compilation issue
+2. **Locate the Problem**: Find which file has the error (check stack trace and error messages)
+3. **Apply the Fix**: Use available tools to fix the specific syntax/compilation issue
+4. **Focus on Root Cause**: Fix the underlying code problem, not infrastructure
+
+IMPORTANT: This is a CODE error, not an infrastructure error. Fix the syntax/compilation issue in the backend code.
