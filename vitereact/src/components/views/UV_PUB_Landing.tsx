@@ -305,18 +305,18 @@ const UV_PUB_Landing: React.FC = () => {
       <TrustRow />
 
       {/* SECTION 2: Popular Print Categories */}
-      <section className="py-20 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-4">
-              <span className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-700 text-sm font-semibold tracking-wider uppercase">
+      <section className="py-8 sm:py-12 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 pb-24 sm:pb-12 lg:pb-28">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="text-center mb-6 sm:mb-12 lg:mb-16">
+            <div className="inline-block mb-2 sm:mb-3 lg:mb-4">
+              <span className="px-3 py-1 sm:px-4 sm:py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-700 text-xs sm:text-sm font-semibold tracking-wider uppercase">
                 Shop by Category
               </span>
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-gray-900 mb-2 sm:mb-4 lg:mb-6">
               Popular Print Categories
             </h2>
-            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed px-2">
               Explore our wide range of premium print products — from business essentials to eye-catching marketing materials
             </p>
           </div>
@@ -325,24 +325,24 @@ const UV_PUB_Landing: React.FC = () => {
             {/* Business Cards */}
             <Link
               to="/products/business-cards"
-              className="group relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+              className="group relative bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
             >
-              <div className="absolute top-0 right-0 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-amber-400/20 to-yellow-500/20 rounded-bl-full -z-0"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-amber-400/20 to-yellow-500/20 rounded-bl-full -z-0"></div>
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
-                <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-amber-600 transition-colors">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 group-hover:text-amber-600 transition-colors leading-tight">
                   Business Cards
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-snug sm:leading-relaxed mb-2 sm:mb-4 md:mb-6">
                   Professional business cards with premium finishes. Make a lasting first impression.
                 </p>
-                <span className="inline-flex items-center gap-1 sm:gap-2 text-amber-600 text-sm sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-1 sm:gap-2 text-amber-600 text-xs sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
                   Shop Now
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
@@ -352,24 +352,24 @@ const UV_PUB_Landing: React.FC = () => {
             {/* Flyers */}
             <Link
               to="/products/flyers"
-              className="group relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+              className="group relative bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
             >
-              <div className="absolute top-0 right-0 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-orange-400/20 to-amber-500/20 rounded-bl-full -z-0"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-orange-400/20 to-amber-500/20 rounded-bl-full -z-0"></div>
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-amber-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-amber-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-orange-600 transition-colors">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 group-hover:text-orange-600 transition-colors leading-tight">
                   Flyers & Brochures
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-snug sm:leading-relaxed mb-2 sm:mb-4 md:mb-6">
                   Eye-catching promotional materials to spread your message effectively.
                 </p>
-                <span className="inline-flex items-center gap-1 sm:gap-2 text-orange-600 text-sm sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-1 sm:gap-2 text-orange-600 text-xs sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
                   Shop Now
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
@@ -379,24 +379,24 @@ const UV_PUB_Landing: React.FC = () => {
             {/* Stickers */}
             <Link
               to="/products/stickers"
-              className="group relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+              className="group relative bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
             >
-              <div className="absolute top-0 right-0 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-yellow-400/20 to-amber-500/20 rounded-bl-full -z-0"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-yellow-400/20 to-amber-500/20 rounded-bl-full -z-0"></div>
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                 </div>
-                <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-yellow-600 transition-colors">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 group-hover:text-yellow-600 transition-colors leading-tight">
                   Custom Stickers
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-snug sm:leading-relaxed mb-2 sm:mb-4 md:mb-6">
                   Durable vinyl stickers for branding, packaging, and promotional use.
                 </p>
-                <span className="inline-flex items-center gap-1 sm:gap-2 text-yellow-600 text-sm sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-1 sm:gap-2 text-yellow-600 text-xs sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
                   Shop Now
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
@@ -406,24 +406,24 @@ const UV_PUB_Landing: React.FC = () => {
             {/* Postcards */}
             <Link
               to="/products/postcards"
-              className="group relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+              className="group relative bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
             >
-              <div className="absolute top-0 right-0 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-bl-full -z-0"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-bl-full -z-0"></div>
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-amber-600 transition-colors">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 group-hover:text-amber-600 transition-colors leading-tight">
                   Postcards
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-snug sm:leading-relaxed mb-2 sm:mb-4 md:mb-6">
                   Direct mail postcards that get noticed and drive engagement.
                 </p>
-                <span className="inline-flex items-center gap-1 sm:gap-2 text-amber-600 text-sm sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-1 sm:gap-2 text-amber-600 text-xs sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
                   Shop Now
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
@@ -433,24 +433,24 @@ const UV_PUB_Landing: React.FC = () => {
             {/* Letterheads */}
             <Link
               to="/products/letterheads"
-              className="group relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+              className="group relative bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
             >
-              <div className="absolute top-0 right-0 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-bl-full -z-0"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-bl-full -z-0"></div>
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-yellow-600 transition-colors">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 group-hover:text-yellow-600 transition-colors leading-tight">
                   Letterheads
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-snug sm:leading-relaxed mb-2 sm:mb-4 md:mb-6">
                   Professional letterhead printing for official correspondence.
                 </p>
-                <span className="inline-flex items-center gap-1 sm:gap-2 text-yellow-600 text-sm sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-1 sm:gap-2 text-yellow-600 text-xs sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
                   Shop Now
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
@@ -460,24 +460,24 @@ const UV_PUB_Landing: React.FC = () => {
             {/* Envelopes */}
             <Link
               to="/products/envelopes"
-              className="group relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
+              className="group relative bg-white rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 md:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-amber-500/50 hover:-translate-y-1"
             >
-              <div className="absolute top-0 right-0 w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-orange-400/20 to-yellow-500/20 rounded-bl-full -z-0"></div>
+              <div className="absolute top-0 right-0 w-16 h-16 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gradient-to-br from-orange-400/20 to-yellow-500/20 rounded-bl-full -z-0"></div>
               <div className="relative">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-4 md:mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-orange-600 transition-colors">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 group-hover:text-orange-600 transition-colors leading-tight">
                   Branded Envelopes
                 </h3>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-snug sm:leading-relaxed mb-2 sm:mb-4 md:mb-6">
                   Custom printed envelopes to complete your professional stationery set.
                 </p>
-                <span className="inline-flex items-center gap-1 sm:gap-2 text-orange-600 text-sm sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
+                <span className="inline-flex items-center gap-1 sm:gap-2 text-orange-600 text-xs sm:text-base font-semibold group-hover:gap-2 sm:group-hover:gap-3 transition-all">
                   Shop Now
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>
@@ -486,13 +486,13 @@ const UV_PUB_Landing: React.FC = () => {
           </div>
 
           {/* View All Products Link */}
-          <div className="text-center mt-12">
+          <div className="text-center mt-6 sm:mt-8 lg:mt-12">
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold rounded-xl hover:from-amber-400 hover:to-yellow-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-bold text-sm sm:text-base rounded-lg sm:rounded-xl hover:from-amber-400 hover:to-yellow-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               View All Products
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </Link>

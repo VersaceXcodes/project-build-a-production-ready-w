@@ -138,19 +138,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
 const BestSellersSection: React.FC = () => {
   return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+    <section className="py-8 sm:py-12 lg:py-28 bg-white pb-24 sm:pb-12 lg:pb-28">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        {/* Section Header - Compact on mobile, premium on desktop */}
+        <div className="text-center mb-6 sm:mb-12 lg:mb-16">
+          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-gray-900 mb-2 sm:mb-3 lg:mb-4">
             Best Sellers — Our Most Ordered Print Products
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Fast turnaround, premium finish, and clear pricing — trusted by businesses across Ireland.
           </p>
         </div>
 
-        {/* Product Grid */}
+        {/* Product Grid - Dense 2-col on mobile with proper padding */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
           {BEST_SELLERS.map((product) => (
             <ProductCard key={product.name} product={product} />
