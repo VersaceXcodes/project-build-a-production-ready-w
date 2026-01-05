@@ -346,17 +346,17 @@ const UV_PUB_ProductsCatalog: React.FC = () => {
             </div>
           )}
 
-          {/* Products Grid */}
+          {/* Products Grid - compact mobile cards */}
           {!isLoading && !error && products.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {products.map((product) => (
                 <Link
                   key={product.id}
                   to={`/products/${product.slug}`}
-                  className="group block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1"
+                  className="group block bg-white border border-gray-200 rounded-lg sm:rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1"
                 >
-                  {/* Product Image */}
-                  <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                  {/* Product Image - COMPACT height on mobile */}
+                  <div className="relative h-28 sm:h-40 md:h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                     {product.thumbnail_url ? (
                       <img
                         src={product.thumbnail_url}
@@ -365,53 +365,54 @@ const UV_PUB_ProductsCatalog: React.FC = () => {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-10 h-10 sm:w-16 sm:h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                       </div>
                     )}
-                    {/* Direct Purchase Badge */}
-                    <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                      Direct Buy
+                    {/* Direct Purchase Badge - scaled down on mobile */}
+                    <div className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3 bg-green-500 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-xs font-bold shadow-md">
+                      Buy
                     </div>
                   </div>
 
-                  {/* Product Details */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-yellow-600 transition-colors">
+                  {/* Product Details - COMPACT padding on mobile */}
+                  <div className="p-2.5 sm:p-4 md:p-6">
+                    {/* Title - clamped to 1-2 lines on mobile */}
+                    <h3 className="text-xs sm:text-base md:text-xl font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-yellow-600 transition-colors line-clamp-2 leading-tight sm:leading-normal">
                       {product.name}
                     </h3>
 
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-2">
+                    {/* Description - hidden on mobile for compactness */}
+                    <p className="hidden sm:block text-gray-600 text-sm leading-relaxed mb-3 line-clamp-2">
                       {product.description || 'High-quality print product with fast delivery.'}
                     </p>
 
-                    {/* Price */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-lg font-bold text-gray-900">
-                        From €{Number(product.from_price || product.base_price).toFixed(2)}
+                    {/* Price and Category - stacked on mobile */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 mb-2 sm:mb-4">
+                      <span className="text-sm sm:text-base md:text-lg font-bold text-yellow-600">
+                        €{Number(product.from_price || product.base_price).toFixed(2)}
                       </span>
                       {product.category_name && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        <span className="inline-flex items-center px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[9px] sm:text-xs font-medium bg-gray-100 text-gray-600 w-fit">
                           {product.category_name}
                         </span>
                       )}
                     </div>
 
-                    {/* CTA */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-yellow-600 font-semibold group-hover:text-yellow-700">
-                        Customize & Buy
-                      </span>
+                    {/* CTA Button - full-width on mobile, inline on desktop */}
+                    <button className="w-full sm:w-auto bg-yellow-500 text-black font-bold text-[11px] sm:text-sm py-1.5 sm:py-2 px-3 sm:px-4 rounded-md sm:rounded-lg hover:bg-yellow-600 transition-all duration-200 flex items-center justify-center sm:justify-start gap-1 shadow-sm min-h-[32px] sm:min-h-[36px]">
+                      <span className="hidden sm:inline">Customize & Buy</span>
+                      <span className="sm:hidden">Buy Now</span>
                       <svg
-                        className="w-5 h-5 text-yellow-600 transform group-hover:translate-x-1 transition-transform duration-200"
+                        className="w-3 h-3 sm:w-4 sm:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                    </div>
+                    </button>
                   </div>
                 </Link>
               ))}

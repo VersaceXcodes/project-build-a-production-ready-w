@@ -92,39 +92,40 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Link
       to={product.slug}
-      className="group relative bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+      className="group relative bg-white rounded-lg sm:rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100"
     >
-      {/* Colored gradient top area */}
-      <div className={`relative h-24 sm:h-32 md:h-36 lg:h-40 bg-gradient-to-br ${product.gradientFrom} ${product.gradientTo} flex items-center justify-center`}>
-        {/* Badge in top-right corner */}
-        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4">
-          <span className={`${product.badgeColor} text-white text-[10px] sm:text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg`}>
+      {/* Colored gradient top area - COMPACT on mobile */}
+      <div className={`relative h-16 sm:h-28 md:h-32 lg:h-36 bg-gradient-to-br ${product.gradientFrom} ${product.gradientTo} flex items-center justify-center`}>
+        {/* Badge in top-right corner - scaled down on mobile */}
+        <div className="absolute top-1.5 right-1.5 sm:top-3 sm:right-3">
+          <span className={`${product.badgeColor} text-white text-[9px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full shadow-md`}>
             {product.badge}
           </span>
         </div>
         
-        {/* Icon in center */}
-        <div className="transform group-hover:scale-110 transition-transform duration-300">
+        {/* Icon in center - smaller on mobile */}
+        <div className="transform group-hover:scale-110 transition-transform duration-300 scale-75 sm:scale-100">
           {product.icon}
         </div>
       </div>
 
-      {/* Card content */}
-      <div className="p-3 sm:p-4 md:p-5 lg:p-6">
-        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-amber-600 transition-colors">
+      {/* Card content - COMPACT padding on mobile */}
+      <div className="p-2.5 sm:p-4 md:p-5">
+        {/* Title - clamped to 1-2 lines */}
+        <h3 className="text-xs sm:text-base md:text-lg font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-yellow-600 transition-colors line-clamp-2 leading-tight sm:leading-normal">
           {product.name}
         </h3>
         
         {product.startingPrice && (
-          <p className="text-xs sm:text-sm md:text-base text-gray-600 font-semibold mb-2 sm:mb-3 md:mb-4">
-            From {product.startingPrice}
+          <p className="text-[11px] sm:text-sm md:text-base text-gray-700 font-semibold mb-2 sm:mb-3">
+            <span className="text-yellow-600">From {product.startingPrice}</span>
           </p>
         )}
 
-        {/* CTA Button */}
-        <button className="w-full bg-black text-white font-bold text-xs sm:text-sm md:text-base py-2 sm:py-2.5 md:py-3 px-2 sm:px-3 md:px-4 rounded-lg hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 group-hover:gap-2 sm:group-hover:gap-3">
+        {/* CTA Button - smaller and full-width on mobile */}
+        <button className="w-full bg-yellow-500 text-black font-bold text-[11px] sm:text-sm md:text-base py-1.5 sm:py-2.5 md:py-3 px-2 sm:px-3 md:px-4 rounded-md sm:rounded-lg hover:bg-yellow-600 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 shadow-sm min-h-[32px] sm:min-h-[40px]">
           Order Now
-          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+          <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
         </button>
       </div>
     </Link>
