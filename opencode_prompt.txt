@@ -9,8 +9,9 @@ node:internal/modules/cjs/loader:1207
   const err = new Error(message);
               ^
 
-Error: Cannot find module 'escape-html'
+Error: Cannot find module 'ee-first'
 Require stack:
+- /app/backend/node_modules/on-finished/index.js
 - /app/backend/node_modules/finalhandler/index.js
 - /app/backend/node_modules/express/lib/application.js
 - /app/backend/node_modules/express/lib/express.js
@@ -26,6 +27,7 @@ Require stack:
     at require (node:internal/modules/helpers:182:18) {
   code: 'MODULE_NOT_FOUND',
   requireStack: [
+    '/app/backend/node_modules/on-finished/index.js',
     '/app/backend/node_modules/finalhandler/index.js',
     '/app/backend/node_modules/express/lib/application.js',
     '/app/backend/node_modules/express/lib/express.js'
@@ -36,19 +38,7 @@ Node.js v20.19.5
 
 
 ## Backend Console Output (stdout):
-
-up to date, audited 505 packages in 1s
-
-63 packages are looking for funding
-  run `npm fund` for details
-
-1 high severity vulnerability
-
-To address all issues, run:
-  npm audit fix
-
-Run `npm audit` for details.
-
+No stdout output
 
 ## Working Directory: /app/vitereact
 
