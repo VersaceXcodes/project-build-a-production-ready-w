@@ -56,35 +56,61 @@ const seededRandom = (seed: number): number => {
   return x - Math.floor(x);
 };
 
-// Generate a jagged, chaotic paint splatter path with radiating tendrils
+// Generate smooth catmull-rom spline through points (returns SVG cubic bezier commands)
+const catmullRomToBezier = (points: { x: number; y: number }[], tension: number = 0.5): string => {
+  if (points.length < 2) return '';
+  
+  const result: string[] = [];
+  
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? points.length - 1 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 >= points.length ? (i + 2) % points.length : i + 2];
+    
+    // Calculate control points
+    const cp1x = p1.x + (p2.x - p0.x) * tension / 6;
+    const cp1y = p1.y + (p2.y - p0.y) * tension / 6;
+    const cp2x = p2.x - (p3.x - p1.x) * tension / 6;
+    const cp2y = p2.y - (p3.y - p1.y) * tension / 6;
+    
+    if (i === 0) {
+      result.push(`M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`);
+    }
+    result.push(`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)} ${cp2x.toFixed(2)} ${cp2y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`);
+  }
+  
+  return result.join(' ');
+};
+
+// Generate smooth organic liquid paint splatter with curved edges and flowing tendrils
 const generateSplatterPath = (
   cx: number,
   cy: number,
   baseSize: number,
   seed: number,
-  tendrilCount: number = 12
+  tendrilCount: number = 8
 ): string => {
   const paths: string[] = [];
   
-  // Main body - irregular polygon with sharp indentations
+  // Main body - smooth organic blob using low-frequency noise
   const mainPoints: { x: number; y: number }[] = [];
-  const segments = 36;
+  const segments = 24;
   
   for (let i = 0; i < segments; i++) {
     const angle = (i / segments) * Math.PI * 2;
     
-    // High-frequency chaotic noise for jagged edges
-    const noise1 = Math.sin(angle * 7 + seed * 3.1) * 0.25;
-    const noise2 = Math.cos(angle * 11 + seed * 2.7) * 0.18;
-    const noise3 = Math.sin(angle * 17 + seed * 1.9) * 0.12;
-    const noise4 = Math.cos(angle * 23 + seed * 4.3) * 0.08;
+    // Low-frequency smooth noise for organic edges (like viscous liquid)
+    const noise1 = Math.sin(angle * 2 + seed * 1.7) * 0.18;
+    const noise2 = Math.cos(angle * 3 + seed * 2.1) * 0.12;
+    const noise3 = Math.sin(angle * 1.5 + seed * 0.9) * 0.08;
     
-    // Sharp indentations (valleys between tendrils)
-    const tendrilAngle = (angle * tendrilCount) / (Math.PI * 2);
-    const indentation = Math.pow(Math.abs(Math.sin(tendrilAngle * Math.PI)), 2) * 0.35;
+    // Gentle undulations for tendril emergence points (smooth, not sharp)
+    const tendrilPhase = (angle * tendrilCount) / (Math.PI * 2);
+    const bulge = Math.pow(Math.cos(tendrilPhase * Math.PI), 2) * 0.15;
     
-    const radiusVariation = 0.7 + noise1 + noise2 + noise3 + noise4 - indentation;
-    const radius = baseSize * Math.max(0.4, radiusVariation);
+    const radiusVariation = 0.75 + noise1 + noise2 + noise3 + bulge;
+    const radius = baseSize * Math.max(0.5, radiusVariation);
     
     mainPoints.push({
       x: cx + Math.cos(angle) * radius,
@@ -92,26 +118,22 @@ const generateSplatterPath = (
     });
   }
   
-  // Build main body path with sharp corners (no smoothing)
-  let mainPath = `M ${mainPoints[0].x.toFixed(2)} ${mainPoints[0].y.toFixed(2)}`;
-  for (let i = 1; i < mainPoints.length; i++) {
-    mainPath += ` L ${mainPoints[i].x.toFixed(2)} ${mainPoints[i].y.toFixed(2)}`;
-  }
-  mainPath += ' Z';
+  // Build smooth curved main body using catmull-rom splines
+  const mainPath = catmullRomToBezier(mainPoints, 0.5) + ' Z';
   paths.push(mainPath);
   
-  // Generate radiating tendrils/fingers
+  // Generate smooth curved tendrils with bulbous ends (like honey or syrup)
   for (let t = 0; t < tendrilCount; t++) {
-    const tendrilAngle = (t / tendrilCount) * Math.PI * 2 + seededRandom(seed + t) * 0.3;
-    const tendrilLength = baseSize * (0.5 + seededRandom(seed + t * 2) * 0.8);
-    const tendrilWidth = baseSize * (0.08 + seededRandom(seed + t * 3) * 0.12);
+    const tendrilAngle = (t / tendrilCount) * Math.PI * 2 + seededRandom(seed + t) * 0.2;
+    const tendrilLength = baseSize * (0.4 + seededRandom(seed + t * 2) * 0.6);
+    const tendrilWidth = baseSize * (0.12 + seededRandom(seed + t * 3) * 0.1);
     
-    const startRadius = baseSize * 0.6;
+    const startRadius = baseSize * 0.65;
     const startX = cx + Math.cos(tendrilAngle) * startRadius;
     const startY = cy + Math.sin(tendrilAngle) * startRadius;
     
-    // Tendrils have irregular, tapered shapes
-    const tendrilPath = generateThinTendril(
+    // Smooth curved tendrils with tapered bulbous ends
+    const tendrilPath = generateSmoothTendril(
       startX, startY, tendrilLength, tendrilAngle, tendrilWidth, seed + t * 7
     );
     paths.push(tendrilPath);
@@ -120,8 +142,8 @@ const generateSplatterPath = (
   return paths.join(' ');
 };
 
-// Generate thin paint tendril with irregular edges
-const generateThinTendril = (
+// Generate smooth curved paint tendril with tapered bulbous end (like dripping honey)
+const generateSmoothTendril = (
   startX: number,
   startY: number,
   length: number,
@@ -129,135 +151,175 @@ const generateThinTendril = (
   width: number,
   seed: number
 ): string => {
-  const segments = 8;
-  const leftEdge: { x: number; y: number }[] = [];
-  const rightEdge: { x: number; y: number }[] = [];
-  
   const perpAngle = angle + Math.PI / 2;
   
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments;
-    
-    // Curve the tendril slightly
-    const curve = Math.sin(t * Math.PI) * length * 0.15 * (seededRandom(seed) - 0.5);
-    const curveX = Math.cos(perpAngle) * curve;
-    const curveY = Math.sin(perpAngle) * curve;
-    
-    // Position along tendril
-    const px = startX + Math.cos(angle) * length * t + curveX;
-    const py = startY + Math.sin(angle) * length * t + curveY;
-    
-    // Taper width with irregular variation
-    const taper = 1 - Math.pow(t, 0.7);
-    const irregularity = 1 + (seededRandom(seed + i) - 0.5) * 0.5;
-    const currentWidth = width * taper * irregularity;
-    
-    leftEdge.push({
-      x: px + Math.cos(perpAngle) * currentWidth,
-      y: py + Math.sin(perpAngle) * currentWidth
-    });
-    rightEdge.push({
-      x: px - Math.cos(perpAngle) * currentWidth,
-      y: py - Math.sin(perpAngle) * currentWidth
-    });
-  }
+  // Gentle curve offset for organic flow
+  const curveAmount = length * 0.2 * (seededRandom(seed) - 0.5);
   
-  // Build path
-  let path = `M ${leftEdge[0].x.toFixed(2)} ${leftEdge[0].y.toFixed(2)}`;
-  for (let i = 1; i < leftEdge.length; i++) {
-    path += ` L ${leftEdge[i].x.toFixed(2)} ${leftEdge[i].y.toFixed(2)}`;
-  }
-  for (let i = rightEdge.length - 1; i >= 0; i--) {
-    path += ` L ${rightEdge[i].x.toFixed(2)} ${rightEdge[i].y.toFixed(2)}`;
-  }
-  path += ' Z';
+  // End point with curve
+  const endX = startX + Math.cos(angle) * length + Math.cos(perpAngle) * curveAmount;
+  const endY = startY + Math.sin(angle) * length + Math.sin(perpAngle) * curveAmount;
   
-  return path;
+  // Mid control point for smooth S-curve
+  const midT = 0.5;
+  const midCurve = curveAmount * 0.6;
+  const midX = startX + Math.cos(angle) * length * midT + Math.cos(perpAngle) * midCurve;
+  const midY = startY + Math.sin(angle) * length * midT + Math.sin(perpAngle) * midCurve;
+  
+  // Bulbous end - rounded teardrop shape
+  const bulbRadius = width * (0.8 + seededRandom(seed + 1) * 0.4);
+  
+  // Start points (wide base)
+  const startLeft = {
+    x: startX + Math.cos(perpAngle) * width,
+    y: startY + Math.sin(perpAngle) * width
+  };
+  const startRight = {
+    x: startX - Math.cos(perpAngle) * width,
+    y: startY - Math.sin(perpAngle) * width
+  };
+  
+  // Mid points (tapered)
+  const midWidth = width * 0.5;
+  const midLeft = {
+    x: midX + Math.cos(perpAngle) * midWidth,
+    y: midY + Math.sin(perpAngle) * midWidth
+  };
+  const midRight = {
+    x: midX - Math.cos(perpAngle) * midWidth,
+    y: midY - Math.sin(perpAngle) * midWidth
+  };
+  
+  // Bulb control points for rounded end
+  const bulbLeft = {
+    x: endX + Math.cos(perpAngle) * bulbRadius,
+    y: endY + Math.sin(perpAngle) * bulbRadius
+  };
+  const bulbRight = {
+    x: endX - Math.cos(perpAngle) * bulbRadius,
+    y: endY - Math.sin(perpAngle) * bulbRadius
+  };
+  const bulbTip = {
+    x: endX + Math.cos(angle) * bulbRadius * 0.8,
+    y: endY + Math.sin(angle) * bulbRadius * 0.8
+  };
+  
+  // Build smooth path with cubic beziers
+  return `M ${startLeft.x.toFixed(2)} ${startLeft.y.toFixed(2)}
+    Q ${midLeft.x.toFixed(2)} ${midLeft.y.toFixed(2)} ${bulbLeft.x.toFixed(2)} ${bulbLeft.y.toFixed(2)}
+    Q ${(bulbLeft.x + bulbTip.x) / 2} ${(bulbLeft.y + bulbTip.y) / 2} ${bulbTip.x.toFixed(2)} ${bulbTip.y.toFixed(2)}
+    Q ${(bulbRight.x + bulbTip.x) / 2} ${(bulbRight.y + bulbTip.y) / 2} ${bulbRight.x.toFixed(2)} ${bulbRight.y.toFixed(2)}
+    Q ${midRight.x.toFixed(2)} ${midRight.y.toFixed(2)} ${startRight.x.toFixed(2)} ${startRight.y.toFixed(2)}
+    Z`;
 };
 
-// Generate teardrop drip at end of tendril
+// Generate smooth teardrop drip with rounded bulbous end (like dripping paint)
 const generateTeardropDrip = (
   cx: number,
   cy: number,
   size: number,
-  angle: number
+  _angle: number
 ): string => {
-  // Teardrop pointing downward (with gravity)
-  const tipY = cy + size * 2.2;
-  const bulbRadius = size * 0.7;
+  // Smooth teardrop with rounded tip (surface tension effect)
+  const tipY = cy + size * 2.0;
+  const bulbRadius = size * 0.8;
+  const tipRounding = size * 0.25; // Rounded tip, not sharp
   
-  // Sharp tip, rounded bulb
-  return `M ${cx.toFixed(2)} ${tipY.toFixed(2)}
-          Q ${(cx - bulbRadius * 0.3).toFixed(2)} ${(cy + size * 0.8).toFixed(2)} ${(cx - bulbRadius).toFixed(2)} ${cy.toFixed(2)}
-          Q ${(cx - bulbRadius * 0.8).toFixed(2)} ${(cy - bulbRadius * 0.6).toFixed(2)} ${cx.toFixed(2)} ${(cy - bulbRadius * 0.5).toFixed(2)}
-          Q ${(cx + bulbRadius * 0.8).toFixed(2)} ${(cy - bulbRadius * 0.6).toFixed(2)} ${(cx + bulbRadius).toFixed(2)} ${cy.toFixed(2)}
-          Q ${(cx + bulbRadius * 0.3).toFixed(2)} ${(cy + size * 0.8).toFixed(2)} ${cx.toFixed(2)} ${tipY.toFixed(2)} Z`;
+  // Smooth rounded teardrop using cubic beziers
+  return `M ${cx.toFixed(2)} ${(tipY - tipRounding).toFixed(2)}
+          C ${(cx - tipRounding).toFixed(2)} ${tipY.toFixed(2)} ${(cx + tipRounding).toFixed(2)} ${tipY.toFixed(2)} ${cx.toFixed(2)} ${(tipY - tipRounding).toFixed(2)}
+          C ${(cx - bulbRadius * 0.4).toFixed(2)} ${(cy + size * 0.7).toFixed(2)} ${(cx - bulbRadius).toFixed(2)} ${(cy + size * 0.2).toFixed(2)} ${(cx - bulbRadius).toFixed(2)} ${cy.toFixed(2)}
+          C ${(cx - bulbRadius).toFixed(2)} ${(cy - bulbRadius * 0.7).toFixed(2)} ${(cx - bulbRadius * 0.7).toFixed(2)} ${(cy - bulbRadius).toFixed(2)} ${cx.toFixed(2)} ${(cy - bulbRadius).toFixed(2)}
+          C ${(cx + bulbRadius * 0.7).toFixed(2)} ${(cy - bulbRadius).toFixed(2)} ${(cx + bulbRadius).toFixed(2)} ${(cy - bulbRadius * 0.7).toFixed(2)} ${(cx + bulbRadius).toFixed(2)} ${cy.toFixed(2)}
+          C ${(cx + bulbRadius).toFixed(2)} ${(cy + size * 0.2).toFixed(2)} ${(cx + bulbRadius * 0.4).toFixed(2)} ${(cy + size * 0.7).toFixed(2)} ${cx.toFixed(2)} ${(tipY - tipRounding).toFixed(2)}
+          Z`;
 };
 
-// Generate flat satellite droplet (irregular shape)
+// Generate smooth satellite droplet - perfect circle or soft oval (like liquid drops)
 const generateSatelliteDroplet = (
   cx: number,
   cy: number,
   size: number,
   seed: number
 ): string => {
-  const points = 6 + Math.floor(seededRandom(seed) * 4);
-  const pathPoints: string[] = [];
+  // Slight oval variation for organic feel, but always smooth
+  const aspectRatio = 0.85 + seededRandom(seed) * 0.3; // 0.85 to 1.15
+  const rx = size;
+  const ry = size * aspectRatio;
   
-  for (let i = 0; i < points; i++) {
-    const angle = (i / points) * Math.PI * 2;
-    const noise = seededRandom(seed + i * 3) * 0.4 + 0.7;
-    const radius = size * noise;
-    
-    const x = cx + Math.cos(angle) * radius;
-    const y = cy + Math.sin(angle) * radius;
-    
-    if (i === 0) {
-      pathPoints.push(`M ${x.toFixed(2)} ${y.toFixed(2)}`);
-    } else {
-      pathPoints.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`);
-    }
-  }
-  pathPoints.push('Z');
+  // Slight rotation for natural look
+  const rotation = seededRandom(seed + 1) * 30 - 15;
   
-  return pathPoints.join(' ');
+  // Use ellipse approximation with cubic beziers (4-point circle)
+  const kappa = 0.5522847498; // Magic number for circle approximation
+  const ox = rx * kappa;
+  const oy = ry * kappa;
+  
+  // Transform points with rotation
+  const rotRad = rotation * Math.PI / 180;
+  const cos = Math.cos(rotRad);
+  const sin = Math.sin(rotRad);
+  
+  const transform = (x: number, y: number) => ({
+    x: cx + x * cos - y * sin,
+    y: cy + x * sin + y * cos
+  });
+  
+  const top = transform(0, -ry);
+  const right = transform(rx, 0);
+  const bottom = transform(0, ry);
+  const left = transform(-rx, 0);
+  
+  const topRight = transform(ox, -ry);
+  const rightTop = transform(rx, -oy);
+  const rightBottom = transform(rx, oy);
+  const bottomRight = transform(ox, ry);
+  const bottomLeft = transform(-ox, ry);
+  const leftBottom = transform(-rx, oy);
+  const leftTop = transform(-rx, -oy);
+  const topLeft = transform(-ox, -ry);
+  
+  return `M ${top.x.toFixed(2)} ${top.y.toFixed(2)}
+          C ${topRight.x.toFixed(2)} ${topRight.y.toFixed(2)} ${rightTop.x.toFixed(2)} ${rightTop.y.toFixed(2)} ${right.x.toFixed(2)} ${right.y.toFixed(2)}
+          C ${rightBottom.x.toFixed(2)} ${rightBottom.y.toFixed(2)} ${bottomRight.x.toFixed(2)} ${bottomRight.y.toFixed(2)} ${bottom.x.toFixed(2)} ${bottom.y.toFixed(2)}
+          C ${bottomLeft.x.toFixed(2)} ${bottomLeft.y.toFixed(2)} ${leftBottom.x.toFixed(2)} ${leftBottom.y.toFixed(2)} ${left.x.toFixed(2)} ${left.y.toFixed(2)}
+          C ${leftTop.x.toFixed(2)} ${leftTop.y.toFixed(2)} ${topLeft.x.toFixed(2)} ${topLeft.y.toFixed(2)} ${top.x.toFixed(2)} ${top.y.toFixed(2)}
+          Z`;
 };
 
-// Generate chaotic main splash with radiating fingers
+// Generate smooth organic main splash with flowing curved tendrils
 const generateMainSplashPath = (progress: number, slideOffset: number): string => {
   const centerX = 50 - slideOffset * 55;
   const centerY = 50;
   const baseRadius = 42 * progress;
   
-  const numTendrils = 16;
+  const numTendrils = 10; // Fewer, more prominent organic tendrils
   const paths: string[] = [];
   
-  // Main central mass - chaotic polygon
-  const mainSegments = 48;
+  // Main central mass - smooth organic blob with gentle undulations
+  const mainSegments = 32;
   const mainPoints: { x: number; y: number }[] = [];
   
   for (let i = 0; i < mainSegments; i++) {
     const angle = (i / mainSegments) * Math.PI * 2;
     
-    // Multi-frequency noise for chaotic edges
-    const n1 = Math.sin(angle * 5 + 1.7) * 0.22;
-    const n2 = Math.cos(angle * 9 + 2.3) * 0.15;
-    const n3 = Math.sin(angle * 13 + 3.1) * 0.12;
-    const n4 = Math.cos(angle * 19 + 0.7) * 0.08;
-    const n5 = Math.sin(angle * 29 + 4.2) * 0.05;
+    // Low-frequency smooth noise for organic liquid edges
+    const n1 = Math.sin(angle * 2 + 1.7) * 0.15;
+    const n2 = Math.cos(angle * 3 + 2.3) * 0.12;
+    const n3 = Math.sin(angle * 1.5 + 3.1) * 0.08;
     
-    // Deep indentations between finger areas
+    // Gentle bulges where tendrils emerge (smooth, not sharp)
     const fingerPhase = (angle * numTendrils) / (Math.PI * 2);
-    const indentation = Math.pow(Math.abs(Math.sin(fingerPhase * Math.PI)), 1.5) * 0.3;
+    const bulge = Math.pow(Math.cos(fingerPhase * Math.PI), 2) * 0.12;
     
-    // Extra coverage on left for slide
+    // Extra smooth coverage on left for slide
     let leftExtension = 0;
     if (Math.cos(angle) < -0.2) {
-      leftExtension = Math.abs(Math.cos(angle)) * 0.4 * progress;
+      leftExtension = Math.pow(Math.abs(Math.cos(angle)), 1.5) * 0.35 * progress;
     }
     
-    const radiusVar = 0.65 + n1 + n2 + n3 + n4 + n5 - indentation + leftExtension;
-    const radius = baseRadius * Math.max(0.35, radiusVar);
+    const radiusVar = 0.72 + n1 + n2 + n3 + bulge + leftExtension;
+    const radius = baseRadius * Math.max(0.5, radiusVar);
     
     mainPoints.push({
       x: centerX + Math.cos(angle) * radius,
@@ -265,37 +327,24 @@ const generateMainSplashPath = (progress: number, slideOffset: number): string =
     });
   }
   
-  // Build main body with angular transitions (not smooth curves)
-  let mainPath = `M ${mainPoints[0].x.toFixed(2)} ${mainPoints[0].y.toFixed(2)}`;
-  for (let i = 1; i < mainPoints.length; i++) {
-    // Occasionally add sharp corner vs line
-    if (i % 3 === 0) {
-      const prev = mainPoints[i - 1];
-      const curr = mainPoints[i];
-      const midX = (prev.x + curr.x) / 2 + (Math.random() - 0.5) * 1.5;
-      const midY = (prev.y + curr.y) / 2 + (Math.random() - 0.5) * 1.5;
-      mainPath += ` L ${midX.toFixed(2)} ${midY.toFixed(2)} L ${curr.x.toFixed(2)} ${curr.y.toFixed(2)}`;
-    } else {
-      mainPath += ` L ${mainPoints[i].x.toFixed(2)} ${mainPoints[i].y.toFixed(2)}`;
-    }
-  }
-  mainPath += ' Z';
+  // Build smooth curved main body using catmull-rom splines
+  const mainPath = catmullRomToBezier(mainPoints, 0.5) + ' Z';
   paths.push(mainPath);
   
-  // Radiating finger tendrils
+  // Smooth flowing tendrils with bulbous ends (like honey or thick paint)
   for (let t = 0; t < numTendrils; t++) {
     const baseAngle = (t / numTendrils) * Math.PI * 2;
-    const angleJitter = (seededRandom(t * 7) - 0.5) * 0.25;
+    const angleJitter = (seededRandom(t * 7) - 0.5) * 0.15;
     const tendrilAngle = baseAngle + angleJitter;
     
-    const tendrilLength = baseRadius * (0.6 + seededRandom(t * 3) * 0.7) * progress;
-    const tendrilWidth = baseRadius * (0.06 + seededRandom(t * 5) * 0.08);
+    const tendrilLength = baseRadius * (0.5 + seededRandom(t * 3) * 0.6) * progress;
+    const tendrilWidth = baseRadius * (0.1 + seededRandom(t * 5) * 0.08);
     
-    const startDist = baseRadius * 0.55;
+    const startDist = baseRadius * 0.6;
     const startX = centerX + Math.cos(tendrilAngle) * startDist;
     const startY = centerY + Math.sin(tendrilAngle) * startDist;
     
-    paths.push(generateThinTendril(startX, startY, tendrilLength, tendrilAngle, tendrilWidth, t * 11));
+    paths.push(generateSmoothTendril(startX, startY, tendrilLength, tendrilAngle, tendrilWidth, t * 11));
   }
   
   return paths.join(' ');

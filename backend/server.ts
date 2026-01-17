@@ -23,8 +23,8 @@ declare global {
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = path.dirname(currentFilename);
 
 const { DATABASE_URL, PGHOST, PGDATABASE, PGUSER, PGPASSWORD, PGPORT = 5432 } = process.env;
 const PORT = process.env.PORT || 3000;
@@ -64,9 +64,9 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-const isDist = path.basename(__dirname) === 'dist';
-const publicDir = isDist ? path.resolve(__dirname, '..', 'public') : path.resolve(__dirname, 'public');
-const storageDir = path.resolve(__dirname, 'storage');
+const isDist = path.basename(currentDirname) === 'dist';
+const publicDir = isDist ? path.resolve(currentDirname, '..', 'public') : path.resolve(currentDirname, 'public');
+const storageDir = path.resolve(currentDirname, 'storage');
 
 if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
 

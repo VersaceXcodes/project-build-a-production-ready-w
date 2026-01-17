@@ -1,13 +1,13 @@
-Change the blob/shape animation to look like realistic black paint splatter instead of smooth blobs. The shape should have:
+The current shape is wrong - it's too angular and geometric like shattered glass. I need smooth, CURVED, organic liquid paint shapes instead. Fix it with these specifications:
 
-Radiating tendrils/fingers - Instead of smooth rounded edges, the shape should have irregular, jagged edges with thin paint fingers extending outward from the main body, like an actual paint splash captured mid-explosion
-Glossy wet appearance - Add specular highlights and reflections to make the black paint look wet and viscous, with subtle gray/white shine spots that catch light
-Satellite droplets - Small scattered paint droplets should break away from the main shape and float independently around the edges
-Dripping effects - Some tendrils should have teardrop-shaped drips at their ends, showing gravity's effect on liquid paint
-Organic chaotic edges - The boundary between black and white should be irregular and unpredictable, not smooth curves - think actual paint splatter physics
-Remove the 3D spheres/bubbles - Replace the floating orbs with flat paint droplets instead
+CURVED TENDRILS, NOT ANGULAR - All extensions from the main body must be smooth curved lines using bezier/spline curves, NOT straight lines or sharp angles. Think of how thick syrup or honey flows - organic and curved, never geometric or crystalline.
+ORGANIC FLUID EDGES - The entire shape boundary should be smooth and flowing like actual viscous liquid. No sharp points, no straight edges, no polygonal shapes.
+ROUNDED DROPLETS - Any satellite drops should be perfect circles or smooth oval/teardrop shapes, NOT hexagons or polygons.
+GLOSSY WET SURFACE - Add specular highlights (white/gray reflections) on the black surface to make it look like wet, shiny paint - similar to glossy nail polish or fresh ink.
+TAPERED TENDRILS - The paint fingers should start thick at the base and smoothly taper to rounded bulbous ends (like dripping liquid), not sharp points.
+REMOVE ALL ANGULAR GEOMETRY - Delete any straight lines, sharp spikes, or crystalline shapes. Everything must look liquid and fluid.
 
-Reference: The effect should look like high-speed photography of black ink or paint hitting a surface and splashing outward.
+Reference: Real black paint or ink splatter captured in slow motion - smooth, glossy, curved, organic shapes with surface tension visible.
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -18,14 +18,14 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "Change the blob/shape animation to look like realistic black paint splatter instead of smooth blobs. The shape should have:
+- Focus solely on implementing the user's request: "The current shape is wrong - it's too angular and geometric like shattered glass. I need smooth, CURVED, organic liquid paint shapes instead. Fix it with these specifications:
 
-Radiating tendrils/fingers - Instead of smooth rounded edges, the shape should have irregular, jagged edges with thin paint fingers extending outward from the main body, like an actual paint splash captured mid-explosion
-Glossy wet appearance - Add specular highlights and reflections to make the black paint look wet and viscous, with subtle gray/white shine spots that catch light
-Satellite droplets - Small scattered paint droplets should break away from the main shape and float independently around the edges
-Dripping effects - Some tendrils should have teardrop-shaped drips at their ends, showing gravity's effect on liquid paint
-Organic chaotic edges - The boundary between black and white should be irregular and unpredictable, not smooth curves - think actual paint splatter physics
-Remove the 3D spheres/bubbles - Replace the floating orbs with flat paint droplets instead
+CURVED TENDRILS, NOT ANGULAR - All extensions from the main body must be smooth curved lines using bezier/spline curves, NOT straight lines or sharp angles. Think of how thick syrup or honey flows - organic and curved, never geometric or crystalline.
+ORGANIC FLUID EDGES - The entire shape boundary should be smooth and flowing like actual viscous liquid. No sharp points, no straight edges, no polygonal shapes.
+ROUNDED DROPLETS - Any satellite drops should be perfect circles or smooth oval/teardrop shapes, NOT hexagons or polygons.
+GLOSSY WET SURFACE - Add specular highlights (white/gray reflections) on the black surface to make it look like wet, shiny paint - similar to glossy nail polish or fresh ink.
+TAPERED TENDRILS - The paint fingers should start thick at the base and smoothly taper to rounded bulbous ends (like dripping liquid), not sharp points.
+REMOVE ALL ANGULAR GEOMETRY - Delete any straight lines, sharp spikes, or crystalline shapes. Everything must look liquid and fluid.
 
-Reference: The effect should look like high-speed photography of black ink or paint hitting a surface and splashing outward."
+Reference: Real black paint or ink splatter captured in slow motion - smooth, glossy, curved, organic shapes with surface tension visible."
 - Only address errors if they block the specific functionality requested by the user.
