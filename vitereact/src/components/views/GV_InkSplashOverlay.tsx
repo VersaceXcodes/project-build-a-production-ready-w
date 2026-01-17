@@ -60,86 +60,244 @@ const fallingDroplets = [
   { id: 5, startX: 47, startY: -9, endX: 49, endY: 51, size: 8, delay: 320, rotation: -30 },
 ];
 
-// Generate an irregular ink drop shape (sharp, organic edges)
+// Generate smooth organic ink drop using cubic Bezier curves
 const generateInkDropPath = (cx: number, cy: number, baseSize: number, seed: number): string => {
-  const points = 16 + Math.floor(seed % 8);
-  const pathPoints: string[] = [];
+  const points = 12 + Math.floor(seed % 6); // Number of anchor points
+  const anchors: { x: number; y: number; r: number }[] = [];
   
-  for (let i = 0; i <= points; i++) {
+  // Generate anchor points with organic radius variation
+  for (let i = 0; i < points; i++) {
     const angle = (i / points) * Math.PI * 2;
-    // Create sharp, irregular edges with varying amplitude
-    const noise1 = Math.sin(angle * 3 + seed * 2.7) * 0.35;
-    const noise2 = Math.cos(angle * 5 + seed * 1.3) * 0.2;
-    const noise3 = Math.sin(angle * 7 + seed * 3.1) * 0.15;
-    const noise4 = Math.cos(angle * 2 + seed * 0.7) * 0.25;
+    // Smooth noise using multiple sine waves at different frequencies
+    const noise1 = Math.sin(angle * 2 + seed * 1.7) * 0.22;
+    const noise2 = Math.cos(angle * 3 + seed * 2.3) * 0.15;
+    const noise3 = Math.sin(angle * 5 + seed * 0.9) * 0.1;
     
-    // Add occasional sharp protrusions (drips)
-    const dripFactor = Math.pow(Math.sin(angle * 4 + seed), 8) * 0.4;
+    // Organic lobe bulges (rounded protrusions)
+    const lobeFactor = Math.pow(Math.cos(angle * 2 + seed * 0.5), 2) * 0.2;
     
-    const radiusVariation = 1 + noise1 + noise2 + noise3 + noise4 + dripFactor;
-    const radius = baseSize * radiusVariation * (0.85 + (seed % 10) / 30);
+    const radiusVariation = 1 + noise1 + noise2 + noise3 + lobeFactor;
+    const radius = baseSize * radiusVariation * (0.9 + (seed % 10) / 40);
     
-    const x = cx + Math.cos(angle) * radius;
-    const y = cy + Math.sin(angle) * radius;
+    anchors.push({
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+      r: radius
+    });
+  }
+  
+  // Build smooth cubic Bezier path through all anchor points
+  const pathParts: string[] = [];
+  const tension = 0.35; // Controls curve smoothness (lower = rounder)
+  
+  for (let i = 0; i < points; i++) {
+    const p0 = anchors[(i - 1 + points) % points];
+    const p1 = anchors[i];
+    const p2 = anchors[(i + 1) % points];
+    const p3 = anchors[(i + 2) % points];
     
     if (i === 0) {
-      pathPoints.push(`M ${x.toFixed(2)} ${y.toFixed(2)}`);
-    } else {
-      pathPoints.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`);
+      pathParts.push(`M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`);
     }
+    
+    // Catmull-Rom to Bezier conversion for smooth curves
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+    
+    pathParts.push(`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`);
   }
-  pathPoints.push('Z');
-  return pathPoints.join(' ');
+  
+  pathParts.push('Z');
+  return pathParts.join(' ');
 };
 
-// Generate organic main splash blob with dripping edges
+// Generate teardrop-shaped droplet (small organic droplet)
+const generateTeardropPath = (cx: number, cy: number, size: number, angle: number): string => {
+  const tipLength = size * 1.8;
+  const bulbRadius = size * 0.6;
+  
+  // Teardrop pointing in the given angle direction
+  const tipX = cx + Math.cos(angle) * tipLength;
+  const tipY = cy + Math.sin(angle) * tipLength;
+  
+  // Perpendicular for bulb sides
+  const perpAngle = angle + Math.PI / 2;
+  const sideX = Math.cos(perpAngle) * bulbRadius;
+  const sideY = Math.sin(perpAngle) * bulbRadius;
+  
+  // Control points for smooth teardrop shape
+  const backAngle = angle + Math.PI;
+  const backX = cx + Math.cos(backAngle) * bulbRadius * 0.3;
+  const backY = cy + Math.sin(backAngle) * bulbRadius * 0.3;
+  
+  return `M ${tipX.toFixed(2)} ${tipY.toFixed(2)} 
+          Q ${cx.toFixed(2)} ${cy.toFixed(2)} ${(cx + sideX).toFixed(2)} ${(cy + sideY).toFixed(2)}
+          Q ${backX.toFixed(2)} ${backY.toFixed(2)} ${(cx - sideX).toFixed(2)} ${(cy - sideY).toFixed(2)}
+          Q ${cx.toFixed(2)} ${cy.toFixed(2)} ${tipX.toFixed(2)} ${tipY.toFixed(2)} Z`;
+};
+
+// Generate tendril/drip path extending outward
+const generateTendrilPath = (startX: number, startY: number, length: number, angle: number, thickness: number, seed: number): string => {
+  const segments = 6;
+  const points: { x: number; y: number }[] = [];
+  
+  // Generate tendril centerline with slight curve
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const wobble = Math.sin(t * Math.PI * 2 + seed) * (1 - t) * thickness * 0.5;
+    const perpAngle = angle + Math.PI / 2;
+    
+    points.push({
+      x: startX + Math.cos(angle) * length * t + Math.cos(perpAngle) * wobble,
+      y: startY + Math.sin(angle) * length * t + Math.sin(perpAngle) * wobble
+    });
+  }
+  
+  // Build path with tapering thickness
+  const leftSide: string[] = [];
+  const rightSide: string[] = [];
+  
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const currentThickness = thickness * (1 - t * 0.85); // Taper to thin tip
+    const perpAngle = angle + Math.PI / 2;
+    
+    const lx = points[i].x + Math.cos(perpAngle) * currentThickness;
+    const ly = points[i].y + Math.sin(perpAngle) * currentThickness;
+    const rx = points[i].x - Math.cos(perpAngle) * currentThickness;
+    const ry = points[i].y - Math.sin(perpAngle) * currentThickness;
+    
+    leftSide.push(`${lx.toFixed(2)} ${ly.toFixed(2)}`);
+    rightSide.unshift(`${rx.toFixed(2)} ${ry.toFixed(2)}`);
+  }
+  
+  // Create smooth path using quadratic curves
+  let path = `M ${leftSide[0]}`;
+  for (let i = 1; i < leftSide.length; i++) {
+    const [prevX, prevY] = leftSide[i - 1].split(' ').map(Number);
+    const [currX, currY] = leftSide[i].split(' ').map(Number);
+    const cpX = (prevX + currX) / 2;
+    const cpY = (prevY + currY) / 2;
+    path += ` Q ${prevX.toFixed(2)} ${prevY.toFixed(2)} ${cpX.toFixed(2)} ${cpY.toFixed(2)}`;
+  }
+  path += ` L ${leftSide[leftSide.length - 1]}`;
+  
+  // Round tip
+  const tipIdx = leftSide.length - 1;
+  path += ` Q ${points[segments].x.toFixed(2)} ${(points[segments].y + thickness * 0.1).toFixed(2)} ${rightSide[0]}`;
+  
+  // Right side back
+  for (let i = 1; i < rightSide.length; i++) {
+    const [prevX, prevY] = rightSide[i - 1].split(' ').map(Number);
+    const [currX, currY] = rightSide[i].split(' ').map(Number);
+    const cpX = (prevX + currX) / 2;
+    const cpY = (prevY + currY) / 2;
+    path += ` Q ${prevX.toFixed(2)} ${prevY.toFixed(2)} ${cpX.toFixed(2)} ${cpY.toFixed(2)}`;
+  }
+  path += ' Z';
+  
+  return path;
+};
+
+// Generate organic main splash blob with smooth Bezier curves
 const generateMainSplashPath = (progress: number, slideOffset: number): string => {
-  const basePoints = 32;
-  const pathPoints: string[] = [];
+  const numPoints = 24; // Anchor points for smooth organic shape
+  const anchors: { x: number; y: number }[] = [];
   
   const centerX = 50 - slideOffset * 55;
   const centerY = 50;
   const baseRadius = 48 * progress;
   
-  for (let i = 0; i <= basePoints; i++) {
-    const angle = (i / basePoints) * Math.PI * 2;
+  for (let i = 0; i < numPoints; i++) {
+    const angle = (i / numPoints) * Math.PI * 2;
     
-    // Multiple noise layers for organic look
-    const noise1 = Math.sin(angle * 3 + 1.5) * 0.18;
-    const noise2 = Math.cos(angle * 5 + 2.3) * 0.12;
-    const noise3 = Math.sin(angle * 8 + 0.7) * 0.08;
-    const noise4 = Math.cos(angle * 2 + 3.1) * 0.15;
+    // Smooth organic noise using sine waves
+    const noise1 = Math.sin(angle * 2 + 1.2) * 0.15;
+    const noise2 = Math.cos(angle * 3 + 2.1) * 0.12;
+    const noise3 = Math.sin(angle * 5 + 0.5) * 0.08;
     
-    // Create dripping effect on bottom and left edges
+    // Organic lobe bulges (rounded, not sharp)
+    const lobe1 = Math.pow(Math.cos(angle * 1.5 + 0.8), 4) * 0.18;
+    const lobe2 = Math.pow(Math.cos(angle * 2 + 2.5), 4) * 0.12;
+    
+    // Gentle drip extensions (organic rounded protrusions)
     let dripEffect = 0;
-    if (angle > Math.PI * 0.3 && angle < Math.PI * 0.8) {
-      dripEffect = Math.pow(Math.sin((angle - Math.PI * 0.3) / 0.5 * Math.PI), 3) * 0.25;
+    if (angle > Math.PI * 0.4 && angle < Math.PI * 0.7) {
+      const t = (angle - Math.PI * 0.4) / (Math.PI * 0.3);
+      dripEffect = Math.sin(t * Math.PI) * 0.2;
     }
-    if (angle > Math.PI * 1.1 && angle < Math.PI * 1.6) {
-      dripEffect += Math.pow(Math.sin((angle - Math.PI * 1.1) / 0.5 * Math.PI), 4) * 0.2;
+    if (angle > Math.PI * 1.2 && angle < Math.PI * 1.5) {
+      const t = (angle - Math.PI * 1.2) / (Math.PI * 0.3);
+      dripEffect += Math.sin(t * Math.PI) * 0.15;
     }
     
     // Extra coverage on left side for slide reveal
     let leftExtension = 0;
     if (Math.cos(angle) < -0.3) {
-      leftExtension = Math.abs(Math.cos(angle)) * 0.6 * progress;
+      leftExtension = Math.abs(Math.cos(angle)) * 0.5 * progress;
     }
     
-    const radiusVariation = 1 + noise1 + noise2 + noise3 + noise4 + dripEffect + leftExtension;
+    const radiusVariation = 1 + noise1 + noise2 + noise3 + lobe1 + lobe2 + dripEffect + leftExtension;
     const radius = baseRadius * radiusVariation;
     
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
+    anchors.push({
+      x: centerX + Math.cos(angle) * radius,
+      y: centerY + Math.sin(angle) * radius
+    });
+  }
+  
+  // Build smooth cubic Bezier path through all anchor points
+  const pathParts: string[] = [];
+  const tension = 0.3;
+  
+  for (let i = 0; i < numPoints; i++) {
+    const p0 = anchors[(i - 1 + numPoints) % numPoints];
+    const p1 = anchors[i];
+    const p2 = anchors[(i + 1) % numPoints];
+    const p3 = anchors[(i + 2) % numPoints];
     
     if (i === 0) {
-      pathPoints.push(`M ${x.toFixed(2)} ${y.toFixed(2)}`);
-    } else {
-      pathPoints.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`);
+      pathParts.push(`M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`);
     }
+    
+    // Catmull-Rom to Bezier conversion
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+    
+    pathParts.push(`C ${cp1x.toFixed(2)} ${cp1y.toFixed(2)}, ${cp2x.toFixed(2)} ${cp2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`);
   }
-  pathPoints.push('Z');
-  return pathPoints.join(' ');
+  
+  pathParts.push('Z');
+  return pathParts.join(' ');
 };
+
+// Tendril configurations extending from main splash
+const tendrilConfigs = [
+  { startX: 50, startY: 75, length: 12, angle: Math.PI * 0.55, thickness: 1.2, seed: 1.2 },
+  { startX: 30, startY: 65, length: 10, angle: Math.PI * 0.65, thickness: 1.0, seed: 2.4 },
+  { startX: 70, startY: 60, length: 8, angle: Math.PI * 0.35, thickness: 0.9, seed: 3.1 },
+  { startX: 25, startY: 50, length: 9, angle: Math.PI * 0.85, thickness: 0.8, seed: 4.5 },
+];
+
+// Teardrop droplet configurations (scattered around splash)
+const teardropConfigs = [
+  { cx: 15, cy: 25, size: 2.5, angle: Math.PI * 1.3 },
+  { cx: 85, cy: 20, size: 2.0, angle: Math.PI * 1.7 },
+  { cx: 90, cy: 55, size: 2.2, angle: Math.PI * 0.1 },
+  { cx: 12, cy: 70, size: 1.8, angle: Math.PI * 1.1 },
+  { cx: 88, cy: 78, size: 2.3, angle: Math.PI * 0.3 },
+  { cx: 8, cy: 45, size: 1.5, angle: Math.PI * 1.0 },
+  { cx: 92, cy: 35, size: 1.6, angle: Math.PI * 1.8 },
+  { cx: 20, cy: 85, size: 2.0, angle: Math.PI * 0.7 },
+  { cx: 78, cy: 88, size: 1.7, angle: Math.PI * 0.4 },
+  { cx: 5, cy: 60, size: 1.4, angle: Math.PI * 1.2 },
+  { cx: 95, cy: 65, size: 1.5, angle: Math.PI * 1.9 },
+  { cx: 25, cy: 12, size: 1.3, angle: Math.PI * 1.5 },
+];
 
 // Splatter droplets configuration - various sizes for realistic effect
 const splatters = [
@@ -348,38 +506,56 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
         style={{ overflow: 'visible' }}
       >
         <defs>
-          {/* Minimal gooey filter - only for blob merging, keeps edges sharp */}
+          {/* Minimal gooey filter - for organic blob merging with smooth edges */}
           <filter id="gooey-merge" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="blur" />
             <feColorMatrix
               in="blur"
               mode="matrix"
               values="1 0 0 0 0
                       0 1 0 0 0
                       0 0 1 0 0
-                      0 0 0 50 -25"
+                      0 0 0 60 -30"
               result="goo"
             />
             <feBlend in="SourceGraphic" in2="goo" />
           </filter>
 
-          {/* Sharp highlight for wet gloss */}
-          <linearGradient id="wetGloss1" x1="0%" y1="0%" x2="50%" y2="50%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
-            <stop offset="30%" stopColor="rgba(255,255,255,0.3)" />
+          {/* Wet ink glossy gradient - primary highlight streak */}
+          <linearGradient id="wetGloss1" x1="0%" y1="0%" x2="60%" y2="60%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
+            <stop offset="25%" stopColor="rgba(255,255,255,0.25)" />
+            <stop offset="60%" stopColor="rgba(255,255,255,0.08)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
           
-          <linearGradient id="wetGloss2" x1="20%" y1="0%" x2="70%" y2="70%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-            <stop offset="50%" stopColor="rgba(255,255,255,0.15)" />
+          {/* Secondary wet gloss - softer highlight */}
+          <linearGradient id="wetGloss2" x1="10%" y1="0%" x2="80%" y2="80%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
+            <stop offset="40%" stopColor="rgba(255,255,255,0.12)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
+          
+          {/* Edge rim light for liquid depth */}
+          <linearGradient id="rimLight" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="70%" stopColor="rgba(255,255,255,0.05)" />
+            <stop offset="90%" stopColor="rgba(255,255,255,0.15)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.25)" />
+          </linearGradient>
 
-          {/* Specular highlights */}
-          <radialGradient id="specular" cx="30%" cy="25%" r="40%">
+          {/* Specular highlight spots - bright point reflections */}
+          <radialGradient id="specular" cx="35%" cy="30%" r="35%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.65)" />
+            <stop offset="35%" stopColor="rgba(255,255,255,0.25)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
+          
+          {/* Small sharp specular for wet texture */}
+          <radialGradient id="specularSharp" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="rgba(255,255,255,0.8)" />
-            <stop offset="40%" stopColor="rgba(255,255,255,0.3)" />
+            <stop offset="20%" stopColor="rgba(255,255,255,0.4)" />
+            <stop offset="50%" stopColor="rgba(255,255,255,0.1)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </radialGradient>
         </defs>
@@ -426,7 +602,7 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
             );
           })}
 
-          {/* Splatter droplets */}
+          {/* Splatter droplets - organic blobs */}
           {showSplash && splatters.map((drop) => {
             const dropX = drop.endX - slideProgress * (drop.endX > 50 ? 55 : 20);
             return (
@@ -441,72 +617,138 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
               />
             );
           })}
+
+          {/* Tendrils/drips extending from main splash */}
+          {showSplash && tendrilConfigs.map((tendril, idx) => {
+            const tendrilX = tendril.startX - slideProgress * 55;
+            return (
+              <path
+                key={`tendril-${idx}`}
+                d={generateTendrilPath(
+                  tendrilX,
+                  tendril.startY,
+                  tendril.length * splashProgress,
+                  tendril.angle,
+                  tendril.thickness,
+                  tendril.seed
+                )}
+                fill="#0a0a0a"
+                className="ink-tendril"
+                style={{
+                  animationDelay: `${500 + idx * 80}ms`,
+                }}
+              />
+            );
+          })}
+
+          {/* Teardrop-shaped scattered droplets */}
+          {showSplash && teardropConfigs.map((drop, idx) => {
+            const dropX = drop.cx - slideProgress * (drop.cx > 50 ? 55 : 20);
+            return (
+              <path
+                key={`teardrop-${idx}`}
+                d={generateTeardropPath(dropX, drop.cy, drop.size * splashProgress, drop.angle)}
+                fill="#0a0a0a"
+                className="ink-teardrop"
+                style={{
+                  animationDelay: `${550 + idx * 50}ms`,
+                }}
+              />
+            );
+          })}
         </g>
 
-        {/* Wet gloss highlights - sharp, not blurred */}
+        {/* Wet gloss highlights - glossy liquid effect */}
         {showSettle && (
           <g style={{ transform: `translateX(${-slideProgress * 55}%)` }}>
-            {/* Main gloss streaks */}
+            {/* Primary gloss streaks - organic curved shapes */}
             <ellipse
               cx="35"
               cy="38"
-              rx="12"
-              ry="5"
+              rx="14"
+              ry="4.5"
               fill="url(#wetGloss1)"
               className="ink-highlight"
-              style={{ opacity: 0.9 }}
+              style={{ opacity: 0.85 }}
+              transform="rotate(-15 35 38)"
             />
             <ellipse
               cx="48"
-              cy="45"
-              rx="8"
-              ry="3"
+              cy="44"
+              rx="10"
+              ry="3.5"
               fill="url(#wetGloss2)"
               className="ink-highlight"
-              style={{ opacity: 0.85, animationDelay: '100ms' }}
+              style={{ opacity: 0.75, animationDelay: '80ms' }}
+              transform="rotate(-10 48 44)"
             />
             <ellipse
               cx="58"
-              cy="52"
-              rx="10"
+              cy="50"
+              rx="11"
               ry="4"
               fill="url(#wetGloss1)"
               className="ink-highlight"
-              style={{ opacity: 0.8, animationDelay: '150ms' }}
+              style={{ opacity: 0.7, animationDelay: '120ms' }}
+              transform="rotate(-20 58 50)"
             />
             
-            {/* Bright specular spots */}
+            {/* Secondary smaller gloss streaks */}
+            <ellipse
+              cx="28"
+              cy="48"
+              rx="6"
+              ry="2.5"
+              fill="url(#wetGloss2)"
+              className="ink-highlight"
+              style={{ opacity: 0.6, animationDelay: '160ms' }}
+              transform="rotate(-8 28 48)"
+            />
+            <ellipse
+              cx="65"
+              cy="42"
+              rx="7"
+              ry="2.8"
+              fill="url(#wetGloss1)"
+              className="ink-highlight"
+              style={{ opacity: 0.55, animationDelay: '200ms' }}
+              transform="rotate(-25 65 42)"
+            />
+            
+            {/* Main specular highlight spots - bright point reflections */}
             <circle
               cx="33"
-              cy="35"
-              r="3"
+              cy="36"
+              r="2.8"
               fill="url(#specular)"
               className="ink-highlight"
-              style={{ animationDelay: '200ms' }}
+              style={{ animationDelay: '180ms' }}
             />
             <circle
               cx="50"
-              cy="43"
-              r="2"
-              fill="rgba(255,255,255,0.7)"
+              cy="42"
+              r="2.2"
+              fill="url(#specularSharp)"
               className="ink-highlight"
-              style={{ animationDelay: '250ms' }}
+              style={{ animationDelay: '220ms' }}
             />
             <circle
               cx="42"
-              cy="50"
-              r="1.5"
-              fill="rgba(255,255,255,0.65)"
+              cy="49"
+              r="1.8"
+              fill="url(#specular)"
               className="ink-highlight"
-              style={{ animationDelay: '300ms' }}
+              style={{ animationDelay: '260ms' }}
             />
             
-            {/* Tiny bright specks for wet texture */}
-            <circle cx="30" cy="32" r="1" fill="rgba(255,255,255,0.8)" className="ink-highlight" style={{ animationDelay: '350ms' }} />
-            <circle cx="55" cy="48" r="0.8" fill="rgba(255,255,255,0.75)" className="ink-highlight" style={{ animationDelay: '380ms' }} />
-            <circle cx="40" cy="42" r="0.9" fill="rgba(255,255,255,0.7)" className="ink-highlight" style={{ animationDelay: '410ms' }} />
-            <circle cx="46" cy="55" r="0.7" fill="rgba(255,255,255,0.65)" className="ink-highlight" style={{ animationDelay: '440ms' }} />
-            <circle cx="62" cy="45" r="1.1" fill="rgba(255,255,255,0.6)" className="ink-highlight" style={{ animationDelay: '470ms' }} />
+            {/* Small bright specks for wet texture detail */}
+            <circle cx="30" cy="33" r="1.2" fill="url(#specularSharp)" className="ink-highlight" style={{ animationDelay: '300ms' }} />
+            <circle cx="55" cy="46" r="1.0" fill="rgba(255,255,255,0.6)" className="ink-highlight" style={{ animationDelay: '330ms' }} />
+            <circle cx="38" cy="41" r="1.1" fill="rgba(255,255,255,0.55)" className="ink-highlight" style={{ animationDelay: '360ms' }} />
+            <circle cx="46" cy="54" r="0.9" fill="rgba(255,255,255,0.5)" className="ink-highlight" style={{ animationDelay: '390ms' }} />
+            <circle cx="62" cy="44" r="1.3" fill="url(#specularSharp)" className="ink-highlight" style={{ animationDelay: '420ms' }} />
+            <circle cx="25" cy="55" r="0.8" fill="rgba(255,255,255,0.45)" className="ink-highlight" style={{ animationDelay: '450ms' }} />
+            <circle cx="70" cy="52" r="0.7" fill="rgba(255,255,255,0.4)" className="ink-highlight" style={{ animationDelay: '480ms' }} />
           </g>
         )}
       </svg>
@@ -659,6 +901,50 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
           opacity: 0;
         }
 
+        /* Tendril/drip grow animation */
+        @keyframes tendrilGrow {
+          0% {
+            transform: scaleY(0);
+            transform-origin: top center;
+            opacity: 0;
+          }
+          20% {
+            opacity: 1;
+          }
+          100% {
+            transform: scaleY(1);
+            opacity: 1;
+          }
+        }
+
+        .ink-tendril {
+          animation: tendrilGrow 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          opacity: 0;
+        }
+
+        /* Teardrop droplet animation */
+        @keyframes teardropAppear {
+          0% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          30% {
+            opacity: 1;
+          }
+          70% {
+            transform: scale(1.2);
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        .ink-teardrop {
+          animation: teardropAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          opacity: 0;
+        }
+
         /* Highlight fade in */
         @keyframes highlightAppear {
           0% {
@@ -679,6 +965,8 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
           .ink-falling-drop,
           .ink-blob-expand,
           .ink-splatter-drop,
+          .ink-tendril,
+          .ink-teardrop,
           .ink-highlight {
             animation: none !important;
             opacity: 1 !important;
