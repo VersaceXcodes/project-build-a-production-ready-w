@@ -1,20 +1,49 @@
-Update ONLY the branding shown inside the intro overlay. The current logo shown is WRONG (it looks like a generic square/white badge). I need the overlay to display the SAME SultanStamp logo/wordmark used on the website navbar/brand assets.
+Fix ONLY the existing splash/intro overlay animation (InkIntroOverlay / SplashOverlay). Do NOT change backend, routes, API calls, database, auth, navigation, or page layout. This is a pure UI animation fix.
 
-Requirements:
-- Pull the logo asset from the same source the header/navbar uses (reuse the existing import/path; do not introduce a new placeholder logo).
-- Keep the logo colors exactly as the real brand (no forced monochrome unless my site brand is monochrome).
-- Match my reference layout:
-  - After ink slides left, show the SultanStamp logo + “SultanStamp” on the LEFT (on/over the black area).
-  - Optionally show “Sultans” (or the right-side brand text I provided) on the RIGHT on the clean white area, using a bold premium font consistent with the site.
-- Add a clean reveal: logo pops in (opacity+scale), wordmark wipes in left→right.
-- Ensure sizing/position is responsive: looks correct on mobile and desktop.
+GOAL (match my reference ink-splash frames exactly):
+Right now it looks like “smoke/metaballs” (big soft circles + haze). I need a REAL INK SPLASH: high-contrast black liquid, sharp irregular edges, splatter droplets, then the ink mass moves LEFT and reveals the logo/brand lockup exactly like my reference screenshots.
 
-Fail-safes:
-- If logo import fails, fallback to rendering just the text “SultanStamp” (no placeholder icon).
-- Do not change any global styles; scope styles to the overlay.
+STRICT VISUAL REQUIREMENTS:
+1) NO SMOKE / NO FOG:
+- Remove any full-screen blur gradients, big soft transparent circles, or foggy overlays.
+- Ink must be mostly opaque black with crisp edges and visible splatter droplets.
+- Any blur is ONLY allowed for a gooey/metaball merge filter (localized), not as a big haze.
 
-Deliverable:
-- The overlay brand matches the actual SultanStamp logo/wordmark used on the site (not a different one).
+2) INK LOOK:
+- Thick liquid blobs with irregular perimeter, plus scattered droplets (small drops around the main splash).
+- Add subtle wet gloss highlights (tiny specular streaks) on the ink surface to feel “liquid”, not flat vector.
+- Background should be clean and bright on the right side after reveal (white/light).
+
+3) ANIMATION SEQUENCE (timings):
+- 0.0–0.4s: several droplets “fall in” (from top/center-ish) and hit.
+- 0.4–1.2s: splash expands quickly into a large irregular splat (with droplets flying outward).
+- 1.2–1.8s: settle/wobble (minor jiggle), droplets stop.
+- 1.8–2.7s: the entire ink mass shifts/pulls to the LEFT like a liquid sheet sliding away, creating a clean white reveal on the right. The boundary must be organic, not a straight wipe.
+- 2.7–3.2s: logo + wordmark reveal, then overlay fades out smoothly and unmounts.
+
+IMPLEMENTATION (choose best + simplest, but must match visuals):
+- Preferred: SVG ink blobs + animated circles with an SVG gooey filter (feGaussianBlur + feColorMatrix) ONLY to merge blobs, then finalize as solid shapes.
+- Alternative: Canvas metaballs (simple blob field) with thresholding to keep edges crisp, plus separate droplet particles.
+Either way: the final result must look like ink splatter, not soft circles.
+
+LOGO / BRAND (must match my reference):
+- The overlay is currently using the WRONG logo (small square badge). Replace it to use the SAME brand assets used by the site header/navbar (reuse existing import/path). Do not introduce placeholder logos.
+- On reveal: show the correct SultanStamp logo + “SultanStamp” lockup on the LEFT (over the black area) exactly like my reference.
+- If the design includes “Sultans” on the right, it must be readable (currently it’s too faint). Use high contrast for the revealed side (dark text on white) and match the reference placement.
+- If asset import fails, fallback to text “SultanStamp” only (no placeholder icon).
+
+RESPONSIVE + PERFORMANCE:
+- Must render correctly on mobile and desktop.
+- Keep FPS smooth (avoid huge filters or excessive blur).
+- Add prefers-reduced-motion: if enabled, skip animation and show logo briefly then fade out.
+
+INTERACTION:
+- Allow skipping: tap/click anywhere immediately jumps to the end (overlay fades out fast and unmounts).
+- Show only once per session: sessionStorage flag to prevent replay (keep this behavior if it already exists).
+
+DELIVERABLE:
+- Replace the current “smoke circles” look with a crisp, wet ink-splatter that matches my reference frames.
+- Ink splashes, then slides left, then reveals the correct SultanStamp logo/wordmark, then disappears without breaking anything else.
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -25,21 +54,50 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "Update ONLY the branding shown inside the intro overlay. The current logo shown is WRONG (it looks like a generic square/white badge). I need the overlay to display the SAME SultanStamp logo/wordmark used on the website navbar/brand assets.
+- Focus solely on implementing the user's request: "Fix ONLY the existing splash/intro overlay animation (InkIntroOverlay / SplashOverlay). Do NOT change backend, routes, API calls, database, auth, navigation, or page layout. This is a pure UI animation fix.
 
-Requirements:
-- Pull the logo asset from the same source the header/navbar uses (reuse the existing import/path; do not introduce a new placeholder logo).
-- Keep the logo colors exactly as the real brand (no forced monochrome unless my site brand is monochrome).
-- Match my reference layout:
-  - After ink slides left, show the SultanStamp logo + “SultanStamp” on the LEFT (on/over the black area).
-  - Optionally show “Sultans” (or the right-side brand text I provided) on the RIGHT on the clean white area, using a bold premium font consistent with the site.
-- Add a clean reveal: logo pops in (opacity+scale), wordmark wipes in left→right.
-- Ensure sizing/position is responsive: looks correct on mobile and desktop.
+GOAL (match my reference ink-splash frames exactly):
+Right now it looks like “smoke/metaballs” (big soft circles + haze). I need a REAL INK SPLASH: high-contrast black liquid, sharp irregular edges, splatter droplets, then the ink mass moves LEFT and reveals the logo/brand lockup exactly like my reference screenshots.
 
-Fail-safes:
-- If logo import fails, fallback to rendering just the text “SultanStamp” (no placeholder icon).
-- Do not change any global styles; scope styles to the overlay.
+STRICT VISUAL REQUIREMENTS:
+1) NO SMOKE / NO FOG:
+- Remove any full-screen blur gradients, big soft transparent circles, or foggy overlays.
+- Ink must be mostly opaque black with crisp edges and visible splatter droplets.
+- Any blur is ONLY allowed for a gooey/metaball merge filter (localized), not as a big haze.
 
-Deliverable:
-- The overlay brand matches the actual SultanStamp logo/wordmark used on the site (not a different one)."
+2) INK LOOK:
+- Thick liquid blobs with irregular perimeter, plus scattered droplets (small drops around the main splash).
+- Add subtle wet gloss highlights (tiny specular streaks) on the ink surface to feel “liquid”, not flat vector.
+- Background should be clean and bright on the right side after reveal (white/light).
+
+3) ANIMATION SEQUENCE (timings):
+- 0.0–0.4s: several droplets “fall in” (from top/center-ish) and hit.
+- 0.4–1.2s: splash expands quickly into a large irregular splat (with droplets flying outward).
+- 1.2–1.8s: settle/wobble (minor jiggle), droplets stop.
+- 1.8–2.7s: the entire ink mass shifts/pulls to the LEFT like a liquid sheet sliding away, creating a clean white reveal on the right. The boundary must be organic, not a straight wipe.
+- 2.7–3.2s: logo + wordmark reveal, then overlay fades out smoothly and unmounts.
+
+IMPLEMENTATION (choose best + simplest, but must match visuals):
+- Preferred: SVG ink blobs + animated circles with an SVG gooey filter (feGaussianBlur + feColorMatrix) ONLY to merge blobs, then finalize as solid shapes.
+- Alternative: Canvas metaballs (simple blob field) with thresholding to keep edges crisp, plus separate droplet particles.
+Either way: the final result must look like ink splatter, not soft circles.
+
+LOGO / BRAND (must match my reference):
+- The overlay is currently using the WRONG logo (small square badge). Replace it to use the SAME brand assets used by the site header/navbar (reuse existing import/path). Do not introduce placeholder logos.
+- On reveal: show the correct SultanStamp logo + “SultanStamp” lockup on the LEFT (over the black area) exactly like my reference.
+- If the design includes “Sultans” on the right, it must be readable (currently it’s too faint). Use high contrast for the revealed side (dark text on white) and match the reference placement.
+- If asset import fails, fallback to text “SultanStamp” only (no placeholder icon).
+
+RESPONSIVE + PERFORMANCE:
+- Must render correctly on mobile and desktop.
+- Keep FPS smooth (avoid huge filters or excessive blur).
+- Add prefers-reduced-motion: if enabled, skip animation and show logo briefly then fade out.
+
+INTERACTION:
+- Allow skipping: tap/click anywhere immediately jumps to the end (overlay fades out fast and unmounts).
+- Show only once per session: sessionStorage flag to prevent replay (keep this behavior if it already exists).
+
+DELIVERABLE:
+- Replace the current “smoke circles” look with a crisp, wet ink-splatter that matches my reference frames.
+- Ink splashes, then slides left, then reveals the correct SultanStamp logo/wordmark, then disappears without breaking anything else."
 - Only address errors if they block the specific functionality requested by the user.
