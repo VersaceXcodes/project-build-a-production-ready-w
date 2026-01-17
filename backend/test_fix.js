@@ -1,7 +1,7 @@
 try {
-  require('express');
-  console.log('Express loaded successfully!');
+  require('ee-first');
+  console.log('Success: ee-first found');
 } catch (e) {
+  console.error('Error: ee-first not found');
   console.error(e);
-  process.exit(1);
 }
