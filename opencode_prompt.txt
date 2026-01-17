@@ -1,13 +1,62 @@
-The current shape is wrong - it's too angular and geometric like shattered glass. I need smooth, CURVED, organic liquid paint shapes instead. Fix it with these specifications:
+The current implementation is completely wrong. It has two separate problems: (1) geometric shattered-glass shapes, and (2) separate floating 3D ellipsoids that don't match the splatter. I need a COMPLETE REBUILD to match real liquid paint.
+PROBLEM 1 - REMOVE ALL ANGULAR GEOMETRY:
 
-CURVED TENDRILS, NOT ANGULAR - All extensions from the main body must be smooth curved lines using bezier/spline curves, NOT straight lines or sharp angles. Think of how thick syrup or honey flows - organic and curved, never geometric or crystalline.
-ORGANIC FLUID EDGES - The entire shape boundary should be smooth and flowing like actual viscous liquid. No sharp points, no straight edges, no polygonal shapes.
-ROUNDED DROPLETS - Any satellite drops should be perfect circles or smooth oval/teardrop shapes, NOT hexagons or polygons.
-GLOSSY WET SURFACE - Add specular highlights (white/gray reflections) on the black surface to make it look like wet, shiny paint - similar to glossy nail polish or fresh ink.
-TAPERED TENDRILS - The paint fingers should start thick at the base and smoothly taper to rounded bulbous ends (like dripping liquid), not sharp points.
-REMOVE ALL ANGULAR GEOMETRY - Delete any straight lines, sharp spikes, or crystalline shapes. Everything must look liquid and fluid.
+Delete ALL the triangular/polygonal fragmented shapes
+Delete ALL straight-edged pieces
+Delete the disconnected "shattered glass" fragments
+The current look is like broken ceramic - I need LIQUID
 
-Reference: Real black paint or ink splatter captured in slow motion - smooth, glossy, curved, organic shapes with surface tension visible.
+PROBLEM 2 - REMOVE FLOATING ELLIPSOIDS:
+
+Delete the separate 3D ellipsoid shapes floating in the middle
+The glossy effect should be ON the paint surface itself, not as separate objects
+
+REBUILD WITH THESE EXACT SPECIFICATIONS:
+1. MAIN SPLATTER BODY:
+
+One connected central mass with smooth, undulating edges
+Use bezier curves / splines for ALL edges - zero straight lines
+The silhouette should look like an amoeba or ink blot - organic and flowing
+
+2. RADIATING TENDRILS (12-18 of them):
+
+Each tendril must be a smooth CURVED arm extending from center
+Start THICK (connected to main body) → taper gradually → end with BULBOUS ROUNDED TIP
+The tips should look like water droplets about to drip off
+Use quadratic or cubic bezier curves - NO straight segments
+Vary the lengths and curves - some longer, some shorter, some more curved
+
+3. GLOSSY WET SURFACE (CRITICAL):
+
+Apply specular highlights DIRECTLY ON the black paint surface
+Add white/light-gray reflection spots on raised areas and edges
+The highlight should follow the 3D contour showing volume
+Think of how light reflects off black nail polish or fresh printer ink
+Subtle gradient from pure black to dark gray to show depth
+
+4. SATELLITE DROPLETS:
+
+Smooth CIRCLES and OVAL/TEARDROP shapes only
+Each droplet needs its own tiny specular highlight
+Scatter them around the main splatter
+Various sizes - some tiny dots, some larger elongated drops
+Some should have "tails" like they're flying through air
+
+5. THIN CONNECTING STRANDS:
+
+Add thin liquid threads connecting some tendrils to each other
+Shows surface tension of viscous liquid
+Very thin curved lines with slight bulges
+
+6. TEXTURE REFERENCE:
+The EXACT look I want: Google "black ink splatter high speed photography" or "glossy black paint splash" - that wet, reflective, organic liquid appearance.
+WHAT THE FINAL RESULT MUST LOOK LIKE:
+
+Photorealistic wet black paint/ink
+All curves, no angles
+Glossy reflective surface with visible light spots
+Organic flowing shape like actual liquid frozen in motion
+Tendrils with rounded bulbous ends, not pointed
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -18,14 +67,63 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "The current shape is wrong - it's too angular and geometric like shattered glass. I need smooth, CURVED, organic liquid paint shapes instead. Fix it with these specifications:
+- Focus solely on implementing the user's request: "The current implementation is completely wrong. It has two separate problems: (1) geometric shattered-glass shapes, and (2) separate floating 3D ellipsoids that don't match the splatter. I need a COMPLETE REBUILD to match real liquid paint.
+PROBLEM 1 - REMOVE ALL ANGULAR GEOMETRY:
 
-CURVED TENDRILS, NOT ANGULAR - All extensions from the main body must be smooth curved lines using bezier/spline curves, NOT straight lines or sharp angles. Think of how thick syrup or honey flows - organic and curved, never geometric or crystalline.
-ORGANIC FLUID EDGES - The entire shape boundary should be smooth and flowing like actual viscous liquid. No sharp points, no straight edges, no polygonal shapes.
-ROUNDED DROPLETS - Any satellite drops should be perfect circles or smooth oval/teardrop shapes, NOT hexagons or polygons.
-GLOSSY WET SURFACE - Add specular highlights (white/gray reflections) on the black surface to make it look like wet, shiny paint - similar to glossy nail polish or fresh ink.
-TAPERED TENDRILS - The paint fingers should start thick at the base and smoothly taper to rounded bulbous ends (like dripping liquid), not sharp points.
-REMOVE ALL ANGULAR GEOMETRY - Delete any straight lines, sharp spikes, or crystalline shapes. Everything must look liquid and fluid.
+Delete ALL the triangular/polygonal fragmented shapes
+Delete ALL straight-edged pieces
+Delete the disconnected "shattered glass" fragments
+The current look is like broken ceramic - I need LIQUID
 
-Reference: Real black paint or ink splatter captured in slow motion - smooth, glossy, curved, organic shapes with surface tension visible."
+PROBLEM 2 - REMOVE FLOATING ELLIPSOIDS:
+
+Delete the separate 3D ellipsoid shapes floating in the middle
+The glossy effect should be ON the paint surface itself, not as separate objects
+
+REBUILD WITH THESE EXACT SPECIFICATIONS:
+1. MAIN SPLATTER BODY:
+
+One connected central mass with smooth, undulating edges
+Use bezier curves / splines for ALL edges - zero straight lines
+The silhouette should look like an amoeba or ink blot - organic and flowing
+
+2. RADIATING TENDRILS (12-18 of them):
+
+Each tendril must be a smooth CURVED arm extending from center
+Start THICK (connected to main body) → taper gradually → end with BULBOUS ROUNDED TIP
+The tips should look like water droplets about to drip off
+Use quadratic or cubic bezier curves - NO straight segments
+Vary the lengths and curves - some longer, some shorter, some more curved
+
+3. GLOSSY WET SURFACE (CRITICAL):
+
+Apply specular highlights DIRECTLY ON the black paint surface
+Add white/light-gray reflection spots on raised areas and edges
+The highlight should follow the 3D contour showing volume
+Think of how light reflects off black nail polish or fresh printer ink
+Subtle gradient from pure black to dark gray to show depth
+
+4. SATELLITE DROPLETS:
+
+Smooth CIRCLES and OVAL/TEARDROP shapes only
+Each droplet needs its own tiny specular highlight
+Scatter them around the main splatter
+Various sizes - some tiny dots, some larger elongated drops
+Some should have "tails" like they're flying through air
+
+5. THIN CONNECTING STRANDS:
+
+Add thin liquid threads connecting some tendrils to each other
+Shows surface tension of viscous liquid
+Very thin curved lines with slight bulges
+
+6. TEXTURE REFERENCE:
+The EXACT look I want: Google "black ink splatter high speed photography" or "glossy black paint splash" - that wet, reflective, organic liquid appearance.
+WHAT THE FINAL RESULT MUST LOOK LIKE:
+
+Photorealistic wet black paint/ink
+All curves, no angles
+Glossy reflective surface with visible light spots
+Organic flowing shape like actual liquid frozen in motion
+Tendrils with rounded bulbous ends, not pointed"
 - Only address errors if they block the specific functionality requested by the user.
