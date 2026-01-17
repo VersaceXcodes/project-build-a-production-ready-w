@@ -1,58 +1,69 @@
-BACKEND STARTUP FAILURE - Immediate Fix Required
+Add the brand reveal sequence on top of the ink animation.
 
-The backend server failed to start due to a critical error. You need to fix this NOW.
+Sequence:
 
-## Error Type: Backend unhealthy or critical errors present
+During the first part of the splash (0–1.5s), only show the ink animation (no text).
 
-## Backend Error Output (stderr):
-npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
-npm warn deprecated superagent@8.1.2: Please upgrade to superagent v10.2.2+, see release notes at https://github.com/forwardemail/superagent/releases/tag/v10.2.2 - maintenance is supported by Forward Email @ https://forwardemail.net
-node:internal/modules/cjs/loader:1207
-  const err = new Error(message);
-              ^
+After ink “settles” (around 1.2–1.8s), reveal the SultanStamp logo and brand name:
 
-Error: Cannot find module 'escape-html'
-Require stack:
-- /app/backend/node_modules/finalhandler/index.js
-- /app/backend/node_modules/express/lib/application.js
-- /app/backend/node_modules/express/lib/express.js
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at nextResolveSimple (/app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1004)
-    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:3:2630
-    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1542
-    at resolveTsPaths (/app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:760)
-    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1102
-    at m._resolveFilename (file:///app/backend/node_modules/tsx/dist/register-B7jrtLTO.mjs:1:789)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [
-    '/app/backend/node_modules/finalhandler/index.js',
-    '/app/backend/node_modules/express/lib/application.js',
-    '/app/backend/node_modules/express/lib/express.js'
-  ]
-}
+Logo appears first with a subtle scale/opacity pop.
 
-Node.js v20.19.5
+Then the word “SultanStamp” (or “Sultans” if that’s what the design uses) reveals with a clean wipe/mask from left to right.
 
+Make it match the screenshot vibe: premium, high-contrast (white text on black area).
 
-## Backend Console Output (stdout):
+Hold the logo for ~0.6–1.0s.
 
-added 144 packages, changed 101 packages, and audited 505 packages in 4s
+Fade the entire overlay out smoothly (opacity to 0), then unmount and show the landing page.
 
-63 packages are looking for funding
-  run `npm fund` for details
+Notes:
 
-found 0 vulnerabilities
+Use the existing logo asset from the project (don’t replace it). If the logo path is unknown, wire it to whatever the navbar uses.
 
+Ensure the overlay unmount triggers sessionStorage flag.
 
-## Working Directory: /app/vitereact
+Clicking/tapping skips instantly to unmount.
 
-## Your Task:
-1. **Analyze the Error**: Identify the exact TypeScript/JavaScript syntax error or compilation issue
-2. **Locate the Problem**: Find which file has the error (check stack trace and error messages)
-3. **Apply the Fix**: Use available tools to fix the specific syntax/compilation issue
-4. **Focus on Root Cause**: Fix the underlying code problem, not infrastructure
+Deliverables:
 
-IMPORTANT: This is a CODE error, not an infrastructure error. Fix the syntax/compilation issue in the backend code.
+A polished intro: ink splash → logo/name → fade out → homepage visible and interactive.
+
+When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
+- If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
+- If the user says "sign up" or "register", search for "Create your account" or equivalent.
+- Always return an explicit list of changed file paths. If your first attempt doesn't change the UI, re-search by heading text and update the correct file.
+
+⚠️ PRIORITY INSTRUCTIONS:
+- The user's request above is the PRIMARY task. Complete it first.
+- Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
+- Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
+- Focus solely on implementing the user's request: "Add the brand reveal sequence on top of the ink animation.
+
+Sequence:
+
+During the first part of the splash (0–1.5s), only show the ink animation (no text).
+
+After ink “settles” (around 1.2–1.8s), reveal the SultanStamp logo and brand name:
+
+Logo appears first with a subtle scale/opacity pop.
+
+Then the word “SultanStamp” (or “Sultans” if that’s what the design uses) reveals with a clean wipe/mask from left to right.
+
+Make it match the screenshot vibe: premium, high-contrast (white text on black area).
+
+Hold the logo for ~0.6–1.0s.
+
+Fade the entire overlay out smoothly (opacity to 0), then unmount and show the landing page.
+
+Notes:
+
+Use the existing logo asset from the project (don’t replace it). If the logo path is unknown, wire it to whatever the navbar uses.
+
+Ensure the overlay unmount triggers sessionStorage flag.
+
+Clicking/tapping skips instantly to unmount.
+
+Deliverables:
+
+A polished intro: ink splash → logo/name → fade out → homepage visible and interactive."
+- Only address errors if they block the specific functionality requested by the user.
