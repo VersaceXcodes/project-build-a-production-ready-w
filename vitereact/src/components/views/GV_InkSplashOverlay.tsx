@@ -35,7 +35,7 @@ const splatters = [
 ];
 
 const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete }) => {
-  const [phase, setPhase] = useState<'ink' | 'logo' | 'text' | 'hold' | 'fadeout' | 'done'>('ink');
+  const [phase, setPhase] = useState<'ink' | 'slide' | 'logo' | 'text' | 'hold' | 'fadeout' | 'done'>('ink');
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   const handleSkip = useCallback(() => {
@@ -55,37 +55,41 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
       return;
     }
 
-    // Timeline (adjusted for ink splash):
+    // Timeline (adjusted for ink splash with left slide):
     // 0-1.2s: ink drops fall + splash expands
     // 1.2-1.8s: ink settles with wobble, droplets finish
-    // 1.8s: logo appears
-    // 2.2s: text reveals
-    // 2.8s: hold
-    // 3.2s+: fade out
+    // 1.8-2.6s: ink slides left, revealing white on right
+    // 2.6s: logo appears on revealed white area
+    // 3.0s: text reveals
+    // 3.6s: hold
+    // 4.0s+: fade out
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    // Phase 1: Logo starts appearing at 1.8s (after ink settles)
-    timers.push(setTimeout(() => setPhase('logo'), 1800));
+    // Phase 1: Start ink slide at 1.8s (after ink settles)
+    timers.push(setTimeout(() => setPhase('slide'), 1800));
 
-    // Phase 2: Text starts revealing at 2.2s
-    timers.push(setTimeout(() => setPhase('text'), 2200));
+    // Phase 2: Logo starts appearing at 2.6s (after slide completes)
+    timers.push(setTimeout(() => setPhase('logo'), 2600));
 
-    // Phase 3: Hold at 2.8s
-    timers.push(setTimeout(() => setPhase('hold'), 2800));
+    // Phase 3: Text starts revealing at 3.0s
+    timers.push(setTimeout(() => setPhase('text'), 3000));
 
-    // Phase 4: Start fade out at 3.2s
+    // Phase 4: Hold at 3.6s
+    timers.push(setTimeout(() => setPhase('hold'), 3600));
+
+    // Phase 5: Start fade out at 4.0s
     timers.push(setTimeout(() => {
       setIsFadingOut(true);
       setPhase('fadeout');
-    }, 3200));
+    }, 4000));
 
-    // Phase 5: Complete and unmount at 3.7s
+    // Phase 6: Complete and unmount at 4.5s
     timers.push(setTimeout(() => {
       sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
       setPhase('done');
       onComplete();
-    }, 3700));
+    }, 4500));
 
     return () => {
       timers.forEach(timer => clearTimeout(timer));
