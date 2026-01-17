@@ -7,6 +7,33 @@ interface GV_InkSplashOverlayProps {
   onComplete: () => void;
 }
 
+// Ink blob configuration for main splash
+const mainBlobs = [
+  { cx: 50, cy: 50, r: 0, targetR: 80, delay: 0 },
+  { cx: 45, cy: 48, r: 0, targetR: 50, delay: 50 },
+  { cx: 55, cy: 52, r: 0, targetR: 55, delay: 80 },
+  { cx: 40, cy: 55, r: 0, targetR: 35, delay: 120 },
+  { cx: 60, cy: 45, r: 0, targetR: 40, delay: 100 },
+  { cx: 48, cy: 42, r: 0, targetR: 30, delay: 150 },
+  { cx: 52, cy: 58, r: 0, targetR: 32, delay: 180 },
+];
+
+// Splatter droplets that fling outward
+const splatters = [
+  { startX: 50, startY: 50, endX: 20, endY: 25, r: 8, delay: 200 },
+  { startX: 50, startY: 50, endX: 75, endY: 20, r: 6, delay: 250 },
+  { startX: 50, startY: 50, endX: 85, endY: 55, r: 7, delay: 180 },
+  { startX: 50, startY: 50, endX: 15, endY: 60, r: 5, delay: 300 },
+  { startX: 50, startY: 50, endX: 80, endY: 75, r: 6, delay: 220 },
+  { startX: 50, startY: 50, endX: 25, endY: 80, r: 4, delay: 280 },
+  { startX: 50, startY: 50, endX: 70, endY: 30, r: 5, delay: 260 },
+  { startX: 50, startY: 50, endX: 30, endY: 35, r: 4, delay: 320 },
+  { startX: 50, startY: 50, endX: 65, endY: 70, r: 3, delay: 350 },
+  { startX: 50, startY: 50, endX: 35, endY: 70, r: 3, delay: 380 },
+  { startX: 50, startY: 50, endX: 10, endY: 45, r: 4, delay: 400 },
+  { startX: 50, startY: 50, endX: 90, endY: 40, r: 5, delay: 360 },
+];
+
 const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'ink' | 'logo' | 'text' | 'hold' | 'fadeout' | 'done'>('ink');
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -28,23 +55,24 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
       return;
     }
 
-    // Timeline:
-    // 0-1.5s: ink animation only
-    // 1.2-1.8s: logo appears with scale/opacity pop
-    // 1.8-2.4s: text reveals with wipe
-    // 2.4-3.2s: hold
+    // Timeline (adjusted for ink splash):
+    // 0-1.2s: ink drops fall + splash expands
+    // 1.2-1.8s: ink settles with wobble, droplets finish
+    // 1.8s: logo appears
+    // 2.2s: text reveals
+    // 2.8s: hold
     // 3.2s+: fade out
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    // Phase 1: Logo starts appearing at 1.2s
-    timers.push(setTimeout(() => setPhase('logo'), 1200));
+    // Phase 1: Logo starts appearing at 1.8s (after ink settles)
+    timers.push(setTimeout(() => setPhase('logo'), 1800));
 
-    // Phase 2: Text starts revealing at 1.8s
-    timers.push(setTimeout(() => setPhase('text'), 1800));
+    // Phase 2: Text starts revealing at 2.2s
+    timers.push(setTimeout(() => setPhase('text'), 2200));
 
-    // Phase 3: Hold at 2.4s
-    timers.push(setTimeout(() => setPhase('hold'), 2400));
+    // Phase 3: Hold at 2.8s
+    timers.push(setTimeout(() => setPhase('hold'), 2800));
 
     // Phase 4: Start fade out at 3.2s
     timers.push(setTimeout(() => {
@@ -79,17 +107,125 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
       }`}
       onClick={handleSkip}
       onTouchStart={handleSkip}
-      style={{ backgroundColor: '#000' }}
+      style={{ backgroundColor: '#f8f8f8' }}
     >
-      {/* Ink Animation Layer */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Multiple ink splatter elements with staggered animations */}
-        <div className="ink-splash ink-splash-1" />
-        <div className="ink-splash ink-splash-2" />
-        <div className="ink-splash ink-splash-3" />
-        <div className="ink-splash ink-splash-4" />
-        <div className="ink-splash ink-splash-5" />
-      </div>
+      {/* SVG Ink Splash Layer */}
+      <svg 
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          {/* Gooey filter for metaball merging effect - blur kept inside filter only */}
+          <filter id="gooey" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="1 0 0 0 0
+                      0 1 0 0 0
+                      0 0 1 0 0
+                      0 0 0 25 -10"
+              result="goo"
+            />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+          </filter>
+
+          {/* Glossy highlight gradient */}
+          <linearGradient id="glossHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
+            <stop offset="30%" stopColor="rgba(255,255,255,0.1)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
+
+          {/* Secondary highlight for wet look */}
+          <radialGradient id="wetShine" cx="35%" cy="30%" r="50%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
+            <stop offset="50%" stopColor="rgba(255,255,255,0.1)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
+
+          {/* Ink base color with subtle gradient for depth */}
+          <radialGradient id="inkBase" cx="40%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#1a1a1a" />
+            <stop offset="70%" stopColor="#0d0d0d" />
+            <stop offset="100%" stopColor="#000000" />
+          </radialGradient>
+        </defs>
+
+        {/* Main ink blob group with gooey filter */}
+        <g filter="url(#gooey)">
+          {/* Main blobs - expand and merge */}
+          {mainBlobs.map((blob, i) => (
+            <circle
+              key={`main-${i}`}
+              cx={blob.cx}
+              cy={blob.cy}
+              r={blob.targetR}
+              fill="#000"
+              className="ink-blob-main"
+              style={{
+                animationDelay: `${blob.delay}ms`,
+              }}
+            />
+          ))}
+
+          {/* Splatter droplets - fling outward */}
+          {splatters.map((drop, i) => (
+            <circle
+              key={`splatter-${i}`}
+              cx={drop.endX}
+              cy={drop.endY}
+              r={drop.r}
+              fill="#000"
+              className="ink-splatter"
+              style={{
+                '--start-x': `${drop.startX}%`,
+                '--start-y': `${drop.startY}%`,
+                '--end-x': `${drop.endX}%`,
+                '--end-y': `${drop.endY}%`,
+                animationDelay: `${drop.delay}ms`,
+              } as React.CSSProperties}
+            />
+          ))}
+        </g>
+
+        {/* Glossy highlights layer (on top of ink, no filter) */}
+        <g className="ink-highlights">
+          {/* Main central highlight */}
+          <ellipse
+            cx="42"
+            cy="42"
+            rx="25"
+            ry="18"
+            fill="url(#glossHighlight)"
+            className="highlight-main"
+            style={{ opacity: 0 }}
+          />
+          {/* Secondary specular streaks */}
+          <ellipse
+            cx="38"
+            cy="38"
+            rx="12"
+            ry="8"
+            fill="url(#wetShine)"
+            className="highlight-specular"
+            style={{ opacity: 0 }}
+          />
+          <ellipse
+            cx="55"
+            cy="48"
+            rx="8"
+            ry="5"
+            fill="rgba(255,255,255,0.25)"
+            className="highlight-secondary"
+            style={{ opacity: 0 }}
+          />
+          {/* Small bright spots for wet look */}
+          <circle cx="36" cy="36" r="3" fill="rgba(255,255,255,0.35)" className="highlight-spot" style={{ opacity: 0 }} />
+          <circle cx="58" cy="45" r="2" fill="rgba(255,255,255,0.3)" className="highlight-spot" style={{ opacity: 0, animationDelay: '100ms' }} />
+        </g>
+      </svg>
 
       {/* Brand Container - centered above ink */}
       <div className="relative z-10 flex flex-col items-center gap-4">
@@ -106,7 +242,7 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
             alt="SultanStamp"
             className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-lg shadow-2xl"
             style={{
-              filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))'
+              filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.3))'
             }}
           />
         </div>
@@ -114,10 +250,11 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
         {/* Brand name with left-to-right wipe reveal */}
         <div className="relative overflow-hidden">
           <h1
-            className="text-3xl md:text-5xl font-bold tracking-wider text-white"
+            className="text-3xl md:text-5xl font-bold tracking-wider"
             style={{
               fontFamily: "'Playfair Display', serif",
-              textShadow: '0 2px 20px rgba(255,255,255,0.2)'
+              color: '#000',
+              textShadow: '0 2px 10px rgba(0,0,0,0.1)'
             }}
           >
             <span className="brand-text-reveal" style={{
@@ -135,134 +272,103 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
 
       {/* Inline styles for ink animation */}
       <style>{`
-        @keyframes inkSplash {
-          0% {
-            transform: scale(0) translate(-50%, -50%);
-            opacity: 0;
-          }
-          20% {
-            opacity: 0.8;
-          }
-          50% {
-            transform: scale(1.2) translate(-50%, -50%);
-            opacity: 0.6;
-          }
-          100% {
-            transform: scale(2) translate(-50%, -50%);
-            opacity: 0.4;
-          }
-        }
-
-        @keyframes inkSpread {
+        /* Main blob expansion animation - 0 to 1.2s */
+        @keyframes blobExpand {
           0% {
             transform: scale(0);
             opacity: 0;
-            filter: blur(0px);
           }
-          30% {
-            opacity: 0.9;
-            filter: blur(2px);
+          15% {
+            opacity: 1;
           }
-          70% {
-            transform: scale(1.5);
-            opacity: 0.5;
-            filter: blur(4px);
+          60% {
+            transform: scale(1.1);
+          }
+          80% {
+            transform: scale(0.95);
           }
           100% {
-            transform: scale(2.5);
-            opacity: 0.3;
-            filter: blur(6px);
+            transform: scale(1);
+            opacity: 1;
           }
         }
 
-        @keyframes inkDrip {
+        /* Splatter fling animation - drops fly out and settle */
+        @keyframes splatterFling {
           0% {
-            transform: translateY(-100%) scaleY(0);
+            transform: translate(calc(var(--start-x) - var(--end-x)), calc(var(--start-y) - var(--end-y))) scale(0);
             opacity: 0;
           }
-          30% {
-            transform: translateY(0%) scaleY(1);
-            opacity: 0.8;
+          20% {
+            opacity: 1;
+            transform: translate(calc((var(--start-x) - var(--end-x)) * 0.3), calc((var(--start-y) - var(--end-y)) * 0.3)) scale(1.3);
+          }
+          60% {
+            transform: translate(0, 0) scale(1.1);
+          }
+          80% {
+            transform: translate(0, 0) scale(0.9);
           }
           100% {
-            transform: translateY(10%) scaleY(1.1);
-            opacity: 0.6;
+            transform: translate(0, 0) scale(1);
+            opacity: 1;
           }
         }
 
-        .ink-splash {
-          position: absolute;
-          border-radius: 50%;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(30, 30, 30, 0.9) 0%,
-            rgba(20, 20, 20, 0.7) 30%,
-            rgba(10, 10, 10, 0.4) 60%,
-            transparent 100%
-          );
+        /* Settle wobble for ink - 1.2s to 1.8s */
+        @keyframes settleWobble {
+          0%, 100% {
+            transform: scale(1);
+          }
+          25% {
+            transform: scale(1.02) rotate(0.5deg);
+          }
+          50% {
+            transform: scale(0.99) rotate(-0.3deg);
+          }
+          75% {
+            transform: scale(1.01) rotate(0.2deg);
+          }
         }
 
-        .ink-splash-1 {
-          width: 400px;
-          height: 400px;
-          top: 50%;
-          left: 50%;
-          animation: inkSplash 1.5s ease-out forwards;
-          animation-delay: 0s;
+        /* Highlight fade in */
+        @keyframes highlightFadeIn {
+          0% {
+            opacity: 0;
+          }
+          100% {
+            opacity: 1;
+          }
         }
 
-        .ink-splash-2 {
-          width: 300px;
-          height: 350px;
-          top: 45%;
-          left: 45%;
-          animation: inkSplash 1.3s ease-out forwards;
-          animation-delay: 0.1s;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(40, 35, 30, 0.8) 0%,
-            rgba(25, 22, 18, 0.5) 50%,
-            transparent 100%
-          );
+        .ink-blob-main {
+          transform-origin: center;
+          animation: blobExpand 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                     settleWobble 0.6s ease-in-out 1.2s;
+          opacity: 0;
         }
 
-        .ink-splash-3 {
-          width: 250px;
-          height: 280px;
-          top: 55%;
-          left: 55%;
-          animation: inkSplash 1.4s ease-out forwards;
-          animation-delay: 0.2s;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(35, 30, 25, 0.85) 0%,
-            rgba(20, 18, 15, 0.5) 50%,
-            transparent 100%
-          );
+        .ink-splatter {
+          transform-origin: center;
+          animation: splatterFling 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          opacity: 0;
         }
 
-        .ink-splash-4 {
-          width: 350px;
-          height: 300px;
-          top: 48%;
-          left: 52%;
-          animation: inkSpread 1.6s ease-out forwards;
-          animation-delay: 0.15s;
+        /* Glossy highlights appear after splash settles */
+        .highlight-main {
+          animation: highlightFadeIn 0.4s ease-out 0.8s forwards;
         }
 
-        .ink-splash-5 {
-          width: 500px;
-          height: 450px;
-          top: 50%;
-          left: 50%;
-          animation: inkSpread 1.8s ease-out forwards;
-          animation-delay: 0.3s;
-          background: radial-gradient(
-            ellipse at center,
-            rgba(25, 25, 25, 0.7) 0%,
-            rgba(15, 15, 15, 0.4) 40%,
-            transparent 80%
-          );
+        .highlight-specular {
+          animation: highlightFadeIn 0.3s ease-out 0.9s forwards;
+        }
+
+        .highlight-secondary {
+          animation: highlightFadeIn 0.3s ease-out 1s forwards;
+        }
+
+        .highlight-spot {
+          animation: highlightFadeIn 0.2s ease-out 1.1s forwards;
         }
 
         /* Premium text styling */

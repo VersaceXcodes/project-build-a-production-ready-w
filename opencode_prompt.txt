@@ -1,32 +1,29 @@
-Add the brand reveal sequence on top of the ink animation.
+Update ONLY the existing intro overlay animation (InkIntroOverlay). Do NOT change backend, routes, data fetching, or page structure.
 
-Sequence:
+Problem: current effect looks like smoke/fog because it relies on blurred gradients. I need a true INK SPLASH like my reference screenshots: thick black liquid blobs, sharp edges, splatter droplets, and a glossy wet look.
 
-During the first part of the splash (0–1.5s), only show the ink animation (no text).
+Change the animation implementation to one of these (choose best/cleanest):
+A) SVG-based ink blobs + gooey filter + animated circles
+OR
+B) Canvas particle blobs with metaballs / simple “goo” merging
 
-After ink “settles” (around 1.2–1.8s), reveal the SultanStamp logo and brand name:
+Must-have visual constraints:
+- Black ink should be opaque, with crisp edges (no large soft haze).
+- Splatter droplets: several small drops fling outward and settle.
+- Slight glossy highlights on the ink (subtle specular streaks) so it feels wet, not smoke.
+- Keep any blur ONLY inside the gooey/metaball merging, not as a whole-screen fog.
+- Background should be clean (white or very light) so the black ink reads strongly.
 
-Logo appears first with a subtle scale/opacity pop.
+Timing:
+- 0.0–1.2s: drops fall + splash expands.
+- 1.2–1.8s: ink settles (minor wobble), droplets finish.
 
-Then the word “SultanStamp” (or “Sultans” if that’s what the design uses) reveals with a clean wipe/mask from left to right.
+Performance:
+- 60fps friendly, mobile safe.
+- No heavy dependencies added.
 
-Make it match the screenshot vibe: premium, high-contrast (white text on black area).
-
-Hold the logo for ~0.6–1.0s.
-
-Fade the entire overlay out smoothly (opacity to 0), then unmount and show the landing page.
-
-Notes:
-
-Use the existing logo asset from the project (don’t replace it). If the logo path is unknown, wire it to whatever the navbar uses.
-
-Ensure the overlay unmount triggers sessionStorage flag.
-
-Clicking/tapping skips instantly to unmount.
-
-Deliverables:
-
-A polished intro: ink splash → logo/name → fade out → homepage visible and interactive.
+Deliverable:
+- The overlay now visually matches an ink splat (sharp, liquid) instead of smoke.
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -37,33 +34,30 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "Add the brand reveal sequence on top of the ink animation.
+- Focus solely on implementing the user's request: "Update ONLY the existing intro overlay animation (InkIntroOverlay). Do NOT change backend, routes, data fetching, or page structure.
 
-Sequence:
+Problem: current effect looks like smoke/fog because it relies on blurred gradients. I need a true INK SPLASH like my reference screenshots: thick black liquid blobs, sharp edges, splatter droplets, and a glossy wet look.
 
-During the first part of the splash (0–1.5s), only show the ink animation (no text).
+Change the animation implementation to one of these (choose best/cleanest):
+A) SVG-based ink blobs + gooey filter + animated circles
+OR
+B) Canvas particle blobs with metaballs / simple “goo” merging
 
-After ink “settles” (around 1.2–1.8s), reveal the SultanStamp logo and brand name:
+Must-have visual constraints:
+- Black ink should be opaque, with crisp edges (no large soft haze).
+- Splatter droplets: several small drops fling outward and settle.
+- Slight glossy highlights on the ink (subtle specular streaks) so it feels wet, not smoke.
+- Keep any blur ONLY inside the gooey/metaball merging, not as a whole-screen fog.
+- Background should be clean (white or very light) so the black ink reads strongly.
 
-Logo appears first with a subtle scale/opacity pop.
+Timing:
+- 0.0–1.2s: drops fall + splash expands.
+- 1.2–1.8s: ink settles (minor wobble), droplets finish.
 
-Then the word “SultanStamp” (or “Sultans” if that’s what the design uses) reveals with a clean wipe/mask from left to right.
+Performance:
+- 60fps friendly, mobile safe.
+- No heavy dependencies added.
 
-Make it match the screenshot vibe: premium, high-contrast (white text on black area).
-
-Hold the logo for ~0.6–1.0s.
-
-Fade the entire overlay out smoothly (opacity to 0), then unmount and show the landing page.
-
-Notes:
-
-Use the existing logo asset from the project (don’t replace it). If the logo path is unknown, wire it to whatever the navbar uses.
-
-Ensure the overlay unmount triggers sessionStorage flag.
-
-Clicking/tapping skips instantly to unmount.
-
-Deliverables:
-
-A polished intro: ink splash → logo/name → fade out → homepage visible and interactive."
+Deliverable:
+- The overlay now visually matches an ink splat (sharp, liquid) instead of smoke."
 - Only address errors if they block the specific functionality requested by the user.
