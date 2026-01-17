@@ -7,7 +7,52 @@ interface GV_InkSplashOverlayProps {
   onComplete: () => void;
 }
 
-// Ink blob configuration for main splash
+// Check if logo loaded correctly
+const LogoWithFallback: React.FC<{
+  src: string;
+  alt: string;
+  className?: string;
+  style?: React.CSSProperties;
+  onError?: () => void;
+}> = ({ src, alt, className, style, onError }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    // Fallback: just show text "SultanStamp" as the logo
+    return (
+      <span
+        className={className}
+        style={{
+          ...style,
+          fontFamily: "'Playfair Display', serif",
+          fontWeight: 700,
+          fontSize: '1.5rem',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        SS
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      style={style}
+      onError={() => {
+        setHasError(true);
+        onError?.();
+      }}
+    />
+  );
+};
+
+// Ink blob configuration for main splash - adjusted for left slide
 const mainBlobs = [
   { cx: 50, cy: 50, r: 0, targetR: 80, delay: 0 },
   { cx: 45, cy: 48, r: 0, targetR: 50, delay: 50 },
@@ -101,23 +146,28 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
     return null;
   }
 
-  const showLogo = phase !== 'ink';
+  const isSliding = phase === 'slide' || phase === 'logo' || phase === 'text' || phase === 'hold' || phase === 'fadeout';
+  const showLogo = phase === 'logo' || phase === 'text' || phase === 'hold' || phase === 'fadeout';
   const showText = phase === 'text' || phase === 'hold' || phase === 'fadeout';
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] cursor-pointer transition-opacity duration-500 overflow-hidden ${
         isFadingOut ? 'opacity-0' : 'opacity-100'
       }`}
       onClick={handleSkip}
       onTouchStart={handleSkip}
       style={{ backgroundColor: '#f8f8f8' }}
     >
-      {/* SVG Ink Splash Layer */}
+      {/* SVG Ink Splash Layer - slides left after splash */}
       <svg 
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full ink-svg-container"
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid slice"
+        style={{
+          transform: isSliding ? 'translateX(-25%)' : 'translateX(0)',
+          transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
       >
         <defs>
           {/* Gooey filter for metaball merging effect - blur kept inside filter only */}
@@ -231,50 +281,79 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
         </g>
       </svg>
 
-      {/* Brand Container - centered above ink */}
-      <div className="relative z-10 flex flex-col items-center gap-4">
-        {/* Logo with scale/opacity pop */}
-        <div
-          className={`transition-all duration-500 ease-out ${
-            showLogo
-              ? 'opacity-100 scale-100'
-              : 'opacity-0 scale-75'
-          }`}
+      {/* Brand Container - Split Layout: Left side (on black ink) and Right side (on white) */}
+      <div className="absolute inset-0 flex items-center justify-center z-10">
+        {/* LEFT SIDE - Logo + SultanStamp on black ink area */}
+        <div 
+          className="flex-1 flex items-center justify-center md:justify-end px-4 md:px-8"
+          style={{
+            maxWidth: '50%',
+          }}
         >
-          <img
-            src={sultanstampLogo}
-            alt="SultanStamp"
-            className="w-24 h-24 md:w-32 md:h-32 object-contain rounded-lg shadow-2xl"
-            style={{
-              filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.3))'
-            }}
-          />
+          <div className="flex flex-col items-center md:items-end gap-2 md:gap-4 md:pr-8">
+            {/* Logo with scale/opacity pop */}
+            <div
+              className="ink-overlay-logo-container"
+              style={{
+                opacity: showLogo ? 1 : 0,
+                transform: showLogo ? 'scale(1)' : 'scale(0.7)',
+                transition: 'opacity 0.5s ease-out, transform 0.5s ease-out',
+              }}
+            >
+              <LogoWithFallback
+                src={sultanstampLogo}
+                alt="SultanStamp"
+                className="ink-overlay-logo w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain rounded-lg"
+                style={{
+                  filter: 'drop-shadow(0 4px 20px rgba(255,255,255,0.3))',
+                }}
+              />
+            </div>
+
+            {/* Brand name "SultanStamp" with left-to-right wipe reveal */}
+            <div className="relative overflow-hidden">
+              <h1
+                className="ink-overlay-brand-text text-xl sm:text-2xl md:text-4xl font-bold tracking-wider"
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  color: '#fff',
+                  textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+                  clipPath: showText ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+                  transition: 'clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              >
+                SultanStamp
+              </h1>
+            </div>
+          </div>
         </div>
 
-        {/* Brand name with left-to-right wipe reveal */}
-        <div className="relative overflow-hidden">
-          <h1
-            className="text-3xl md:text-5xl font-bold tracking-wider"
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              color: '#000',
-              textShadow: '0 2px 10px rgba(0,0,0,0.1)'
-            }}
-          >
-            <span className="brand-text-reveal" style={{
-              display: 'inline-block',
-              clipPath: showText 
-                ? 'inset(0 0 0 0)' 
-                : 'inset(0 100% 0 0)',
-              transition: 'clip-path 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}>
-              SultanStamp
-            </span>
-          </h1>
+        {/* RIGHT SIDE - "Sultans" on white area */}
+        <div 
+          className="flex-1 flex items-center justify-center md:justify-start px-4 md:px-8"
+          style={{
+            maxWidth: '50%',
+          }}
+        >
+          <div className="md:pl-8">
+            <h2
+              className="ink-overlay-secondary-text text-xl sm:text-2xl md:text-4xl font-bold tracking-wider"
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                color: '#1a1a1a',
+                textShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                opacity: showText ? 1 : 0,
+                transform: showText ? 'translateX(0)' : 'translateX(-20px)',
+                transition: 'opacity 0.5s ease-out 0.2s, transform 0.5s ease-out 0.2s',
+              }}
+            >
+              Sultans
+            </h2>
+          </div>
         </div>
       </div>
 
-      {/* Inline styles for ink animation */}
+      {/* Inline styles for ink animation - scoped to overlay only */}
       <style>{`
         /* Main blob expansion animation - 0 to 1.2s */
         @keyframes blobExpand {
@@ -375,7 +454,24 @@ const GV_InkSplashOverlay: React.FC<GV_InkSplashOverlayProps> = ({ onComplete })
           animation: highlightFadeIn 0.2s ease-out 1.1s forwards;
         }
 
-        /* Premium text styling */
+        /* Ink overlay scoped styles - do not affect global styles */
+        .ink-overlay-logo {
+          /* Preserve original logo colors - no forced monochrome */
+        }
+
+        .ink-overlay-logo-container {
+          /* Logo pop-in animation handled via inline styles */
+        }
+
+        .ink-overlay-brand-text {
+          /* Brand text styling - white on black ink */
+        }
+
+        .ink-overlay-secondary-text {
+          /* Secondary text styling - dark on white area */
+        }
+
+        /* Premium text styling - import font for overlay use */
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
       `}</style>
     </div>

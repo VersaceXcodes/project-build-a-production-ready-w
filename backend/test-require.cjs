@@ -1,8 +1,8 @@
 
 try {
-  require.resolve('escape-html');
-  console.log('escape-html found');
-} catch (e) {
-  console.error('escape-html NOT found');
-  console.error(e);
+  require('express');
+  console.log('Express loaded successfully');
+} catch (error) {
+  console.error('Failed to load express:', error);
+  process.exit(1);
 }

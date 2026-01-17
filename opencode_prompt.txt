@@ -1,55 +1,45 @@
-BACKEND STARTUP FAILURE - Immediate Fix Required
+Update ONLY the branding shown inside the intro overlay. The current logo shown is WRONG (it looks like a generic square/white badge). I need the overlay to display the SAME SultanStamp logo/wordmark used on the website navbar/brand assets.
 
-The backend server failed to start due to a critical error. You need to fix this NOW.
+Requirements:
+- Pull the logo asset from the same source the header/navbar uses (reuse the existing import/path; do not introduce a new placeholder logo).
+- Keep the logo colors exactly as the real brand (no forced monochrome unless my site brand is monochrome).
+- Match my reference layout:
+  - After ink slides left, show the SultanStamp logo + “SultanStamp” on the LEFT (on/over the black area).
+  - Optionally show “Sultans” (or the right-side brand text I provided) on the RIGHT on the clean white area, using a bold premium font consistent with the site.
+- Add a clean reveal: logo pops in (opacity+scale), wordmark wipes in left→right.
+- Ensure sizing/position is responsive: looks correct on mobile and desktop.
 
-## Error Type: Backend unhealthy or critical errors present
+Fail-safes:
+- If logo import fails, fallback to rendering just the text “SultanStamp” (no placeholder icon).
+- Do not change any global styles; scope styles to the overlay.
 
-## Backend Error Output (stderr):
-node:internal/modules/cjs/loader:1207
-  const err = new Error(message);
-              ^
+Deliverable:
+- The overlay brand matches the actual SultanStamp logo/wordmark used on the site (not a different one).
 
-Error: Cannot find module 'ee-first'
-Require stack:
-- /app/backend/node_modules/on-finished/index.js
-- /app/backend/node_modules/finalhandler/index.js
-- /app/backend/node_modules/express/lib/application.js
-- /app/backend/node_modules/express/lib/express.js
-- /app/backend/node_modules/express/index.js
-- /app/backend/server.ts
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
-    at nextResolveSimple (/app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1004)
-    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:3:2630
-    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1542
-    at resolveTsPaths (/app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:760)
-    at /app/backend/node_modules/tsx/dist/register-D46fvsV_.cjs:4:1102
-    at m._resolveFilename (file:///app/backend/node_modules/tsx/dist/register-B7jrtLTO.mjs:1:789)
-    at Module._load (node:internal/modules/cjs/loader:1038:27)
-    at Module.require (node:internal/modules/cjs/loader:1289:19)
-    at require (node:internal/modules/helpers:182:18) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [
-    '/app/backend/node_modules/on-finished/index.js',
-    '/app/backend/node_modules/finalhandler/index.js',
-    '/app/backend/node_modules/express/lib/application.js',
-    '/app/backend/node_modules/express/lib/express.js',
-    '/app/backend/node_modules/express/index.js',
-    '/app/backend/server.ts'
-  ]
-}
+When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
+- If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
+- If the user says "sign up" or "register", search for "Create your account" or equivalent.
+- Always return an explicit list of changed file paths. If your first attempt doesn't change the UI, re-search by heading text and update the correct file.
 
-Node.js v20.19.5
+⚠️ PRIORITY INSTRUCTIONS:
+- The user's request above is the PRIMARY task. Complete it first.
+- Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
+- Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
+- Focus solely on implementing the user's request: "Update ONLY the branding shown inside the intro overlay. The current logo shown is WRONG (it looks like a generic square/white badge). I need the overlay to display the SAME SultanStamp logo/wordmark used on the website navbar/brand assets.
 
+Requirements:
+- Pull the logo asset from the same source the header/navbar uses (reuse the existing import/path; do not introduce a new placeholder logo).
+- Keep the logo colors exactly as the real brand (no forced monochrome unless my site brand is monochrome).
+- Match my reference layout:
+  - After ink slides left, show the SultanStamp logo + “SultanStamp” on the LEFT (on/over the black area).
+  - Optionally show “Sultans” (or the right-side brand text I provided) on the RIGHT on the clean white area, using a bold premium font consistent with the site.
+- Add a clean reveal: logo pops in (opacity+scale), wordmark wipes in left→right.
+- Ensure sizing/position is responsive: looks correct on mobile and desktop.
 
-## Backend Console Output (stdout):
-No stdout output
+Fail-safes:
+- If logo import fails, fallback to rendering just the text “SultanStamp” (no placeholder icon).
+- Do not change any global styles; scope styles to the overlay.
 
-## Working Directory: /app/vitereact
-
-## Your Task:
-1. **Analyze the Error**: Identify the exact TypeScript/JavaScript syntax error or compilation issue
-2. **Locate the Problem**: Find which file has the error (check stack trace and error messages)
-3. **Apply the Fix**: Use available tools to fix the specific syntax/compilation issue
-4. **Focus on Root Cause**: Fix the underlying code problem, not infrastructure
-
-IMPORTANT: This is a CODE error, not an infrastructure error. Fix the syntax/compilation issue in the backend code.
+Deliverable:
+- The overlay brand matches the actual SultanStamp logo/wordmark used on the site (not a different one)."
+- Only address errors if they block the specific functionality requested by the user.
