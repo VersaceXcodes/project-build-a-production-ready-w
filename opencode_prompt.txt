@@ -1,4 +1,14 @@
-add the storage system using the proxy code
+"I have uploaded a video file named intro-reveal.mp4 to the project storage. Please use this video to create a full-screen 'Intro Overlay' for the app.
+
+Requirements:
+
+Visuals: The video should cover the entire viewport (object-fit: cover) and sit on top of everything (z-index: 9999).
+
+Autoplay: The video must autoplay, be muted, and have playsinline (so it works on mobile).
+
+Logic: When the video finishes playing (listen for the onended event), smoothy fade out the overlay container (opacity 0) and then remove it from the DOM so the user can interact with the dashboard.
+
+Seamlessness: Ensure there is no white flash before the video loads; the background of the overlay should match the video's start frame (black)."
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -9,5 +19,15 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "add the storage system using the proxy code"
+- Focus solely on implementing the user's request: ""I have uploaded a video file named intro-reveal.mp4 to the project storage. Please use this video to create a full-screen 'Intro Overlay' for the app.
+
+Requirements:
+
+Visuals: The video should cover the entire viewport (object-fit: cover) and sit on top of everything (z-index: 9999).
+
+Autoplay: The video must autoplay, be muted, and have playsinline (so it works on mobile).
+
+Logic: When the video finishes playing (listen for the onended event), smoothy fade out the overlay container (opacity 0) and then remove it from the DOM so the user can interact with the dashboard.
+
+Seamlessness: Ensure there is no white flash before the video loads; the background of the overlay should match the video's start frame (black).""
 - Only address errors if they block the specific functionality requested by the user.

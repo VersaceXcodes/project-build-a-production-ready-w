@@ -7,6 +7,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import GV_HeaderPublic from '@/components/views/GV_HeaderPublic';
 import GV_HeaderAuth from '@/components/views/GV_HeaderAuth';
 import GV_Footer from '@/components/views/GV_Footer';
+import GV_IntroOverlay from '@/components/views/GV_IntroOverlay';
 
 // Auth views
 import UV_AUTH_Login from '@/components/views/UV_AUTH_Login';
@@ -147,6 +148,7 @@ const App: React.FC = () => {
 
   return (
     <BrowserRouter>
+      <GV_IntroOverlay />
       <div className="flex flex-col min-h-screen">
         {authentication_status.is_authenticated ? <GV_HeaderAuth /> : <GV_HeaderPublic />}
 
