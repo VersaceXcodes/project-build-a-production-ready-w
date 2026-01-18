@@ -11,6 +11,7 @@ import { Server } from 'socket.io';
 import { createServer } from 'http';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import { storageProxy } from './storage-proxy';
 
 declare global {
   namespace Express {
@@ -75,11 +76,7 @@ app.use(express.json({ limit: '5mb' }));
 app.use(morgan('dev'));
 app.use(express.static(publicDir));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, storageDir),
-  filename: (req, file, cb) => cb(null, `${uuidv4()}-${file.originalname}`)
-});
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -900,8 +897,12 @@ app.post('/api/uploads', authenticateToken, upload.single('file'), async (req, r
   try {
     if (!req.file) return res.status(400).json({ message: 'File required' });
     const { quote_id, order_id } = req.body;
+    
+    // Upload to proxy
+    const { url } = await storageProxy.upload(req.file);
+    
     const uploadId = uuidv4();
-    const fileUrl = `/storage/${req.file.filename}`;
+    const fileUrl = url;
     await pool.query(
       'INSERT INTO uploads (id, owner_user_id, quote_id, order_id, file_url, file_type, file_name, file_size_bytes, dpi_warning, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
       [uploadId, req.user.id, quote_id || null, order_id || null, fileUrl, req.file.mimetype, req.file.originalname, req.file.size, false, new Date().toISOString()]
@@ -936,8 +937,17 @@ app.delete('/api/uploads/:upload_id', authenticateToken, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ message: 'Upload not found' });
     const upload = result.rows[0];
     if (req.user.role === 'CUSTOMER' && upload.owner_user_id !== req.user.id) return res.status(403).json({ message: 'Access denied' });
-    const filePath = path.join(storageDir, path.basename(upload.file_url));
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    
+    try {
+      const fileUrl = upload.file_url;
+      // Assuming fileUrl ends with the key
+      const parts = fileUrl.split('/');
+      const key = parts[parts.length - 1];
+      await storageProxy.delete(key);
+    } catch (e) {
+      console.error('Failed to delete file from proxy:', e);
+    }
+
     await pool.query('DELETE FROM uploads WHERE id = $1', [upload_id]);
     res.status(204).send();
   } catch (error) {
