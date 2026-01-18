@@ -5,7 +5,19 @@ const VIDEO_URL = 'https://pub-3b7303b412294731aa17afb2c3dff192.r2.dev/8833a50a-
 const GV_IntroOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  );
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // Handle responsive detection
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // Check if user has already seen the intro (session storage)
@@ -51,10 +63,13 @@ const GV_IntroOverlay: React.FC = () => {
         width: '100vw',
         height: '100vh',
         zIndex: 9999,
-        backgroundColor: '#000000', // Black background to match video start frame
+        backgroundColor: '#000000', // Black background to match video and fill empty space
         opacity: isFadingOut ? 0 : 1,
         transition: 'opacity 0.5s ease-out',
         pointerEvents: isFadingOut ? 'none' : 'auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <video
@@ -65,12 +80,9 @@ const GV_IntroOverlay: React.FC = () => {
         playsInline
         onEnded={handleVideoEnd}
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: isMobile ? 'contain' : 'cover',
         }}
       />
     </div>
