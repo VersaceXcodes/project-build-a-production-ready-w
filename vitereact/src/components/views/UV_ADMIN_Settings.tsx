@@ -43,6 +43,7 @@ interface FeatureFlagsState {
   feature_b2b_enabled: boolean;
   feature_inventory_enabled: boolean;
   feature_analytics_enabled: boolean;
+  productsPublicEnabled: boolean;
 }
 
 interface StripeSettingsState {
@@ -95,6 +96,7 @@ const UV_ADMIN_Settings: React.FC = () => {
     feature_b2b_enabled: false,
     feature_inventory_enabled: false,
     feature_analytics_enabled: false,
+    productsPublicEnabled: false,
   });
   const [stripeSettings, setStripeSettings] = useState<StripeSettingsState>({
     stripe_enabled: false,
@@ -154,6 +156,7 @@ const UV_ADMIN_Settings: React.FC = () => {
         feature_b2b_enabled: data.find(s => s.key === 'feature_b2b_enabled')?.value === 'true',
         feature_inventory_enabled: data.find(s => s.key === 'feature_inventory_enabled')?.value === 'true',
         feature_analytics_enabled: data.find(s => s.key === 'feature_analytics_enabled')?.value === 'true',
+        productsPublicEnabled: data.find(s => s.key === 'productsPublicEnabled')?.value === 'true',
       };
 
       const parsedStripeSettings: StripeSettingsState = {
@@ -600,6 +603,33 @@ const UV_ADMIN_Settings: React.FC = () => {
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
                             featureFlags.feature_analytics_enabled ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Products Public (Visibility Toggle) */}
+                    <div className="flex items-start justify-between p-6 bg-amber-50 rounded-lg border border-amber-200">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Enable Products (Public)
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Show Products section on the public website. When disabled, Products are hidden from navigation, 
+                          homepage sections (Best Sellers, Popular Print Categories), and /products routes are blocked for public visitors.
+                          Admin can still manage products regardless of this setting.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleFeatureFlagToggle('productsPublicEnabled')}
+                        disabled={updateSettingMutation.isPending}
+                        className={`ml-6 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                          featureFlags.productsPublicEnabled ? 'bg-amber-500' : 'bg-gray-200'
+                        } ${updateSettingMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                            featureFlags.productsPublicEnabled ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         />
                       </button>

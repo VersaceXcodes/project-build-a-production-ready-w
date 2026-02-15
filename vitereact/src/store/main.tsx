@@ -108,6 +108,7 @@ interface FeatureFlags {
   feature_b2b_enabled: boolean;
   feature_inventory_enabled: boolean;
   feature_analytics_enabled: boolean;
+  products_public_enabled: boolean;
   is_loading: boolean;
   last_fetched_at: string | null;
 }
@@ -194,6 +195,7 @@ interface AppStore {
 
   // Feature flags actions
   fetch_feature_flags: () => Promise<void>;
+  fetch_products_public_enabled: () => Promise<void>;
   toggle_feature_flag: (flag_key: string, enabled: boolean) => Promise<void>;
 
   // Quote wizard actions
@@ -274,6 +276,7 @@ export const useAppStore = create<AppStore>()(
         feature_b2b_enabled: false,
         feature_inventory_enabled: false,
         feature_analytics_enabled: false,
+        products_public_enabled: false,
         is_loading: false,
         last_fetched_at: null,
       },
@@ -927,12 +930,15 @@ export const useAppStore = create<AppStore>()(
             settings.find((s: any) => s.key === 'feature_inventory_enabled')?.value === 'true';
           const feature_analytics_enabled =
             settings.find((s: any) => s.key === 'feature_analytics_enabled')?.value === 'true';
+          const products_public_enabled =
+            settings.find((s: any) => s.key === 'productsPublicEnabled')?.value === 'true';
 
           set({
             feature_flags: {
               feature_b2b_enabled,
               feature_inventory_enabled,
               feature_analytics_enabled,
+              products_public_enabled,
               is_loading: false,
               last_fetched_at: new Date().toISOString(),
             },
@@ -968,6 +974,30 @@ export const useAppStore = create<AppStore>()(
         } catch (error: any) {
           console.error('Toggle feature flag error:', error);
           throw error;
+        }
+      },
+
+      // Fetch products public enabled setting (no auth required)
+      fetch_products_public_enabled: async () => {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/public/settings/products-enabled`);
+          const { productsPublicEnabled } = response.data;
+
+          set((state) => ({
+            feature_flags: {
+              ...state.feature_flags,
+              products_public_enabled: productsPublicEnabled,
+            },
+          }));
+        } catch (error: any) {
+          console.error('Fetch products public enabled error:', error);
+          // Default to false on error
+          set((state) => ({
+            feature_flags: {
+              ...state.feature_flags,
+              products_public_enabled: false,
+            },
+          }));
         }
       },
 

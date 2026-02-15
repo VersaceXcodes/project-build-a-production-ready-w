@@ -4378,6 +4378,23 @@ app.patch('/api/design-uploads/:upload_id/link-order', async (req, res) => {
   }
 });
 
+// =====================================================
+// PUBLIC SETTINGS ENDPOINT (No Auth Required)
+// =====================================================
+
+// Get public setting for products visibility (no auth required)
+app.get('/api/public/settings/products-enabled', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT value FROM settings WHERE key = $1', ['productsPublicEnabled']);
+    const enabled = result.rows.length > 0 ? result.rows[0].value === 'true' : false;
+    res.json({ productsPublicEnabled: enabled });
+  } catch (error) {
+    console.error('Get products enabled setting error:', error);
+    // Default to false on error
+    res.json({ productsPublicEnabled: false });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });

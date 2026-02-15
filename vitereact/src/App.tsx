@@ -132,15 +132,37 @@ const PublicOnlyRoute: React.FC<PublicOnlyRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Products route guard - only allow access when productsPublicEnabled is true or user is admin
+interface ProductsRouteGuardProps {
+  children: React.ReactNode;
+}
+
+const ProductsRouteGuard: React.FC<ProductsRouteGuardProps> = ({ children }) => {
+  const productsPublicEnabled = useAppStore(state => state.feature_flags.products_public_enabled);
+  const currentUser = useAppStore(state => state.authentication_state.current_user);
+  const isAuthenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
+  
+  // Allow if products are public OR user is admin
+  if (productsPublicEnabled || (isAuthenticated && currentUser?.role === 'ADMIN')) {
+    return <>{children}</>;
+  }
+  
+  // Redirect to home if products are disabled
+  return <Navigate to="/" replace />;
+};
+
 const App: React.FC = () => {
   const {
     authentication_state: { authentication_status },
-    check_auth_status
+    check_auth_status,
+    fetch_products_public_enabled
   } = useAppStore();
 
   useEffect(() => {
     check_auth_status();
-  }, [check_auth_status]);
+    // Fetch products public enabled setting on app initialization
+    fetch_products_public_enabled();
+  }, [check_auth_status, fetch_products_public_enabled]);
 
   if (authentication_status.is_loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -166,8 +188,8 @@ const App: React.FC = () => {
             <Route path="/policies" element={<UV_PUB_Policies />} />
             
             {/* ===== PRODUCTS ROUTES (PUBLIC - E-commerce) ===== */}
-            <Route path="/products" element={<UV_PUB_ProductsCatalog />} />
-            <Route path="/products/:slug" element={<ErrorBoundary><UV_PUB_ProductDetail /></ErrorBoundary>} />
+            <Route path="/products" element={<ProductsRouteGuard><UV_PUB_ProductsCatalog /></ProductsRouteGuard>} />
+            <Route path="/products/:slug" element={<ProductsRouteGuard><ErrorBoundary><UV_PUB_ProductDetail /></ErrorBoundary></ProductsRouteGuard>} />
             <Route path="/cart" element={<UV_PUB_Cart />} />
             <Route path="/checkout" element={<UV_PUB_Checkout />} />
             <Route path="/order-confirmation/:id" element={<UV_PUB_OrderConfirmation />} />

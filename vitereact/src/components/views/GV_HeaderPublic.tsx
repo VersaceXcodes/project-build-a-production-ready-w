@@ -22,6 +22,7 @@ const GV_HeaderPublic: React.FC = () => {
   const toggleMobileNav = useAppStore(state => state.toggle_mobile_nav);
   const cartItemsCount = useAppStore(state => state.cart_state.items_count);
   const fetchCartCount = useAppStore(state => state.fetch_cart_count);
+  const productsPublicEnabled = useAppStore(state => state.feature_flags.products_public_enabled);
 
   // ===========================
   // LOCAL STATE
@@ -43,7 +44,7 @@ const GV_HeaderPublic: React.FC = () => {
     { label: 'About Us', path: '/about' },
     { label: 'Portfolio', path: '/gallery' },
     { label: 'Services', path: '/services' },
-    { label: 'Products', path: '/products' },
+    ...(productsPublicEnabled ? [{ label: 'Products', path: '/products' }] : []),
     { label: 'Pricing', path: '/pricing' },
     { label: 'Contact', path: '/contact' },
   ];

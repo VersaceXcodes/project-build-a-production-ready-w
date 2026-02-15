@@ -115,6 +115,7 @@ const UV_PUB_Landing: React.FC = () => {
   // CRITICAL: Individual selectors, no object destructuring
   const is_authenticated = useAppStore(state => state.authentication_state.authentication_status.is_authenticated);
   const show_toast = useAppStore(state => state.show_toast);
+  const products_public_enabled = useAppStore(state => state.feature_flags.products_public_enabled);
 
   // State for sticky CTA visibility
   const [showStickyCTA, setShowStickyCTA] = React.useState(false);
@@ -295,8 +296,8 @@ const UV_PUB_Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Best Sellers Section */}
-      <BestSellersSection />
+      {/* Best Sellers Section - Only show if products are enabled */}
+      {products_public_enabled && <BestSellersSection />}
 
       {/* Promo Strip */}
       <PromoStrip />
@@ -304,7 +305,8 @@ const UV_PUB_Landing: React.FC = () => {
       {/* Trust Row */}
       <TrustRow />
 
-      {/* SECTION 2: Popular Print Categories */}
+      {/* SECTION 2: Popular Print Categories - Only show if products are enabled */}
+      {products_public_enabled && (
       <section className="py-6 sm:py-12 lg:py-28 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 pb-28 sm:pb-12 lg:pb-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-5 sm:mb-12 lg:mb-16">
@@ -499,6 +501,7 @@ const UV_PUB_Landing: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
 
       {/* SECTION 3: Premium Branding & Installation Services (Dark Band) */}
       <section className="relative py-20 lg:py-32 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white overflow-hidden">
