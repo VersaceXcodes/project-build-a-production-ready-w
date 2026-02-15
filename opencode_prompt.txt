@@ -1,67 +1,91 @@
-Add an admin-controlled setting to hide/show all Products features from the public website.
+Update the website’s legal pages using the PDF in project storage named:
+“SultanStamp Terma & Conditions.pdf” (this PDF is the single source of truth for Terms, payments, revisions, turnaround times, and refunds/cancellations).
 
-1) System Settings toggle (admin only)
+Goal: Refresh these pages and ensure the site links to them correctly:
+- Privacy Policy
+- Terms of Service
+- Refund Policy
 
-Create a toggle in Admin → System Settings:
+1) Locate and read the PDF from project storage
+- Use the content inside the PDF to rewrite/replace the existing Terms of Service and Refund Policy.
+- Keep wording clear, professional, and formatted for a website (headings + bullet points).
+- Use: info@sultanstamp.ie as the contact email across all policies.
 
-Label: Enable Products (Public)
+2) Terms of Service page (replace content)
+Create sections that reflect the PDF exactly in meaning and include the specific rules:
+A) Payment Terms
+- Projects are scheduled only after confirmation is received.
+- Small orders: full payment required upfront.
+- Medium/large projects: 50% deposit required to secure design/production/installation timelines.
+- Remaining balance must be paid before collection or installation.
+- Production/installation dates are confirmed only after payment clears.
+- Payment queries: info@sultanstamp.ie
 
-Key: productsPublicEnabled (boolean)
+B) Tax / VAT
+- Prices in Euro (€).
+- VAT applied where required and itemised on invoices per Irish tax regulations.
+- Invoice/receipt issued for every transaction.
+- VAT/invoicing queries: info@sultanstamp.ie
 
-Default: false (Products hidden by default)
+C) File Requirements
+- Artwork should be supplied in PDF format.
+- Preferred: print-ready PDF, final size, high resolution (300dpi).
+- Include bleed/crop marks when required.
+- Colour settings should be checked prior to submission.
+- If unsure, customer can email files to info@sultanstamp.ie for review/support.
 
-Only admins can change this setting. Save it in the database.
+D) Revision Policy
+- Basic package: up to 1 revision
+- Silver package: up to 2 revisions
+- Gold package: up to 3 revisions
+- Extra revisions or major changes may incur additional fees.
+- Final artwork approval confirms readiness for production.
 
-2) When productsPublicEnabled = false (Products OFF)
+E) Turnaround Times
+- Basic: 2–5 working days
+- Silver: 3–7 working days
+- Gold: 5–14 working days
+- Large-scale signage, vehicle graphics, or installation projects may need longer timelines.
+- Schedules confirmed at quotation stage.
+- For time-sensitive projects: customer should email info@sultanstamp.ie before ordering.
 
-Hide or disable everything related to Products on the public site:
+F) Refunds & Cancellations (summary section here, and full detail in Refund Policy page)
+- SultanStamp products are custom-made per client.
+- Refund eligibility depends on when cancellation happens (see Refund Policy).
 
-Navigation / UI
+3) Refund Policy page (replace content; make it standalone + clear)
+Use the PDF’s refund/cancellation rules and present them as:
+- Overview: custom-made items produced specifically for each client.
+- Cancellations before design work begins: may be eligible for a refund.
+- Once design work begins: deposits are non-refundable.
+- After design approval or during production: cancellation charges apply based on work completed and materials used.
+- Completed custom signage/prints/decals: non-refundable.
+- How to request a cancellation: contact info@sultanstamp.ie as early as possible.
 
-Remove the Products tab from the top navbar (desktop + mobile).
+4) Privacy Policy page (update + align)
+The PDF doesn’t define privacy details, so:
+- Keep existing privacy content if already present, but ensure it is consistent with how the site actually works.
+- At minimum ensure it includes:
+  - What data is collected (contact forms, order/quote details, uploaded artwork/files).
+  - Purpose of collection (quotes, production, installation/collection coordination, invoicing).
+  - Payment/invoicing notes (invoices/receipts, VAT where required).
+  - Who data is shared with (only necessary service providers if any; otherwise state it’s not sold).
+  - Retention period (reasonable business/invoicing requirements).
+  - User rights and how to contact: info@sultanstamp.ie
+  - Cookies/analytics section if the site uses them (only include what is actually enabled).
 
-Remove any Products links from footer, menus, CTA buttons, or homepage sections.
+5) Site wiring / UX
+- Ensure these pages are reachable from the footer (and any legal links area).
+- Ensure routes are consistent (use existing paths if already in the project, otherwise create):
+  - /terms
+  - /privacy
+  - /refund-policy
+- Add “Last updated” date to each page.
+- Keep styling consistent with the rest of the website.
 
-Homepage
-
-Completely hide the “Best Sellers — Our Most Ordered Print Products” section (no rendering and no empty spacing).
-
-Do not fetch product data for the homepage when Products are OFF.
-
-Pages / Routes
-
-Block public access to any product pages:
-
-/products
-
-/products/[slug] (or any product detail route)
-
-any category pages or product-related routes
-Return 404 or redirect to /.
-
-API / Data
-
-Block public product APIs when Products are OFF (return 404/403 or empty response).
-
-Admin endpoints (e.g. /admin/products) must still work normally.
-
-Search / Sitemap
-
-Remove product pages from sitemap / internal search results (if implemented).
-
-3) When productsPublicEnabled = true (Products ON)
-
-Show Products tab and all product pages normally.
-
-Show Best Sellers section on the homepage normally (and fetch data).
-
-Acceptance criteria
-
-Turning Products OFF removes Products from navbar + homepage + all public routes/APIs.
-
-Admin can still manage products in the admin panel.
-
-Turning Products ON restores everything.
+Deliverable
+- Updated page components/content for Privacy Policy, Terms of Service, and Refund Policy.
+- Footer/legal links updated accordingly.
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -72,68 +96,92 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "Add an admin-controlled setting to hide/show all Products features from the public website.
+- Focus solely on implementing the user's request: "Update the website’s legal pages using the PDF in project storage named:
+“SultanStamp Terma & Conditions.pdf” (this PDF is the single source of truth for Terms, payments, revisions, turnaround times, and refunds/cancellations).
 
-1) System Settings toggle (admin only)
+Goal: Refresh these pages and ensure the site links to them correctly:
+- Privacy Policy
+- Terms of Service
+- Refund Policy
 
-Create a toggle in Admin → System Settings:
+1) Locate and read the PDF from project storage
+- Use the content inside the PDF to rewrite/replace the existing Terms of Service and Refund Policy.
+- Keep wording clear, professional, and formatted for a website (headings + bullet points).
+- Use: info@sultanstamp.ie as the contact email across all policies.
 
-Label: Enable Products (Public)
+2) Terms of Service page (replace content)
+Create sections that reflect the PDF exactly in meaning and include the specific rules:
+A) Payment Terms
+- Projects are scheduled only after confirmation is received.
+- Small orders: full payment required upfront.
+- Medium/large projects: 50% deposit required to secure design/production/installation timelines.
+- Remaining balance must be paid before collection or installation.
+- Production/installation dates are confirmed only after payment clears.
+- Payment queries: info@sultanstamp.ie
 
-Key: productsPublicEnabled (boolean)
+B) Tax / VAT
+- Prices in Euro (€).
+- VAT applied where required and itemised on invoices per Irish tax regulations.
+- Invoice/receipt issued for every transaction.
+- VAT/invoicing queries: info@sultanstamp.ie
 
-Default: false (Products hidden by default)
+C) File Requirements
+- Artwork should be supplied in PDF format.
+- Preferred: print-ready PDF, final size, high resolution (300dpi).
+- Include bleed/crop marks when required.
+- Colour settings should be checked prior to submission.
+- If unsure, customer can email files to info@sultanstamp.ie for review/support.
 
-Only admins can change this setting. Save it in the database.
+D) Revision Policy
+- Basic package: up to 1 revision
+- Silver package: up to 2 revisions
+- Gold package: up to 3 revisions
+- Extra revisions or major changes may incur additional fees.
+- Final artwork approval confirms readiness for production.
 
-2) When productsPublicEnabled = false (Products OFF)
+E) Turnaround Times
+- Basic: 2–5 working days
+- Silver: 3–7 working days
+- Gold: 5–14 working days
+- Large-scale signage, vehicle graphics, or installation projects may need longer timelines.
+- Schedules confirmed at quotation stage.
+- For time-sensitive projects: customer should email info@sultanstamp.ie before ordering.
 
-Hide or disable everything related to Products on the public site:
+F) Refunds & Cancellations (summary section here, and full detail in Refund Policy page)
+- SultanStamp products are custom-made per client.
+- Refund eligibility depends on when cancellation happens (see Refund Policy).
 
-Navigation / UI
+3) Refund Policy page (replace content; make it standalone + clear)
+Use the PDF’s refund/cancellation rules and present them as:
+- Overview: custom-made items produced specifically for each client.
+- Cancellations before design work begins: may be eligible for a refund.
+- Once design work begins: deposits are non-refundable.
+- After design approval or during production: cancellation charges apply based on work completed and materials used.
+- Completed custom signage/prints/decals: non-refundable.
+- How to request a cancellation: contact info@sultanstamp.ie as early as possible.
 
-Remove the Products tab from the top navbar (desktop + mobile).
+4) Privacy Policy page (update + align)
+The PDF doesn’t define privacy details, so:
+- Keep existing privacy content if already present, but ensure it is consistent with how the site actually works.
+- At minimum ensure it includes:
+  - What data is collected (contact forms, order/quote details, uploaded artwork/files).
+  - Purpose of collection (quotes, production, installation/collection coordination, invoicing).
+  - Payment/invoicing notes (invoices/receipts, VAT where required).
+  - Who data is shared with (only necessary service providers if any; otherwise state it’s not sold).
+  - Retention period (reasonable business/invoicing requirements).
+  - User rights and how to contact: info@sultanstamp.ie
+  - Cookies/analytics section if the site uses them (only include what is actually enabled).
 
-Remove any Products links from footer, menus, CTA buttons, or homepage sections.
+5) Site wiring / UX
+- Ensure these pages are reachable from the footer (and any legal links area).
+- Ensure routes are consistent (use existing paths if already in the project, otherwise create):
+  - /terms
+  - /privacy
+  - /refund-policy
+- Add “Last updated” date to each page.
+- Keep styling consistent with the rest of the website.
 
-Homepage
-
-Completely hide the “Best Sellers — Our Most Ordered Print Products” section (no rendering and no empty spacing).
-
-Do not fetch product data for the homepage when Products are OFF.
-
-Pages / Routes
-
-Block public access to any product pages:
-
-/products
-
-/products/[slug] (or any product detail route)
-
-any category pages or product-related routes
-Return 404 or redirect to /.
-
-API / Data
-
-Block public product APIs when Products are OFF (return 404/403 or empty response).
-
-Admin endpoints (e.g. /admin/products) must still work normally.
-
-Search / Sitemap
-
-Remove product pages from sitemap / internal search results (if implemented).
-
-3) When productsPublicEnabled = true (Products ON)
-
-Show Products tab and all product pages normally.
-
-Show Best Sellers section on the homepage normally (and fetch data).
-
-Acceptance criteria
-
-Turning Products OFF removes Products from navbar + homepage + all public routes/APIs.
-
-Admin can still manage products in the admin panel.
-
-Turning Products ON restores everything."
+Deliverable
+- Updated page components/content for Privacy Policy, Terms of Service, and Refund Policy.
+- Footer/legal links updated accordingly."
 - Only address errors if they block the specific functionality requested by the user.
