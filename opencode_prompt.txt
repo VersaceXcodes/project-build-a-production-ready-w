@@ -1,91 +1,61 @@
-Update the website’s legal pages using the PDF in project storage named:
-“SultanStamp Terma & Conditions.pdf” (this PDF is the single source of truth for Terms, payments, revisions, turnaround times, and refunds/cancellations).
+Add an admin-editable “Legal” section inside Admin → System Settings.
 
-Goal: Refresh these pages and ensure the site links to them correctly:
-- Privacy Policy
-- Terms of Service
-- Refund Policy
+UI / Navigation
+1) In /admin/settings, add a new top-level tab called “Legal” positioned next to “Audit Logs” (same tab style as existing tabs).
+2) Inside the Legal tab, add sub-tabs:
+   - Terms of Service
+   - Privacy Policy
+   - Refund Policy
 
-1) Locate and read the PDF from project storage
-- Use the content inside the PDF to rewrite/replace the existing Terms of Service and Refund Policy.
-- Keep wording clear, professional, and formatted for a website (headings + bullet points).
-- Use: info@sultanstamp.ie as the contact email across all policies.
+Editing experience (Admin)
+3) Each sub-tab must have:
+   - A title header (e.g., “Edit Terms of Service”)
+   - A rich text editor or Markdown editor (Markdown preferred)
+   - Buttons: “Save” (publishes immediately) and “Preview” (shows public rendering)
+   - Show “Last updated” timestamp + “Updated by” (admin user)
 
-2) Terms of Service page (replace content)
-Create sections that reflect the PDF exactly in meaning and include the specific rules:
-A) Payment Terms
-- Projects are scheduled only after confirmation is received.
-- Small orders: full payment required upfront.
-- Medium/large projects: 50% deposit required to secure design/production/installation timelines.
-- Remaining balance must be paid before collection or installation.
-- Production/installation dates are confirmed only after payment clears.
-- Payment queries: info@sultanstamp.ie
+4) Terms of Service must support the current public layout that uses multiple sections (like Payment Terms, Tax/VAT Information, File Requirements, Refunds & Cancellations, Revision Policy, Turnaround Times):
+   - Store Terms as structured sections (array of { id, title, contentMarkdown, order })
+   - Admin can edit the content of each section
+   - Admin can reorder sections
+   - Optional: add/remove sections (but keep defaults)
 
-B) Tax / VAT
-- Prices in Euro (€).
-- VAT applied where required and itemised on invoices per Irish tax regulations.
-- Invoice/receipt issued for every transaction.
-- VAT/invoicing queries: info@sultanstamp.ie
+5) Privacy Policy and Refund Policy can be single-document editors (one content body each), rendered with headings and lists.
 
-C) File Requirements
-- Artwork should be supplied in PDF format.
-- Preferred: print-ready PDF, final size, high resolution (300dpi).
-- Include bleed/crop marks when required.
-- Colour settings should be checked prior to submission.
-- If unsure, customer can email files to info@sultanstamp.ie for review/support.
+Persistence / Data model
+6) Persist legal content in the database (not hardcoded files). Either:
+   A) A “legal_documents” table with rows for privacy/terms/refund, OR
+   B) System settings keys like:
+      - legal_privacy_markdown
+      - legal_refund_markdown
+      - legal_terms_sections_json
+   Include: updatedAt, updatedBy, and versioning (at least keep the previous version for rollback).
 
-D) Revision Policy
-- Basic package: up to 1 revision
-- Silver package: up to 2 revisions
-- Gold package: up to 3 revisions
-- Extra revisions or major changes may incur additional fees.
-- Final artwork approval confirms readiness for production.
+Public site behavior
+7) Public policy pages must render from the database content and update immediately after admin saves:
+   - Terms of Service page (the existing “Policies & Terms” public view) should be driven by the saved sections.
+   - Privacy Policy page should render saved Privacy content.
+   - Refund Policy page should render saved Refund content.
+   - Display “Last updated” on each public page using the saved updatedAt.
 
-E) Turnaround Times
-- Basic: 2–5 working days
-- Silver: 3–7 working days
-- Gold: 5–14 working days
-- Large-scale signage, vehicle graphics, or installation projects may need longer timelines.
-- Schedules confirmed at quotation stage.
-- For time-sensitive projects: customer should email info@sultanstamp.ie before ordering.
+8) If database content is empty (first run), seed the editor with the current existing page content so nothing breaks.
 
-F) Refunds & Cancellations (summary section here, and full detail in Refund Policy page)
-- SultanStamp products are custom-made per client.
-- Refund eligibility depends on when cancellation happens (see Refund Policy).
+Security / Safety
+9) Only authenticated admins can access/edit Legal settings.
+10) Sanitize rendered content (if using rich text) or safely render Markdown to prevent XSS.
 
-3) Refund Policy page (replace content; make it standalone + clear)
-Use the PDF’s refund/cancellation rules and present them as:
-- Overview: custom-made items produced specifically for each client.
-- Cancellations before design work begins: may be eligible for a refund.
-- Once design work begins: deposits are non-refundable.
-- After design approval or during production: cancellation charges apply based on work completed and materials used.
-- Completed custom signage/prints/decals: non-refundable.
-- How to request a cancellation: contact info@sultanstamp.ie as early as possible.
+Wiring / Routes
+11) Keep existing public routes if they already exist; otherwise create:
+   - /terms (or the existing Policies & Terms route)
+   - /privacy
+   - /refund-policy
+12) Ensure footer/legal links point to the correct public pages.
 
-4) Privacy Policy page (update + align)
-The PDF doesn’t define privacy details, so:
-- Keep existing privacy content if already present, but ensure it is consistent with how the site actually works.
-- At minimum ensure it includes:
-  - What data is collected (contact forms, order/quote details, uploaded artwork/files).
-  - Purpose of collection (quotes, production, installation/collection coordination, invoicing).
-  - Payment/invoicing notes (invoices/receipts, VAT where required).
-  - Who data is shared with (only necessary service providers if any; otherwise state it’s not sold).
-  - Retention period (reasonable business/invoicing requirements).
-  - User rights and how to contact: info@sultanstamp.ie
-  - Cookies/analytics section if the site uses them (only include what is actually enabled).
-
-5) Site wiring / UX
-- Ensure these pages are reachable from the footer (and any legal links area).
-- Ensure routes are consistent (use existing paths if already in the project, otherwise create):
-  - /terms
-  - /privacy
-  - /refund-policy
-- Add “Last updated” date to each page.
-- Keep styling consistent with the rest of the website.
-
-Deliverable
-- Updated page components/content for Privacy Policy, Terms of Service, and Refund Policy.
-- Footer/legal links updated accordingly.
+Acceptance criteria
+- “Legal” tab is visible in Admin → System Settings next to Audit Logs.
+- Admin can edit Terms, Privacy, and Refund content and click Save.
+- Changes instantly reflect on the public pages (no hard refresh required).
+- Terms page keeps the same section-based layout and “Jump to Section” behavior, driven by the saved section data.
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -96,92 +66,62 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "Update the website’s legal pages using the PDF in project storage named:
-“SultanStamp Terma & Conditions.pdf” (this PDF is the single source of truth for Terms, payments, revisions, turnaround times, and refunds/cancellations).
+- Focus solely on implementing the user's request: "Add an admin-editable “Legal” section inside Admin → System Settings.
 
-Goal: Refresh these pages and ensure the site links to them correctly:
-- Privacy Policy
-- Terms of Service
-- Refund Policy
+UI / Navigation
+1) In /admin/settings, add a new top-level tab called “Legal” positioned next to “Audit Logs” (same tab style as existing tabs).
+2) Inside the Legal tab, add sub-tabs:
+   - Terms of Service
+   - Privacy Policy
+   - Refund Policy
 
-1) Locate and read the PDF from project storage
-- Use the content inside the PDF to rewrite/replace the existing Terms of Service and Refund Policy.
-- Keep wording clear, professional, and formatted for a website (headings + bullet points).
-- Use: info@sultanstamp.ie as the contact email across all policies.
+Editing experience (Admin)
+3) Each sub-tab must have:
+   - A title header (e.g., “Edit Terms of Service”)
+   - A rich text editor or Markdown editor (Markdown preferred)
+   - Buttons: “Save” (publishes immediately) and “Preview” (shows public rendering)
+   - Show “Last updated” timestamp + “Updated by” (admin user)
 
-2) Terms of Service page (replace content)
-Create sections that reflect the PDF exactly in meaning and include the specific rules:
-A) Payment Terms
-- Projects are scheduled only after confirmation is received.
-- Small orders: full payment required upfront.
-- Medium/large projects: 50% deposit required to secure design/production/installation timelines.
-- Remaining balance must be paid before collection or installation.
-- Production/installation dates are confirmed only after payment clears.
-- Payment queries: info@sultanstamp.ie
+4) Terms of Service must support the current public layout that uses multiple sections (like Payment Terms, Tax/VAT Information, File Requirements, Refunds & Cancellations, Revision Policy, Turnaround Times):
+   - Store Terms as structured sections (array of { id, title, contentMarkdown, order })
+   - Admin can edit the content of each section
+   - Admin can reorder sections
+   - Optional: add/remove sections (but keep defaults)
 
-B) Tax / VAT
-- Prices in Euro (€).
-- VAT applied where required and itemised on invoices per Irish tax regulations.
-- Invoice/receipt issued for every transaction.
-- VAT/invoicing queries: info@sultanstamp.ie
+5) Privacy Policy and Refund Policy can be single-document editors (one content body each), rendered with headings and lists.
 
-C) File Requirements
-- Artwork should be supplied in PDF format.
-- Preferred: print-ready PDF, final size, high resolution (300dpi).
-- Include bleed/crop marks when required.
-- Colour settings should be checked prior to submission.
-- If unsure, customer can email files to info@sultanstamp.ie for review/support.
+Persistence / Data model
+6) Persist legal content in the database (not hardcoded files). Either:
+   A) A “legal_documents” table with rows for privacy/terms/refund, OR
+   B) System settings keys like:
+      - legal_privacy_markdown
+      - legal_refund_markdown
+      - legal_terms_sections_json
+   Include: updatedAt, updatedBy, and versioning (at least keep the previous version for rollback).
 
-D) Revision Policy
-- Basic package: up to 1 revision
-- Silver package: up to 2 revisions
-- Gold package: up to 3 revisions
-- Extra revisions or major changes may incur additional fees.
-- Final artwork approval confirms readiness for production.
+Public site behavior
+7) Public policy pages must render from the database content and update immediately after admin saves:
+   - Terms of Service page (the existing “Policies & Terms” public view) should be driven by the saved sections.
+   - Privacy Policy page should render saved Privacy content.
+   - Refund Policy page should render saved Refund content.
+   - Display “Last updated” on each public page using the saved updatedAt.
 
-E) Turnaround Times
-- Basic: 2–5 working days
-- Silver: 3–7 working days
-- Gold: 5–14 working days
-- Large-scale signage, vehicle graphics, or installation projects may need longer timelines.
-- Schedules confirmed at quotation stage.
-- For time-sensitive projects: customer should email info@sultanstamp.ie before ordering.
+8) If database content is empty (first run), seed the editor with the current existing page content so nothing breaks.
 
-F) Refunds & Cancellations (summary section here, and full detail in Refund Policy page)
-- SultanStamp products are custom-made per client.
-- Refund eligibility depends on when cancellation happens (see Refund Policy).
+Security / Safety
+9) Only authenticated admins can access/edit Legal settings.
+10) Sanitize rendered content (if using rich text) or safely render Markdown to prevent XSS.
 
-3) Refund Policy page (replace content; make it standalone + clear)
-Use the PDF’s refund/cancellation rules and present them as:
-- Overview: custom-made items produced specifically for each client.
-- Cancellations before design work begins: may be eligible for a refund.
-- Once design work begins: deposits are non-refundable.
-- After design approval or during production: cancellation charges apply based on work completed and materials used.
-- Completed custom signage/prints/decals: non-refundable.
-- How to request a cancellation: contact info@sultanstamp.ie as early as possible.
+Wiring / Routes
+11) Keep existing public routes if they already exist; otherwise create:
+   - /terms (or the existing Policies & Terms route)
+   - /privacy
+   - /refund-policy
+12) Ensure footer/legal links point to the correct public pages.
 
-4) Privacy Policy page (update + align)
-The PDF doesn’t define privacy details, so:
-- Keep existing privacy content if already present, but ensure it is consistent with how the site actually works.
-- At minimum ensure it includes:
-  - What data is collected (contact forms, order/quote details, uploaded artwork/files).
-  - Purpose of collection (quotes, production, installation/collection coordination, invoicing).
-  - Payment/invoicing notes (invoices/receipts, VAT where required).
-  - Who data is shared with (only necessary service providers if any; otherwise state it’s not sold).
-  - Retention period (reasonable business/invoicing requirements).
-  - User rights and how to contact: info@sultanstamp.ie
-  - Cookies/analytics section if the site uses them (only include what is actually enabled).
-
-5) Site wiring / UX
-- Ensure these pages are reachable from the footer (and any legal links area).
-- Ensure routes are consistent (use existing paths if already in the project, otherwise create):
-  - /terms
-  - /privacy
-  - /refund-policy
-- Add “Last updated” date to each page.
-- Keep styling consistent with the rest of the website.
-
-Deliverable
-- Updated page components/content for Privacy Policy, Terms of Service, and Refund Policy.
-- Footer/legal links updated accordingly."
+Acceptance criteria
+- “Legal” tab is visible in Admin → System Settings next to Audit Logs.
+- Admin can edit Terms, Privacy, and Refund content and click Save.
+- Changes instantly reflect on the public pages (no hard refresh required).
+- Terms page keeps the same section-based layout and “Jump to Section” behavior, driven by the saved section data."
 - Only address errors if they block the specific functionality requested by the user.
