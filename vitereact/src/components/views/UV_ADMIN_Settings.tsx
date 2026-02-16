@@ -87,6 +87,61 @@ interface PoliciesContent {
   turnaround: string;
 }
 
+// Pricing page types
+interface PricingSettings {
+  id: string;
+  page_title: string;
+  page_subtitle: string;
+  top_note: string;
+  bottom_note: string;
+  is_enabled: boolean;
+  updated_at: string;
+}
+
+interface PricingTierItem {
+  id: string;
+  section_id: string;
+  icon_type: 'dot' | 'check';
+  text: string;
+  display_order: number;
+}
+
+interface PricingTierSection {
+  id: string;
+  tier_id: string;
+  title: string;
+  display_order: number;
+  items: PricingTierItem[];
+}
+
+interface PricingTier {
+  id: string;
+  name: string;
+  subtitle: string;
+  price_label: string;
+  is_featured: boolean;
+  badge_text: string;
+  display_order: number;
+  is_active: boolean;
+  sections: PricingTierSection[];
+}
+
+interface PricingComparisonRow {
+  id: string;
+  feature_name: string;
+  basic_value: string;
+  standard_value: string;
+  gold_value: string;
+  enterprise_value: string;
+  display_order: number;
+}
+
+interface PricingData {
+  settings: PricingSettings;
+  tiers: PricingTier[];
+  comparison_rows: PricingComparisonRow[];
+}
+
 interface StripeSettingsState {
   stripe_enabled: boolean;
   stripe_mode: 'test' | 'live';
@@ -187,6 +242,22 @@ const UV_ADMIN_Settings: React.FC = () => {
   });
   const [policiesContentIds, setPoliciesContentIds] = useState<Record<string, string>>({});
   const [activePolicySection, setActivePolicySection] = useState<string>('payment_terms');
+
+  // Pricing page state
+  const [pricingSubTab, setPricingSubTab] = useState<'settings' | 'tiers' | 'comparison'>('settings');
+  const [pricingSettings, setPricingSettings] = useState<Partial<PricingSettings>>({});
+  const [expandedTiers, setExpandedTiers] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [showAddTierModal, setShowAddTierModal] = useState(false);
+  const [showAddSectionModal, setShowAddSectionModal] = useState<string | null>(null);
+  const [showAddItemModal, setShowAddItemModal] = useState<string | null>(null);
+  const [showAddComparisonModal, setShowAddComparisonModal] = useState(false);
+  const [showPricingDeleteConfirm, setShowPricingDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(null);
+  const [newTier, setNewTier] = useState({ name: '', subtitle: '', price_label: '', badge_text: '', is_featured: false });
+  const [newSection, setNewSection] = useState({ title: '' });
+  const [newItem, setNewItem] = useState({ text: '', icon_type: 'check' as 'dot' | 'check' });
+  const [newComparison, setNewComparison] = useState({ feature_name: '', basic_value: '', standard_value: '', gold_value: '', enterprise_value: '' });
+  const [pricingSaving, setPricingSaving] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -339,6 +410,27 @@ const UV_ADMIN_Settings: React.FC = () => {
     }
   }, [policiesData]);
 
+  // Fetch pricing page data
+  const { data: pricingData, isLoading: isLoadingPricing, refetch: refetchPricing } = useQuery({
+    queryKey: ['admin_pricing_page'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/pricing`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return response.data as PricingData;
+    },
+    enabled: !!authToken && activeTab === 'pricing',
+    staleTime: 30000,
+    retry: 1,
+  });
+
+  // Update pricing settings state when data is fetched
+  useEffect(() => {
+    if (pricingData?.settings) {
+      setPricingSettings(pricingData.settings);
+    }
+  }, [pricingData?.settings]);
+
   // ===========================
   // MUTATIONS
   // ===========================
@@ -439,6 +531,94 @@ const UV_ADMIN_Settings: React.FC = () => {
       });
     },
   });
+
+  // Pricing API functions
+  const savePricingSettings = async (settings: Partial<PricingSettings>) => {
+    const response = await axios.put(`${API_BASE_URL}/api/admin/pricing/settings`, settings, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const createPricingTier = async (tier: Partial<PricingTier>) => {
+    const response = await axios.post(`${API_BASE_URL}/api/admin/pricing/tiers`, tier, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const updatePricingTier = async (tierId: string, tier: Partial<PricingTier>) => {
+    const response = await axios.patch(`${API_BASE_URL}/api/admin/pricing/tiers/${tierId}`, tier, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const deletePricingTier = async (tierId: string) => {
+    await axios.delete(`${API_BASE_URL}/api/admin/pricing/tiers/${tierId}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  };
+
+  const createPricingSection = async (section: Partial<PricingTierSection>) => {
+    const response = await axios.post(`${API_BASE_URL}/api/admin/pricing/sections`, section, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const updatePricingSection = async (sectionId: string, section: Partial<PricingTierSection>) => {
+    const response = await axios.patch(`${API_BASE_URL}/api/admin/pricing/sections/${sectionId}`, section, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const deletePricingSection = async (sectionId: string) => {
+    await axios.delete(`${API_BASE_URL}/api/admin/pricing/sections/${sectionId}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  };
+
+  const createPricingItem = async (item: Partial<PricingTierItem>) => {
+    const response = await axios.post(`${API_BASE_URL}/api/admin/pricing/items`, item, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const updatePricingItem = async (itemId: string, item: Partial<PricingTierItem>) => {
+    const response = await axios.patch(`${API_BASE_URL}/api/admin/pricing/items/${itemId}`, item, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const deletePricingItem = async (itemId: string) => {
+    await axios.delete(`${API_BASE_URL}/api/admin/pricing/items/${itemId}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  };
+
+  const createPricingComparisonRow = async (row: Partial<PricingComparisonRow>) => {
+    const response = await axios.post(`${API_BASE_URL}/api/admin/pricing/comparison-rows`, row, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const updatePricingComparisonRow = async (rowId: string, row: Partial<PricingComparisonRow>) => {
+    const response = await axios.patch(`${API_BASE_URL}/api/admin/pricing/comparison-rows/${rowId}`, row, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  };
+
+  const deletePricingComparisonRow = async (rowId: string) => {
+    await axios.delete(`${API_BASE_URL}/api/admin/pricing/comparison-rows/${rowId}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+  };
 
   // ===========================
   // EVENT HANDLERS
@@ -754,6 +934,226 @@ const UV_ADMIN_Settings: React.FC = () => {
   ];
 
   // ===========================
+  // PRICING PAGE HANDLERS
+  // ===========================
+
+  const toggleTierExpand = (tierId: string) => {
+    setExpandedTiers(prev => {
+      const next = new Set(prev);
+      if (next.has(tierId)) next.delete(tierId);
+      else next.add(tierId);
+      return next;
+    });
+  };
+
+  const toggleSectionExpand = (sectionId: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const handleSavePricingSettings = async () => {
+    setPricingSaving(true);
+    try {
+      await savePricingSettings(pricingSettings);
+      showToast({ type: 'success', message: 'Pricing settings saved', duration: 3000 });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to save settings', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleTogglePricingEnabled = async () => {
+    if (!pricingData?.settings) return;
+    setPricingSaving(true);
+    try {
+      await savePricingSettings({ is_enabled: !pricingData.settings.is_enabled });
+      showToast({ type: 'success', message: `Pricing page ${pricingData.settings.is_enabled ? 'disabled' : 'enabled'}`, duration: 3000 });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to toggle', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleAddPricingTier = async () => {
+    if (!newTier.name) return;
+    setPricingSaving(true);
+    try {
+      const maxOrder = Math.max(...(pricingData?.tiers.map(t => t.display_order) || [0]), 0);
+      await createPricingTier({ ...newTier, display_order: maxOrder + 1, is_active: true });
+      showToast({ type: 'success', message: 'Tier created', duration: 3000 });
+      setShowAddTierModal(false);
+      setNewTier({ name: '', subtitle: '', price_label: '', badge_text: '', is_featured: false });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to create tier', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleUpdatePricingTier = async (tierId: string, updates: Partial<PricingTier>) => {
+    try {
+      await updatePricingTier(tierId, updates);
+      showToast({ type: 'success', message: 'Tier updated', duration: 2000 });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to update tier', duration: 5000 });
+    }
+  };
+
+  const handleDeletePricingTier = async (tierId: string) => {
+    setPricingSaving(true);
+    try {
+      await deletePricingTier(tierId);
+      showToast({ type: 'success', message: 'Tier deleted', duration: 3000 });
+      setShowPricingDeleteConfirm(null);
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete tier', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleAddPricingSection = async (tierId: string) => {
+    if (!newSection.title) return;
+    setPricingSaving(true);
+    try {
+      const tier = pricingData?.tiers.find(t => t.id === tierId);
+      const maxOrder = Math.max(...(tier?.sections.map(s => s.display_order) || [0]), 0);
+      await createPricingSection({ tier_id: tierId, title: newSection.title, display_order: maxOrder + 1 });
+      showToast({ type: 'success', message: 'Section created', duration: 3000 });
+      setShowAddSectionModal(null);
+      setNewSection({ title: '' });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to create section', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleUpdatePricingSection = async (sectionId: string, updates: Partial<PricingTierSection>) => {
+    try {
+      await updatePricingSection(sectionId, updates);
+      showToast({ type: 'success', message: 'Section updated', duration: 2000 });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to update section', duration: 5000 });
+    }
+  };
+
+  const handleDeletePricingSection = async (sectionId: string) => {
+    setPricingSaving(true);
+    try {
+      await deletePricingSection(sectionId);
+      showToast({ type: 'success', message: 'Section deleted', duration: 3000 });
+      setShowPricingDeleteConfirm(null);
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete section', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleAddPricingItem = async (sectionId: string) => {
+    if (!newItem.text) return;
+    setPricingSaving(true);
+    try {
+      let maxOrder = 0;
+      pricingData?.tiers.forEach(tier => {
+        tier.sections.forEach(section => {
+          if (section.id === sectionId) {
+            maxOrder = Math.max(...(section.items.map(i => i.display_order) || [0]), 0);
+          }
+        });
+      });
+      await createPricingItem({ section_id: sectionId, text: newItem.text, icon_type: newItem.icon_type, display_order: maxOrder + 1 });
+      showToast({ type: 'success', message: 'Item created', duration: 3000 });
+      setShowAddItemModal(null);
+      setNewItem({ text: '', icon_type: 'check' });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to create item', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleUpdatePricingItem = async (itemId: string, updates: Partial<PricingTierItem>) => {
+    try {
+      await updatePricingItem(itemId, updates);
+      showToast({ type: 'success', message: 'Item updated', duration: 2000 });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to update item', duration: 5000 });
+    }
+  };
+
+  const handleDeletePricingItem = async (itemId: string) => {
+    setPricingSaving(true);
+    try {
+      await deletePricingItem(itemId);
+      showToast({ type: 'success', message: 'Item deleted', duration: 3000 });
+      setShowPricingDeleteConfirm(null);
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete item', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleAddPricingComparisonRow = async () => {
+    if (!newComparison.feature_name) return;
+    setPricingSaving(true);
+    try {
+      const maxOrder = Math.max(...(pricingData?.comparison_rows.map(r => r.display_order) || [0]), 0);
+      await createPricingComparisonRow({ ...newComparison, display_order: maxOrder + 1 });
+      showToast({ type: 'success', message: 'Comparison row created', duration: 3000 });
+      setShowAddComparisonModal(false);
+      setNewComparison({ feature_name: '', basic_value: '', standard_value: '', gold_value: '', enterprise_value: '' });
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to create row', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  const handleUpdatePricingComparisonRow = async (rowId: string, updates: Partial<PricingComparisonRow>) => {
+    try {
+      await updatePricingComparisonRow(rowId, updates);
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to update row', duration: 5000 });
+    }
+  };
+
+  const handleDeletePricingComparisonRow = async (rowId: string) => {
+    setPricingSaving(true);
+    try {
+      await deletePricingComparisonRow(rowId);
+      showToast({ type: 'success', message: 'Row deleted', duration: 3000 });
+      setShowPricingDeleteConfirm(null);
+      refetchPricing();
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.response?.data?.message || 'Failed to delete row', duration: 5000 });
+    } finally {
+      setPricingSaving(false);
+    }
+  };
+
+  // ===========================
   // RENDER
   // ===========================
 
@@ -791,6 +1191,7 @@ const UV_ADMIN_Settings: React.FC = () => {
                 { id: 'calendar', label: 'Calendar Settings' },
                 { id: 'audit', label: 'Audit Logs' },
                 { id: 'legal', label: 'Legal' },
+                { id: 'pricing', label: 'Pricing' },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1820,10 +2221,484 @@ const UV_ADMIN_Settings: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* Pricing Tab */}
+              {activeTab === 'pricing' && (
+                <div className="space-y-6">
+                  {/* Header with Enable Toggle and Preview */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Pricing Page</h2>
+                        <p className="text-gray-600 mt-1">Configure the public pricing page at /pricing</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg">
+                          <span className="text-sm font-medium text-gray-700">Public</span>
+                          <button
+                            onClick={handleTogglePricingEnabled}
+                            disabled={pricingSaving}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              pricingData?.settings?.is_enabled ? 'bg-green-500' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                pricingData?.settings?.is_enabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                          <span className={`text-sm font-medium ${pricingData?.settings?.is_enabled ? 'text-green-600' : 'text-gray-500'}`}>
+                            {pricingData?.settings?.is_enabled ? 'On' : 'Off'}
+                          </span>
+                        </div>
+                        <a
+                          href="/pricing"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 flex items-center gap-2 text-sm"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Preview
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sub-tabs */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                    <div className="flex space-x-4 overflow-x-auto">
+                      {[
+                        { id: 'settings', label: 'Page Settings' },
+                        { id: 'tiers', label: 'Pricing Tiers' },
+                        { id: 'comparison', label: 'Comparison Matrix' },
+                      ].map(subTab => (
+                        <button
+                          key={subTab.id}
+                          onClick={() => setPricingSubTab(subTab.id as typeof pricingSubTab)}
+                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
+                            pricingSubTab === subTab.id
+                              ? 'bg-yellow-400 text-gray-900'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {subTab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {isLoadingPricing ? (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Settings Sub-tab */}
+                      {pricingSubTab === 'settings' && pricingData?.settings && (
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                          <h3 className="text-xl font-bold text-gray-900 mb-6">Page Settings</h3>
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Page Title</label>
+                                <input
+                                  type="text"
+                                  value={pricingSettings.page_title || ''}
+                                  onChange={(e) => setPricingSettings({ ...pricingSettings, page_title: e.target.value })}
+                                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-yellow-500 focus:ring-4 focus:ring-yellow-100 transition-all"
+                                  placeholder="Our Service Tiers"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Page Subtitle</label>
+                                <input
+                                  type="text"
+                                  value={pricingSettings.page_subtitle || ''}
+                                  onChange={(e) => setPricingSettings({ ...pricingSettings, page_subtitle: e.target.value })}
+                                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-yellow-500 focus:ring-4 focus:ring-yellow-100 transition-all"
+                                  placeholder="Choose the tier that best fits your project needs"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Top Note</label>
+                              <textarea
+                                value={pricingSettings.top_note || ''}
+                                onChange={(e) => setPricingSettings({ ...pricingSettings, top_note: e.target.value })}
+                                rows={3}
+                                className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-yellow-500 focus:ring-4 focus:ring-yellow-100 transition-all"
+                                placeholder="Optional note displayed above pricing tiers"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Bottom Note</label>
+                              <textarea
+                                value={pricingSettings.bottom_note || ''}
+                                onChange={(e) => setPricingSettings({ ...pricingSettings, bottom_note: e.target.value })}
+                                rows={3}
+                                className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-yellow-500 focus:ring-4 focus:ring-yellow-100 transition-all"
+                                placeholder="Optional note displayed below pricing tiers"
+                              />
+                            </div>
+                            <button
+                              onClick={handleSavePricingSettings}
+                              disabled={pricingSaving}
+                              className="w-full px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 shadow-lg"
+                            >
+                              {pricingSaving ? 'Saving...' : 'Save Settings'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tiers Sub-tab */}
+                      {pricingSubTab === 'tiers' && (
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                          <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-gray-900">Pricing Tiers</h3>
+                            <button
+                              onClick={() => setShowAddTierModal(true)}
+                              className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-yellow-500 flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              Add Tier
+                            </button>
+                          </div>
+
+                          <div className="space-y-4">
+                            {pricingData?.tiers.map((tier) => (
+                              <div key={tier.id} className="border-2 border-gray-200 rounded-lg overflow-hidden">
+                                <div
+                                  className={`flex items-center justify-between px-4 py-3 cursor-pointer ${tier.is_featured ? 'bg-yellow-50' : 'bg-gray-50'}`}
+                                  onClick={() => toggleTierExpand(tier.id)}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <svg className={`w-5 h-5 text-gray-500 transition-transform ${expandedTiers.has(tier.id) ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-900">{tier.name}</span>
+                                        {tier.is_featured && <span className="text-xs bg-yellow-400 text-black px-2 py-0.5 rounded-full font-medium">Featured</span>}
+                                        {!tier.is_active && <span className="text-xs bg-gray-400 text-white px-2 py-0.5 rounded-full">Inactive</span>}
+                                      </div>
+                                      <p className="text-sm text-gray-500">{tier.subtitle}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => handleUpdatePricingTier(tier.id, { is_active: !tier.is_active })}
+                                      className={`text-xs px-3 py-1 rounded ${tier.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
+                                    >
+                                      {tier.is_active ? 'Active' : 'Inactive'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdatePricingTier(tier.id, { is_featured: !tier.is_featured })}
+                                      className={`text-xs px-3 py-1 rounded ${tier.is_featured ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}
+                                    >
+                                      Featured
+                                    </button>
+                                    <button
+                                      onClick={() => setShowPricingDeleteConfirm({ type: 'tier', id: tier.id, name: tier.name })}
+                                      className="text-red-600 hover:text-red-700 p-1"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {expandedTiers.has(tier.id) && (
+                                  <div className="p-4 bg-white border-t border-gray-200">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-100">
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                                        <input type="text" defaultValue={tier.name} onBlur={(e) => e.target.value !== tier.name && handleUpdatePricingTier(tier.id, { name: e.target.value })} className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-yellow-500" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Subtitle</label>
+                                        <input type="text" defaultValue={tier.subtitle} onBlur={(e) => e.target.value !== tier.subtitle && handleUpdatePricingTier(tier.id, { subtitle: e.target.value })} className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-yellow-500" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">Price Label</label>
+                                        <input type="text" defaultValue={tier.price_label} onBlur={(e) => e.target.value !== tier.price_label && handleUpdatePricingTier(tier.id, { price_label: e.target.value })} className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-yellow-500" />
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                      <div className="flex justify-between items-center">
+                                        <h4 className="text-sm font-medium text-gray-700">Sections & Features</h4>
+                                        <button onClick={() => setShowAddSectionModal(tier.id)} className="text-sm text-yellow-600 hover:text-yellow-700 font-medium">+ Add Section</button>
+                                      </div>
+
+                                      {tier.sections.map((section) => (
+                                        <div key={section.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                                          <div className="flex items-center justify-between px-3 py-2 bg-gray-50 cursor-pointer" onClick={() => toggleSectionExpand(section.id)}>
+                                            <div className="flex items-center gap-2">
+                                              <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.has(section.id) ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                              </svg>
+                                              <input type="text" defaultValue={section.title} onClick={(e) => e.stopPropagation()} onBlur={(e) => e.target.value !== section.title && handleUpdatePricingSection(section.id, { title: e.target.value })} className="text-sm font-medium text-gray-800 bg-transparent border-0 focus:ring-0 p-0" />
+                                            </div>
+                                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                              <button onClick={() => setShowAddItemModal(section.id)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">+ Item</button>
+                                              <button onClick={() => setShowPricingDeleteConfirm({ type: 'section', id: section.id, name: section.title })} className="text-red-500 hover:text-red-600 p-1">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          {expandedSections.has(section.id) && (
+                                            <div className="p-3 bg-white space-y-2">
+                                              {section.items.map((item) => (
+                                                <div key={item.id} className="flex items-center gap-2 group">
+                                                  <select value={item.icon_type} onChange={(e) => handleUpdatePricingItem(item.id, { icon_type: e.target.value as 'dot' | 'check' })} className="text-xs border border-gray-200 rounded px-1 py-0.5">
+                                                    <option value="check">Check</option>
+                                                    <option value="dot">Dot</option>
+                                                  </select>
+                                                  <input type="text" defaultValue={item.text} onBlur={(e) => e.target.value !== item.text && handleUpdatePricingItem(item.id, { text: e.target.value })} className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-yellow-500" />
+                                                  <button onClick={() => setShowPricingDeleteConfirm({ type: 'item', id: item.id, name: item.text.slice(0, 30) })} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                  </button>
+                                                </div>
+                                              ))}
+                                              {section.items.length === 0 && <p className="text-xs text-gray-400 italic">No items yet.</p>}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                      {tier.sections.length === 0 && <p className="text-sm text-gray-400 italic py-2">No sections yet.</p>}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            {pricingData?.tiers.length === 0 && (
+                              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">No pricing tiers yet. Click "Add Tier" to create one.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Comparison Matrix Sub-tab */}
+                      {pricingSubTab === 'comparison' && (
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                          <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-gray-900">Comparison Matrix</h3>
+                            <button
+                              onClick={() => setShowAddComparisonModal(true)}
+                              className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-yellow-500 flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              Add Row
+                            </button>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Feature</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Basic</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Standard</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Gold</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Enterprise</th>
+                                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-16">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {pricingData?.comparison_rows.map((row) => (
+                                  <tr key={row.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2">
+                                      <input type="text" defaultValue={row.feature_name} onBlur={(e) => e.target.value !== row.feature_name && handleUpdatePricingComparisonRow(row.id, { feature_name: e.target.value })} className="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-yellow-500" />
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <input type="text" defaultValue={row.basic_value} onBlur={(e) => e.target.value !== row.basic_value && handleUpdatePricingComparisonRow(row.id, { basic_value: e.target.value })} className="w-full text-sm text-center border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-yellow-500" />
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <input type="text" defaultValue={row.standard_value} onBlur={(e) => e.target.value !== row.standard_value && handleUpdatePricingComparisonRow(row.id, { standard_value: e.target.value })} className="w-full text-sm text-center border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-yellow-500" />
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <input type="text" defaultValue={row.gold_value} onBlur={(e) => e.target.value !== row.gold_value && handleUpdatePricingComparisonRow(row.id, { gold_value: e.target.value })} className="w-full text-sm text-center border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-yellow-500" />
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <input type="text" defaultValue={row.enterprise_value} onBlur={(e) => e.target.value !== row.enterprise_value && handleUpdatePricingComparisonRow(row.id, { enterprise_value: e.target.value })} className="w-full text-sm text-center border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-yellow-500" />
+                                    </td>
+                                    <td className="px-4 py-2 text-center">
+                                      <button onClick={() => setShowPricingDeleteConfirm({ type: 'comparison', id: row.id, name: row.feature_name })} className="text-red-500 hover:text-red-600 p-1">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {pricingData?.comparison_rows.length === 0 && (
+                            <div className="text-center py-12 bg-gray-50 rounded-lg mt-4">
+                              <p className="text-gray-500">No comparison rows yet. Click "Add Row" to create one.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {/* Pricing Modals */}
+      {/* Add Tier Modal */}
+      {showAddTierModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Tier</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input type="text" value={newTier.name} onChange={(e) => setNewTier({ ...newTier, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., Premium" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                <input type="text" value={newTier.subtitle} onChange={(e) => setNewTier({ ...newTier, subtitle: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., For growing businesses" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price Label</label>
+                <input type="text" value={newTier.price_label} onChange={(e) => setNewTier({ ...newTier, price_label: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., Custom Quote" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="pricing_is_featured" checked={newTier.is_featured} onChange={(e) => setNewTier({ ...newTier, is_featured: e.target.checked })} className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" />
+                <label htmlFor="pricing_is_featured" className="text-sm text-gray-700">Mark as Featured</label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => { setShowAddTierModal(false); setNewTier({ name: '', subtitle: '', price_label: '', badge_text: '', is_featured: false }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+              <button onClick={handleAddPricingTier} disabled={!newTier.name || pricingSaving} className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 disabled:opacity-50">{pricingSaving ? 'Creating...' : 'Create Tier'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Section Modal */}
+      {showAddSectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Section</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Section Title *</label>
+              <input type="text" value={newSection.title} onChange={(e) => setNewSection({ title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., Delivery & Timeline" />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => { setShowAddSectionModal(null); setNewSection({ title: '' }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+              <button onClick={() => handleAddPricingSection(showAddSectionModal)} disabled={!newSection.title || pricingSaving} className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 disabled:opacity-50">{pricingSaving ? 'Creating...' : 'Create Section'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Item Modal */}
+      {showAddItemModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Item</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Text *</label>
+                <input type="text" value={newItem.text} onChange={(e) => setNewItem({ ...newItem, text: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., Standard delivery (5-7 business days)" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon Type</label>
+                <select value={newItem.icon_type} onChange={(e) => setNewItem({ ...newItem, icon_type: e.target.value as 'dot' | 'check' })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                  <option value="check">Checkmark</option>
+                  <option value="dot">Bullet Dot</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => { setShowAddItemModal(null); setNewItem({ text: '', icon_type: 'check' }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+              <button onClick={() => handleAddPricingItem(showAddItemModal)} disabled={!newItem.text || pricingSaving} className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 disabled:opacity-50">{pricingSaving ? 'Creating...' : 'Create Item'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Comparison Row Modal */}
+      {showAddComparisonModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Comparison Row</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Feature Name *</label>
+                <input type="text" value={newComparison.feature_name} onChange={(e) => setNewComparison({ ...newComparison, feature_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., Turnaround Time" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Basic Value</label>
+                  <input type="text" value={newComparison.basic_value} onChange={(e) => setNewComparison({ ...newComparison, basic_value: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., 7-10 days" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Standard Value</label>
+                  <input type="text" value={newComparison.standard_value} onChange={(e) => setNewComparison({ ...newComparison, standard_value: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., 5-7 days" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gold Value</label>
+                  <input type="text" value={newComparison.gold_value} onChange={(e) => setNewComparison({ ...newComparison, gold_value: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., 3-5 days" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Enterprise Value</label>
+                  <input type="text" value={newComparison.enterprise_value} onChange={(e) => setNewComparison({ ...newComparison, enterprise_value: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" placeholder="e.g., 1-2 days" />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => { setShowAddComparisonModal(false); setNewComparison({ feature_name: '', basic_value: '', standard_value: '', gold_value: '', enterprise_value: '' }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+              <button onClick={handleAddPricingComparisonRow} disabled={!newComparison.feature_name || pricingSaving} className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 disabled:opacity-50">{pricingSaving ? 'Creating...' : 'Create Row'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Delete Confirmation Modal */}
+      {showPricingDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+            <p className="text-gray-600 mb-4">Are you sure you want to delete "{showPricingDeleteConfirm.name}"? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowPricingDeleteConfirm(null)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+              <button
+                onClick={() => {
+                  if (showPricingDeleteConfirm.type === 'tier') handleDeletePricingTier(showPricingDeleteConfirm.id);
+                  else if (showPricingDeleteConfirm.type === 'section') handleDeletePricingSection(showPricingDeleteConfirm.id);
+                  else if (showPricingDeleteConfirm.type === 'item') handleDeletePricingItem(showPricingDeleteConfirm.id);
+                  else if (showPricingDeleteConfirm.type === 'comparison') handleDeletePricingComparisonRow(showPricingDeleteConfirm.id);
+                }}
+                disabled={pricingSaving}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {pricingSaving ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
