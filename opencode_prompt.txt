@@ -1,4 +1,4 @@
-i want to be able to edit my " Portfolio " from admin settings where i can upload images and videos from my laptop and they can be stored in the storage of the project when I upload them directly to the website. also create a new tab from the drop down under settings name it " Portfolio " this is where i can edit my Portfolio "image" from delete, add description for each image or video etc
+when i click on Upload for Portfolio Media it gives me this error "frame_ant.js:2  POST https://123project-build-a-production-ready-w.launchpulse.ai/api/uploads 500 (Internal Server Error)" and " {"message":"Internal server error"} " please fix it as the upload for Upload Portfolio Media dose not work
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -9,5 +9,5 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "i want to be able to edit my " Portfolio " from admin settings where i can upload images and videos from my laptop and they can be stored in the storage of the project when I upload them directly to the website. also create a new tab from the drop down under settings name it " Portfolio " this is where i can edit my Portfolio "image" from delete, add description for each image or video etc"
+- Focus solely on implementing the user's request: "when i click on Upload for Portfolio Media it gives me this error "frame_ant.js:2  POST https://123project-build-a-production-ready-w.launchpulse.ai/api/uploads 500 (Internal Server Error)" and " {"message":"Internal server error"} " please fix it as the upload for Upload Portfolio Media dose not work"
 - Only address errors if they block the specific functionality requested by the user.

@@ -75,6 +75,7 @@ app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 app.use(morgan('dev'));
 app.use(express.static(publicDir));
+app.use('/storage', express.static(storageDir));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -2417,6 +2418,43 @@ app.get('/api/admin/gallery-images', authenticateToken, requireRole(['ADMIN']), 
   } catch (error) {
     console.error('List admin gallery images error:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Portfolio file upload - saves to local storage
+app.post('/api/admin/portfolio-upload', authenticateToken, requireRole(['ADMIN']), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'File required' });
+    }
+    
+    // Validate file type (images and videos)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ message: 'File must be an image (JPG, PNG, GIF, WEBP) or video (MP4, MOV, WEBM)' });
+    }
+    
+    // Generate unique filename
+    const ext = req.file.originalname.split('.').pop() || 'jpg';
+    const filename = `${uuidv4()}-${Date.now()}.${ext}`;
+    const filepath = path.join(storageDir, filename);
+    
+    // Write file to storage directory
+    fs.writeFileSync(filepath, req.file.buffer);
+    
+    // Construct the public URL
+    const fileUrl = `/storage/${filename}`;
+    
+    res.status(201).json({ 
+      file_url: fileUrl,
+      filename: filename,
+      original_name: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error('Portfolio upload error:', error);
+    res.status(500).json({ message: 'Failed to upload file' });
   }
 });
 

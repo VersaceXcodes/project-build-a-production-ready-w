@@ -275,7 +275,6 @@ const UV_ADMIN_Settings: React.FC = () => {
   const [pricingSaving, setPricingSaving] = useState(false);
 
   // Portfolio state
-  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [showPortfolioUploadModal, setShowPortfolioUploadModal] = useState(false);
   const [showPortfolioEditModal, setShowPortfolioEditModal] = useState(false);
   const [showPortfolioDeleteConfirm, setShowPortfolioDeleteConfirm] = useState<PortfolioItem | null>(null);
@@ -467,7 +466,7 @@ const UV_ADMIN_Settings: React.FC = () => {
   }, [pricingData?.settings]);
 
   // Fetch portfolio items (gallery images)
-  const { data: portfolioData, isLoading: isLoadingPortfolio, refetch: refetchPortfolio } = useQuery({
+  const { data: portfolioData, isLoading: isLoadingPortfolio } = useQuery({
     queryKey: ['admin_portfolio'],
     queryFn: async () => {
       const response = await axios.get(`${API_BASE_URL}/api/admin/gallery-images`, {
@@ -476,16 +475,10 @@ const UV_ADMIN_Settings: React.FC = () => {
       return response.data as PortfolioItem[];
     },
     enabled: !!authToken && activeTab === 'portfolio',
-    staleTime: 30000,
+    staleTime: 0, // Always refetch when query is invalidated
+    refetchOnMount: true,
     retry: 1,
   });
-
-  // Update portfolio state when data is fetched
-  useEffect(() => {
-    if (portfolioData) {
-      setPortfolioItems(portfolioData);
-    }
-  }, [portfolioData]);
 
   // ===========================
   // MUTATIONS
@@ -702,20 +695,27 @@ const UV_ADMIN_Settings: React.FC = () => {
 
     setUploadingPortfolio(true);
     try {
-      // First upload the file
+      // First upload the file using the dedicated portfolio upload endpoint
       const formData = new FormData();
       formData.append('file', portfolioFile);
       
-      const uploadResponse = await axios.post(`${API_BASE_URL}/api/uploads`, formData, {
+      console.log('Uploading portfolio file...', portfolioFile.name);
+      const uploadResponse = await axios.post(`${API_BASE_URL}/api/admin/portfolio-upload`, formData, {
         headers: { 
           Authorization: `Bearer ${authToken}`,
           'Content-Type': 'multipart/form-data',
         },
       });
       
+      console.log('Upload response:', uploadResponse.data);
       const fileUrl = uploadResponse.data.file_url;
       
+      if (!fileUrl) {
+        throw new Error('No file URL returned from upload');
+      }
+      
       // Then create the gallery image entry
+      console.log('Creating gallery image entry...');
       await axios.post(`${API_BASE_URL}/api/admin/gallery-images`, {
         title: portfolioUploadForm.title,
         image_url: fileUrl,
@@ -732,9 +732,12 @@ const UV_ADMIN_Settings: React.FC = () => {
       setPortfolioUploadForm({ title: '', description: '', media_type: 'image' });
       setPortfolioFile(null);
       setPortfolioFilePreview(null);
-      refetchPortfolio();
+      
+      // Invalidate and refetch portfolio data
+      queryClient.invalidateQueries({ queryKey: ['admin_portfolio'] });
     } catch (error: any) {
-      showToast({ type: 'error', message: error.response?.data?.message || 'Failed to upload portfolio item', duration: 5000 });
+      console.error('Portfolio upload error:', error);
+      showToast({ type: 'error', message: error.response?.data?.message || error.message || 'Failed to upload portfolio item', duration: 5000 });
     } finally {
       setUploadingPortfolio(false);
     }
@@ -765,7 +768,7 @@ const UV_ADMIN_Settings: React.FC = () => {
       showToast({ type: 'success', message: 'Portfolio item updated successfully', duration: 3000 });
       setShowPortfolioEditModal(false);
       setSelectedPortfolioItem(null);
-      refetchPortfolio();
+      queryClient.invalidateQueries({ queryKey: ['admin_portfolio'] });
     } catch (error: any) {
       showToast({ type: 'error', message: error.response?.data?.message || 'Failed to update portfolio item', duration: 5000 });
     }
@@ -775,14 +778,19 @@ const UV_ADMIN_Settings: React.FC = () => {
     if (!showPortfolioDeleteConfirm) return;
     
     try {
+      console.log('Deleting portfolio item:', showPortfolioDeleteConfirm.id);
       await axios.delete(`${API_BASE_URL}/api/admin/gallery-images/${showPortfolioDeleteConfirm.id}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
+      console.log('Delete successful');
       showToast({ type: 'success', message: 'Portfolio item deleted successfully', duration: 3000 });
       setShowPortfolioDeleteConfirm(null);
-      refetchPortfolio();
+      
+      // Invalidate and refetch portfolio data
+      queryClient.invalidateQueries({ queryKey: ['admin_portfolio'] });
     } catch (error: any) {
+      console.error('Delete error:', error);
       showToast({ type: 'error', message: error.response?.data?.message || 'Failed to delete portfolio item', duration: 5000 });
     }
   };
@@ -2772,7 +2780,7 @@ const UV_ADMIN_Settings: React.FC = () => {
                       <div className="flex items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                       </div>
-                    ) : portfolioItems.length === 0 ? (
+                    ) : (!portfolioData || portfolioData.length === 0) ? (
                       <div className="text-center py-16">
                         <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -2790,11 +2798,11 @@ const UV_ADMIN_Settings: React.FC = () => {
                       <>
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {portfolioItems.length} Portfolio Item{portfolioItems.length !== 1 ? 's' : ''}
+                            {portfolioData.length} Portfolio Item{portfolioData.length !== 1 ? 's' : ''}
                           </h3>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                          {portfolioItems.map((item) => (
+                          {portfolioData.map((item) => (
                             <div 
                               key={item.id} 
                               className={`group relative rounded-xl overflow-hidden shadow-md border-2 transition-all duration-200 hover:shadow-xl ${
