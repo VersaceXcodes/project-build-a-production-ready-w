@@ -4395,6 +4395,525 @@ app.get('/api/public/settings/products-enabled', async (req, res) => {
   }
 });
 
+// =====================================================
+// PRICING PAGE API ENDPOINTS
+// =====================================================
+
+// Public: Get pricing page data (for public pricing page)
+app.get('/api/public/pricing', async (req, res) => {
+  try {
+    // Get settings
+    const settingsRes = await pool.query('SELECT * FROM pricing_settings LIMIT 1');
+    const settings = settingsRes.rows[0] || null;
+    
+    // If pricing is disabled, return empty data with enabled: false
+    if (!settings || !settings.is_enabled) {
+      return res.json({ 
+        enabled: false, 
+        settings: null, 
+        tiers: [], 
+        comparison_rows: [] 
+      });
+    }
+    
+    // Get all active tiers with their sections and items
+    const tiersRes = await pool.query(
+      'SELECT * FROM pricing_tiers WHERE is_active = true ORDER BY display_order'
+    );
+    
+    const tiers = [];
+    for (const tier of tiersRes.rows) {
+      // Get sections for this tier
+      const sectionsRes = await pool.query(
+        'SELECT * FROM pricing_tier_sections WHERE tier_id = $1 ORDER BY display_order',
+        [tier.id]
+      );
+      
+      const sections = [];
+      for (const section of sectionsRes.rows) {
+        // Get items for this section
+        const itemsRes = await pool.query(
+          'SELECT * FROM pricing_tier_items WHERE section_id = $1 ORDER BY display_order',
+          [section.id]
+        );
+        sections.push({
+          ...section,
+          items: itemsRes.rows
+        });
+      }
+      
+      tiers.push({
+        ...tier,
+        sections
+      });
+    }
+    
+    // Get comparison matrix rows
+    const comparisonRes = await pool.query(
+      'SELECT * FROM pricing_comparison_rows ORDER BY display_order'
+    );
+    
+    res.json({
+      enabled: true,
+      settings,
+      tiers,
+      comparison_rows: comparisonRes.rows
+    });
+  } catch (error: any) {
+    console.error('Get public pricing error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Public: Check if pricing page is enabled
+app.get('/api/public/settings/pricing-enabled', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT is_enabled FROM pricing_settings LIMIT 1');
+    const enabled = result.rows.length > 0 ? result.rows[0].is_enabled : false;
+    res.json({ pricingEnabled: enabled });
+  } catch (error) {
+    console.error('Get pricing enabled setting error:', error);
+    res.json({ pricingEnabled: false });
+  }
+});
+
+// Admin: Get full pricing data for editing
+app.get('/api/admin/pricing', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    // Get settings
+    const settingsRes = await pool.query('SELECT * FROM pricing_settings LIMIT 1');
+    let settings = settingsRes.rows[0];
+    
+    // Create default settings if not exists
+    if (!settings) {
+      const settingsId = uuidv4();
+      const now = new Date().toISOString();
+      await pool.query(
+        `INSERT INTO pricing_settings (id, page_title, page_subtitle, top_note, bottom_note, is_enabled, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [settingsId, 'Our Service Tiers', 'Choose the tier that best fits your project needs', '', '', true, now]
+      );
+      const newSettingsRes = await pool.query('SELECT * FROM pricing_settings WHERE id = $1', [settingsId]);
+      settings = newSettingsRes.rows[0];
+    }
+    
+    // Get all tiers (including inactive for admin)
+    const tiersRes = await pool.query('SELECT * FROM pricing_tiers ORDER BY display_order');
+    
+    const tiers = [];
+    for (const tier of tiersRes.rows) {
+      const sectionsRes = await pool.query(
+        'SELECT * FROM pricing_tier_sections WHERE tier_id = $1 ORDER BY display_order',
+        [tier.id]
+      );
+      
+      const sections = [];
+      for (const section of sectionsRes.rows) {
+        const itemsRes = await pool.query(
+          'SELECT * FROM pricing_tier_items WHERE section_id = $1 ORDER BY display_order',
+          [section.id]
+        );
+        sections.push({
+          ...section,
+          items: itemsRes.rows
+        });
+      }
+      
+      tiers.push({
+        ...tier,
+        sections
+      });
+    }
+    
+    // Get comparison matrix rows
+    const comparisonRes = await pool.query('SELECT * FROM pricing_comparison_rows ORDER BY display_order');
+    
+    res.json({
+      settings,
+      tiers,
+      comparison_rows: comparisonRes.rows
+    });
+  } catch (error: any) {
+    console.error('Get admin pricing error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Admin: Update pricing settings
+app.put('/api/admin/pricing/settings', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { page_title, page_subtitle, top_note, bottom_note, is_enabled } = req.body;
+    const now = new Date().toISOString();
+    
+    // Check if settings exist
+    const existingRes = await pool.query('SELECT id FROM pricing_settings LIMIT 1');
+    
+    if (existingRes.rows.length === 0) {
+      // Create new settings
+      const settingsId = uuidv4();
+      await pool.query(
+        `INSERT INTO pricing_settings (id, page_title, page_subtitle, top_note, bottom_note, is_enabled, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [settingsId, page_title || 'Our Service Tiers', page_subtitle || '', top_note || '', bottom_note || '', is_enabled !== false, now]
+      );
+    } else {
+      // Update existing settings
+      const updates: string[] = [];
+      const params: any[] = [];
+      
+      if (page_title !== undefined) { params.push(page_title); updates.push(`page_title = $${params.length}`); }
+      if (page_subtitle !== undefined) { params.push(page_subtitle); updates.push(`page_subtitle = $${params.length}`); }
+      if (top_note !== undefined) { params.push(top_note); updates.push(`top_note = $${params.length}`); }
+      if (bottom_note !== undefined) { params.push(bottom_note); updates.push(`bottom_note = $${params.length}`); }
+      if (is_enabled !== undefined) { params.push(is_enabled); updates.push(`is_enabled = $${params.length}`); }
+      
+      if (updates.length > 0) {
+        params.push(now);
+        updates.push(`updated_at = $${params.length}`);
+        params.push(existingRes.rows[0].id);
+        await pool.query(`UPDATE pricing_settings SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+      }
+    }
+    
+    const result = await pool.query('SELECT * FROM pricing_settings LIMIT 1');
+    await createAuditLog(req.user.id, 'UPDATE', 'PRICING_SETTINGS', result.rows[0]?.id || 'new', req.body, req.ip);
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update pricing settings error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Admin: CRUD for pricing tiers
+app.post('/api/admin/pricing/tiers', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { name, subtitle, price_label, is_featured, badge_text, display_order } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ message: 'name is required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      `INSERT INTO pricing_tiers (id, name, subtitle, price_label, is_featured, badge_text, display_order, is_active, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [id, name, subtitle || null, price_label || 'Custom Quote', is_featured || false, badge_text || null, display_order || 0, true, now, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM pricing_tiers WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'PRICING_TIER', id, { name }, req.ip);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Create pricing tier error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/pricing/tiers/:tier_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { tier_id } = req.params;
+    const { name, subtitle, price_label, is_featured, badge_text, display_order, is_active } = req.body;
+    
+    const existing = await pool.query('SELECT * FROM pricing_tiers WHERE id = $1', [tier_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Tier not found' });
+    }
+    
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (name !== undefined) { params.push(name); updates.push(`name = $${params.length}`); }
+    if (subtitle !== undefined) { params.push(subtitle); updates.push(`subtitle = $${params.length}`); }
+    if (price_label !== undefined) { params.push(price_label); updates.push(`price_label = $${params.length}`); }
+    if (is_featured !== undefined) { params.push(is_featured); updates.push(`is_featured = $${params.length}`); }
+    if (badge_text !== undefined) { params.push(badge_text); updates.push(`badge_text = $${params.length}`); }
+    if (display_order !== undefined) { params.push(display_order); updates.push(`display_order = $${params.length}`); }
+    if (is_active !== undefined) { params.push(is_active); updates.push(`is_active = $${params.length}`); }
+    
+    if (updates.length > 0) {
+      params.push(new Date().toISOString());
+      updates.push(`updated_at = $${params.length}`);
+      params.push(tier_id);
+      await pool.query(`UPDATE pricing_tiers SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const result = await pool.query('SELECT * FROM pricing_tiers WHERE id = $1', [tier_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'PRICING_TIER', tier_id, req.body, req.ip);
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update pricing tier error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/pricing/tiers/:tier_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { tier_id } = req.params;
+    
+    const existing = await pool.query('SELECT * FROM pricing_tiers WHERE id = $1', [tier_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Tier not found' });
+    }
+    
+    // Delete cascade will handle sections and items
+    await pool.query('DELETE FROM pricing_tiers WHERE id = $1', [tier_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'PRICING_TIER', tier_id, null, req.ip);
+    
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Delete pricing tier error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Admin: CRUD for pricing tier sections
+app.post('/api/admin/pricing/sections', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { tier_id, section_title, display_order } = req.body;
+    
+    if (!tier_id || !section_title) {
+      return res.status(400).json({ message: 'tier_id and section_title are required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      `INSERT INTO pricing_tier_sections (id, tier_id, section_title, display_order, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, tier_id, section_title, display_order || 0, now, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM pricing_tier_sections WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'PRICING_SECTION', id, { tier_id, section_title }, req.ip);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Create pricing section error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/pricing/sections/:section_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { section_id } = req.params;
+    const { section_title, display_order } = req.body;
+    
+    const existing = await pool.query('SELECT * FROM pricing_tier_sections WHERE id = $1', [section_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Section not found' });
+    }
+    
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (section_title !== undefined) { params.push(section_title); updates.push(`section_title = $${params.length}`); }
+    if (display_order !== undefined) { params.push(display_order); updates.push(`display_order = $${params.length}`); }
+    
+    if (updates.length > 0) {
+      params.push(new Date().toISOString());
+      updates.push(`updated_at = $${params.length}`);
+      params.push(section_id);
+      await pool.query(`UPDATE pricing_tier_sections SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const result = await pool.query('SELECT * FROM pricing_tier_sections WHERE id = $1', [section_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'PRICING_SECTION', section_id, req.body, req.ip);
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update pricing section error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/pricing/sections/:section_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { section_id } = req.params;
+    
+    const existing = await pool.query('SELECT * FROM pricing_tier_sections WHERE id = $1', [section_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Section not found' });
+    }
+    
+    await pool.query('DELETE FROM pricing_tier_sections WHERE id = $1', [section_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'PRICING_SECTION', section_id, null, req.ip);
+    
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Delete pricing section error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Admin: CRUD for pricing tier items
+app.post('/api/admin/pricing/items', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { section_id, icon_type, item_text, display_order } = req.body;
+    
+    if (!section_id || !item_text) {
+      return res.status(400).json({ message: 'section_id and item_text are required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      `INSERT INTO pricing_tier_items (id, section_id, icon_type, item_text, display_order, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, section_id, icon_type || 'check', item_text, display_order || 0, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM pricing_tier_items WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'PRICING_ITEM', id, { section_id, item_text }, req.ip);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Create pricing item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/pricing/items/:item_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { item_id } = req.params;
+    const { icon_type, item_text, display_order } = req.body;
+    
+    const existing = await pool.query('SELECT * FROM pricing_tier_items WHERE id = $1', [item_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (icon_type !== undefined) { params.push(icon_type); updates.push(`icon_type = $${params.length}`); }
+    if (item_text !== undefined) { params.push(item_text); updates.push(`item_text = $${params.length}`); }
+    if (display_order !== undefined) { params.push(display_order); updates.push(`display_order = $${params.length}`); }
+    
+    if (updates.length > 0) {
+      params.push(item_id);
+      await pool.query(`UPDATE pricing_tier_items SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const result = await pool.query('SELECT * FROM pricing_tier_items WHERE id = $1', [item_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'PRICING_ITEM', item_id, req.body, req.ip);
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update pricing item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/pricing/items/:item_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { item_id } = req.params;
+    
+    const existing = await pool.query('SELECT * FROM pricing_tier_items WHERE id = $1', [item_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    
+    await pool.query('DELETE FROM pricing_tier_items WHERE id = $1', [item_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'PRICING_ITEM', item_id, null, req.ip);
+    
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Delete pricing item error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Admin: CRUD for pricing comparison rows
+app.post('/api/admin/pricing/comparison-rows', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { feature_name, basic_value, standard_value, gold_value, enterprise_value, display_order } = req.body;
+    
+    if (!feature_name) {
+      return res.status(400).json({ message: 'feature_name is required' });
+    }
+    
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    
+    await pool.query(
+      `INSERT INTO pricing_comparison_rows (id, feature_name, basic_value, standard_value, gold_value, enterprise_value, display_order, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [id, feature_name, basic_value || null, standard_value || null, gold_value || null, enterprise_value || null, display_order || 0, now, now]
+    );
+    
+    const result = await pool.query('SELECT * FROM pricing_comparison_rows WHERE id = $1', [id]);
+    await createAuditLog(req.user.id, 'CREATE', 'PRICING_COMPARISON_ROW', id, { feature_name }, req.ip);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Create comparison row error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.patch('/api/admin/pricing/comparison-rows/:row_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { row_id } = req.params;
+    const { feature_name, basic_value, standard_value, gold_value, enterprise_value, display_order } = req.body;
+    
+    const existing = await pool.query('SELECT * FROM pricing_comparison_rows WHERE id = $1', [row_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Comparison row not found' });
+    }
+    
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (feature_name !== undefined) { params.push(feature_name); updates.push(`feature_name = $${params.length}`); }
+    if (basic_value !== undefined) { params.push(basic_value); updates.push(`basic_value = $${params.length}`); }
+    if (standard_value !== undefined) { params.push(standard_value); updates.push(`standard_value = $${params.length}`); }
+    if (gold_value !== undefined) { params.push(gold_value); updates.push(`gold_value = $${params.length}`); }
+    if (enterprise_value !== undefined) { params.push(enterprise_value); updates.push(`enterprise_value = $${params.length}`); }
+    if (display_order !== undefined) { params.push(display_order); updates.push(`display_order = $${params.length}`); }
+    
+    if (updates.length > 0) {
+      params.push(new Date().toISOString());
+      updates.push(`updated_at = $${params.length}`);
+      params.push(row_id);
+      await pool.query(`UPDATE pricing_comparison_rows SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+    }
+    
+    const result = await pool.query('SELECT * FROM pricing_comparison_rows WHERE id = $1', [row_id]);
+    await createAuditLog(req.user.id, 'UPDATE', 'PRICING_COMPARISON_ROW', row_id, req.body, req.ip);
+    
+    res.json(result.rows[0]);
+  } catch (error: any) {
+    console.error('Update comparison row error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/admin/pricing/comparison-rows/:row_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { row_id } = req.params;
+    
+    const existing = await pool.query('SELECT * FROM pricing_comparison_rows WHERE id = $1', [row_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Comparison row not found' });
+    }
+    
+    await pool.query('DELETE FROM pricing_comparison_rows WHERE id = $1', [row_id]);
+    await createAuditLog(req.user.id, 'DELETE', 'PRICING_COMPARISON_ROW', row_id, null, req.ip);
+    
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Delete comparison row error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -4494,6 +5013,93 @@ async function runMigrations() {
       }
     }
     console.log('Migration complete: default print configs inserted for products');
+    
+    // Migration: Create pricing page tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pricing_settings (
+        id TEXT PRIMARY KEY,
+        page_title TEXT NOT NULL DEFAULT 'Our Service Tiers',
+        page_subtitle TEXT,
+        top_note TEXT,
+        bottom_note TEXT,
+        is_enabled BOOLEAN NOT NULL DEFAULT true,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: pricing_settings table created');
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pricing_tiers (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        subtitle TEXT,
+        price_label TEXT NOT NULL DEFAULT 'Custom Quote',
+        is_featured BOOLEAN NOT NULL DEFAULT false,
+        badge_text TEXT,
+        display_order NUMERIC NOT NULL DEFAULT 0,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: pricing_tiers table created');
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pricing_tier_sections (
+        id TEXT PRIMARY KEY,
+        tier_id TEXT NOT NULL REFERENCES pricing_tiers(id) ON DELETE CASCADE,
+        section_title TEXT NOT NULL,
+        display_order NUMERIC NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: pricing_tier_sections table created');
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pricing_tier_items (
+        id TEXT PRIMARY KEY,
+        section_id TEXT NOT NULL REFERENCES pricing_tier_sections(id) ON DELETE CASCADE,
+        icon_type TEXT NOT NULL DEFAULT 'check',
+        item_text TEXT NOT NULL,
+        display_order NUMERIC NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: pricing_tier_items table created');
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pricing_comparison_rows (
+        id TEXT PRIMARY KEY,
+        feature_name TEXT NOT NULL,
+        basic_value TEXT,
+        standard_value TEXT,
+        gold_value TEXT,
+        enterprise_value TEXT,
+        display_order NUMERIC NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    console.log('Migration complete: pricing_comparison_rows table created');
+    
+    // Insert default pricing settings if not exists
+    const existingSettings = await pool.query('SELECT id FROM pricing_settings LIMIT 1');
+    if (existingSettings.rows.length === 0) {
+      await pool.query(`
+        INSERT INTO pricing_settings (id, page_title, page_subtitle, top_note, bottom_note, is_enabled, updated_at) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        'pricing_settings_001',
+        'Our Service Tiers',
+        'Choose the tier that best fits your project needs',
+        'All tiers include access to our full range of printing services. Pricing varies based on project specifications and volume.',
+        'Need something custom? Contact us for a personalized quote tailored to your specific requirements.',
+        true,
+        new Date().toISOString()
+      ]);
+      console.log('Migration complete: default pricing settings inserted');
+    }
     
   } catch (error) {
     console.error('Migration error:', error);

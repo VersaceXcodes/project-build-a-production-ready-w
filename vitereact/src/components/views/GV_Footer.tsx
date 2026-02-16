@@ -68,9 +68,47 @@ const GV_Footer: React.FC = () => {
               </div>
             </div>
 
-            {/* Section 2: Legal Links */}
+            {/* Section 2: Quick Links */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Legal</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
+              <nav aria-label="Quick links">
+                <ul className="space-y-3">
+                  <li>
+                    <Link
+                      to="/services"
+                      className="text-gray-700 hover:text-black text-sm transition-colors"
+                    >
+                      Services
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/pricing"
+                      className="text-gray-700 hover:text-black text-sm transition-colors"
+                    >
+                      Pricing
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/gallery"
+                      className="text-gray-700 hover:text-black text-sm transition-colors"
+                    >
+                      Portfolio
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/contact"
+                      className="text-gray-700 hover:text-black text-sm transition-colors"
+                    >
+                      Contact
+                    </Link>
+                  </li>
+                </ul>
+              </nav>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-6">Legal</h3>
               <nav aria-label="Legal links">
                 <ul className="space-y-3">
                   <li>

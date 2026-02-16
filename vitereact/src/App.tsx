@@ -66,6 +66,7 @@ import UV_ADMIN_PricingRules from '@/components/views/UV_ADMIN_PricingRules';
 import UV_ADMIN_CalendarSettings from '@/components/views/UV_ADMIN_CalendarSettings';
 import UV_ADMIN_Settings from '@/components/views/UV_ADMIN_Settings';
 import UV_ADMIN_ProductsManager from '@/components/views/UV_ADMIN_ProductsManager';
+import UV_ADMIN_PricingPage from '@/components/views/UV_ADMIN_PricingPage';
 
 // Admin Phase 2 views
 import UV_P2_InventoryDashboard from '@/components/views/UV_P2_InventoryDashboard';
@@ -305,6 +306,9 @@ const App: React.FC = () => {
             } />
             <Route path="/admin/settings" element={
               <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_Settings /></ProtectedRoute>
+            } />
+            <Route path="/admin/pricing-page" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}><UV_ADMIN_PricingPage /></ProtectedRoute>
             } />
 
             {/* ===== ADMIN PHASE 2 ROUTES ===== */}

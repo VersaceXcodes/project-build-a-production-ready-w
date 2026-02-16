@@ -1134,6 +1134,75 @@ CREATE TABLE IF NOT EXISTS product_print_config (
     updated_at TEXT NOT NULL
 );
 
+-- =====================================================
+-- PRICING PAGE TABLES
+-- =====================================================
+
+-- Drop pricing tables if they exist (for clean migration)
+DROP TABLE IF EXISTS pricing_comparison_rows CASCADE;
+DROP TABLE IF EXISTS pricing_tier_items CASCADE;
+DROP TABLE IF EXISTS pricing_tier_sections CASCADE;
+DROP TABLE IF EXISTS pricing_tiers CASCADE;
+DROP TABLE IF EXISTS pricing_settings CASCADE;
+
+-- Pricing page settings
+CREATE TABLE pricing_settings (
+    id TEXT PRIMARY KEY,
+    page_title TEXT NOT NULL DEFAULT 'Our Service Tiers',
+    page_subtitle TEXT,
+    top_note TEXT,
+    bottom_note TEXT,
+    is_enabled BOOLEAN NOT NULL DEFAULT true,
+    updated_at TEXT NOT NULL
+);
+
+-- Pricing tiers (Basic, Standard, Gold, Enterprise)
+CREATE TABLE pricing_tiers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    subtitle TEXT,
+    price_label TEXT NOT NULL DEFAULT 'Custom Quote',
+    is_featured BOOLEAN NOT NULL DEFAULT false,
+    badge_text TEXT,
+    display_order NUMERIC NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Pricing tier sections (groups of features within a tier)
+CREATE TABLE pricing_tier_sections (
+    id TEXT PRIMARY KEY,
+    tier_id TEXT NOT NULL REFERENCES pricing_tiers(id) ON DELETE CASCADE,
+    section_title TEXT NOT NULL,
+    display_order NUMERIC NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Pricing tier items (individual bullet items within a section)
+CREATE TABLE pricing_tier_items (
+    id TEXT PRIMARY KEY,
+    section_id TEXT NOT NULL REFERENCES pricing_tier_sections(id) ON DELETE CASCADE,
+    icon_type TEXT NOT NULL DEFAULT 'check',  -- 'dot' or 'check'
+    item_text TEXT NOT NULL,
+    display_order NUMERIC NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+-- Pricing comparison matrix rows
+CREATE TABLE pricing_comparison_rows (
+    id TEXT PRIMARY KEY,
+    feature_name TEXT NOT NULL,
+    basic_value TEXT,
+    standard_value TEXT,
+    gold_value TEXT,
+    enterprise_value TEXT,
+    display_order NUMERIC NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- Insert product images
 INSERT INTO product_images (id, product_id, image_url, alt_text, sort_order, is_primary, created_at) VALUES
 ('pimg_001', 'prod_001', 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=800', 'Business cards stack', 1, true, '2024-01-01T08:00:00Z'),
@@ -1152,3 +1221,120 @@ INSERT INTO product_print_config (id, product_id, sides, requires_design_upload,
 ('ppc_004', 'prod_004', '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back","required":false}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
 ('ppc_005', 'prod_005', '[{"key":"front","label":"Front","required":true}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
 ('ppc_006', 'prod_006', '[{"key":"front","label":"Front","required":true},{"key":"back","label":"Back (Flap)","required":false}]', true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- =====================================================
+-- PRICING PAGE SEED DATA
+-- =====================================================
+
+-- Insert pricing settings
+INSERT INTO pricing_settings (id, page_title, page_subtitle, top_note, bottom_note, is_enabled, updated_at) VALUES
+('pricing_settings_001', 'Our Service Tiers', 'Choose the tier that best fits your project needs', 'All tiers include access to our full range of printing services. Pricing varies based on project specifications and volume.', 'Need something custom? Contact us for a personalized quote tailored to your specific requirements.', true, '2024-01-01T08:00:00Z');
+
+-- Insert pricing tiers
+INSERT INTO pricing_tiers (id, name, subtitle, price_label, is_featured, badge_text, display_order, is_active, created_at, updated_at) VALUES
+('ptier_001', 'Basic', 'Essential printing for simple projects', 'From $25', false, NULL, 1, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ptier_002', 'Standard', 'Our most popular tier for growing businesses', 'From $75', true, 'Most Popular', 2, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ptier_003', 'Gold', 'Premium service with priority support', 'From $150', false, NULL, 3, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('ptier_004', 'Enterprise', 'Custom solutions for large organizations', 'Contact Us', false, NULL, 4, true, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier sections for BASIC tier
+INSERT INTO pricing_tier_sections (id, tier_id, section_title, display_order, created_at, updated_at) VALUES
+('psec_001', 'ptier_001', 'Delivery & Timeline', 1, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_002', 'ptier_001', 'Order Parameters', 2, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_003', 'ptier_001', 'Design Support', 3, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_004', 'ptier_001', 'Support', 4, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier sections for STANDARD tier
+INSERT INTO pricing_tier_sections (id, tier_id, section_title, display_order, created_at, updated_at) VALUES
+('psec_005', 'ptier_002', 'Delivery & Timeline', 1, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_006', 'ptier_002', 'Order Parameters', 2, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_007', 'ptier_002', 'Design Support', 3, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_008', 'ptier_002', 'Support', 4, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier sections for GOLD tier
+INSERT INTO pricing_tier_sections (id, tier_id, section_title, display_order, created_at, updated_at) VALUES
+('psec_009', 'ptier_003', 'Delivery & Timeline', 1, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_010', 'ptier_003', 'Order Parameters', 2, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_011', 'ptier_003', 'Design Support', 3, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_012', 'ptier_003', 'Support', 4, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier sections for ENTERPRISE tier
+INSERT INTO pricing_tier_sections (id, tier_id, section_title, display_order, created_at, updated_at) VALUES
+('psec_013', 'ptier_004', 'Delivery & Timeline', 1, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_014', 'ptier_004', 'Order Parameters', 2, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_015', 'ptier_004', 'Design Support', 3, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('psec_016', 'ptier_004', 'Support', 4, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier items for BASIC tier (using dots)
+INSERT INTO pricing_tier_items (id, section_id, icon_type, item_text, display_order, created_at) VALUES
+('pitem_001', 'psec_001', 'dot', '7-10 business days turnaround', 1, '2024-01-01T08:00:00Z'),
+('pitem_002', 'psec_001', 'dot', 'Standard shipping included', 2, '2024-01-01T08:00:00Z'),
+('pitem_003', 'psec_002', 'dot', 'Minimum order quantities apply', 1, '2024-01-01T08:00:00Z'),
+('pitem_004', 'psec_002', 'dot', 'Standard paper stocks', 2, '2024-01-01T08:00:00Z'),
+('pitem_005', 'psec_003', 'dot', '1 design proof included', 1, '2024-01-01T08:00:00Z'),
+('pitem_006', 'psec_003', 'dot', '2 revisions included', 2, '2024-01-01T08:00:00Z'),
+('pitem_007', 'psec_004', 'dot', 'Email support', 1, '2024-01-01T08:00:00Z'),
+('pitem_008', 'psec_004', 'dot', '48-hour response time', 2, '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier items for STANDARD tier (using checks)
+INSERT INTO pricing_tier_items (id, section_id, icon_type, item_text, display_order, created_at) VALUES
+('pitem_009', 'psec_005', 'check', '5-7 business days turnaround', 1, '2024-01-01T08:00:00Z'),
+('pitem_010', 'psec_005', 'check', 'Free shipping on orders over $100', 2, '2024-01-01T08:00:00Z'),
+('pitem_011', 'psec_005', 'check', 'Rush service available (+20%)', 3, '2024-01-01T08:00:00Z'),
+('pitem_012', 'psec_006', 'check', 'Flexible order quantities', 1, '2024-01-01T08:00:00Z'),
+('pitem_013', 'psec_006', 'check', 'Premium paper options', 2, '2024-01-01T08:00:00Z'),
+('pitem_014', 'psec_006', 'check', 'Special finishes available', 3, '2024-01-01T08:00:00Z'),
+('pitem_015', 'psec_007', 'check', '2 design proofs included', 1, '2024-01-01T08:00:00Z'),
+('pitem_016', 'psec_007', 'check', '4 revisions included', 2, '2024-01-01T08:00:00Z'),
+('pitem_017', 'psec_007', 'check', 'Basic design assistance', 3, '2024-01-01T08:00:00Z'),
+('pitem_018', 'psec_008', 'check', 'Email & phone support', 1, '2024-01-01T08:00:00Z'),
+('pitem_019', 'psec_008', 'check', '24-hour response time', 2, '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier items for GOLD tier (using checks)
+INSERT INTO pricing_tier_items (id, section_id, icon_type, item_text, display_order, created_at) VALUES
+('pitem_020', 'psec_009', 'check', '3-5 business days turnaround', 1, '2024-01-01T08:00:00Z'),
+('pitem_021', 'psec_009', 'check', 'Free express shipping', 2, '2024-01-01T08:00:00Z'),
+('pitem_022', 'psec_009', 'check', 'Rush service available (+15%)', 3, '2024-01-01T08:00:00Z'),
+('pitem_023', 'psec_009', 'check', 'Same-week delivery option', 4, '2024-01-01T08:00:00Z'),
+('pitem_024', 'psec_010', 'check', 'No minimum order quantities', 1, '2024-01-01T08:00:00Z'),
+('pitem_025', 'psec_010', 'check', 'All paper stocks & finishes', 2, '2024-01-01T08:00:00Z'),
+('pitem_026', 'psec_010', 'check', 'Custom die-cutting available', 3, '2024-01-01T08:00:00Z'),
+('pitem_027', 'psec_011', 'check', '3 design proofs included', 1, '2024-01-01T08:00:00Z'),
+('pitem_028', 'psec_011', 'check', 'Unlimited revisions', 2, '2024-01-01T08:00:00Z'),
+('pitem_029', 'psec_011', 'check', 'Professional design review', 3, '2024-01-01T08:00:00Z'),
+('pitem_030', 'psec_012', 'check', 'Priority phone & email support', 1, '2024-01-01T08:00:00Z'),
+('pitem_031', 'psec_012', 'check', 'Dedicated account manager', 2, '2024-01-01T08:00:00Z'),
+('pitem_032', 'psec_012', 'check', 'Same-day response guarantee', 3, '2024-01-01T08:00:00Z');
+
+-- Insert pricing tier items for ENTERPRISE tier (using checks)
+INSERT INTO pricing_tier_items (id, section_id, icon_type, item_text, display_order, created_at) VALUES
+('pitem_033', 'psec_013', 'check', '1-3 business days turnaround', 1, '2024-01-01T08:00:00Z'),
+('pitem_034', 'psec_013', 'check', 'Free same-day local delivery', 2, '2024-01-01T08:00:00Z'),
+('pitem_035', 'psec_013', 'check', 'Emergency rush available', 3, '2024-01-01T08:00:00Z'),
+('pitem_036', 'psec_013', 'check', 'Dedicated production queue', 4, '2024-01-01T08:00:00Z'),
+('pitem_037', 'psec_014', 'check', 'Custom volume pricing', 1, '2024-01-01T08:00:00Z'),
+('pitem_038', 'psec_014', 'check', 'All materials & finishes', 2, '2024-01-01T08:00:00Z'),
+('pitem_039', 'psec_014', 'check', 'Custom specifications', 3, '2024-01-01T08:00:00Z'),
+('pitem_040', 'psec_014', 'check', 'Multi-location fulfillment', 4, '2024-01-01T08:00:00Z'),
+('pitem_041', 'psec_015', 'check', 'Unlimited proofs & revisions', 1, '2024-01-01T08:00:00Z'),
+('pitem_042', 'psec_015', 'check', 'In-house design team access', 2, '2024-01-01T08:00:00Z'),
+('pitem_043', 'psec_015', 'check', 'Brand consistency review', 3, '2024-01-01T08:00:00Z'),
+('pitem_044', 'psec_016', 'check', '24/7 dedicated support line', 1, '2024-01-01T08:00:00Z'),
+('pitem_045', 'psec_016', 'check', 'Senior account manager', 2, '2024-01-01T08:00:00Z'),
+('pitem_046', 'psec_016', 'check', 'Quarterly business reviews', 3, '2024-01-01T08:00:00Z'),
+('pitem_047', 'psec_016', 'check', 'API integration support', 4, '2024-01-01T08:00:00Z');
+
+-- Insert pricing comparison matrix rows
+INSERT INTO pricing_comparison_rows (id, feature_name, basic_value, standard_value, gold_value, enterprise_value, display_order, created_at, updated_at) VALUES
+('pcmp_001', 'Turnaround Time', '7-10 days', '5-7 days', '3-5 days', '1-3 days', 1, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_002', 'Rush Service', 'Not Available', '+20%', '+15%', 'Included', 2, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_003', 'Design Proofs', '1', '2', '3', 'Unlimited', 3, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_004', 'Revisions', '2', '4', 'Unlimited', 'Unlimited', 4, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_005', 'Paper Options', 'Standard', 'Premium', 'All', 'All + Custom', 5, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_006', 'Special Finishes', 'Limited', 'Available', 'All Included', 'All + Custom', 6, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_007', 'Minimum Order', 'Yes', 'Flexible', 'None', 'None', 7, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_008', 'Free Shipping', 'No', 'Over $100', 'Always', 'Always', 8, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_009', 'Support Level', 'Email', 'Email + Phone', 'Priority', '24/7 Dedicated', 9, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_010', 'Response Time', '48 hours', '24 hours', 'Same Day', 'Instant', 10, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_011', 'Account Manager', 'No', 'No', 'Yes', 'Senior', 11, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z'),
+('pcmp_012', 'Volume Discounts', 'No', '5%', '10%', 'Custom', 12, '2024-01-01T08:00:00Z', '2024-01-01T08:00:00Z');
