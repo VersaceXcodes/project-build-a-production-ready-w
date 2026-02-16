@@ -69,6 +69,24 @@ interface LegalDocument {
   created_at: string;
 }
 
+// Marketing content for policies page
+interface PolicyContentItem {
+  id: string;
+  page_key: string;
+  section_key: string;
+  content: string;
+  updated_at: string;
+}
+
+interface PoliciesContent {
+  payment_terms: string;
+  tax_vat: string;
+  file_requirements: string;
+  refunds_cancellations: string;
+  revisions: string;
+  turnaround: string;
+}
+
 interface StripeSettingsState {
   stripe_enabled: boolean;
   stripe_mode: 'test' | 'live';
@@ -152,11 +170,23 @@ const UV_ADMIN_Settings: React.FC = () => {
   const [expandedAuditLog, setExpandedAuditLog] = useState<string | null>(null);
   
   // Legal document states
-  const [legalSubTab, setLegalSubTab] = useState<string>(searchParams.get('legal') || 'terms');
+  const [legalSubTab, setLegalSubTab] = useState<string>(searchParams.get('legal') || 'policies');
   const [termsSections, setTermsSections] = useState<TermsSection[]>([]);
   const [privacyContent, setPrivacyContent] = useState<string>('');
   const [refundContent, setRefundContent] = useState<string>('');
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  
+  // Policies page content (marketing_content table)
+  const [policiesContent, setPoliciesContent] = useState<PoliciesContent>({
+    payment_terms: '',
+    tax_vat: '',
+    file_requirements: '',
+    refunds_cancellations: '',
+    revisions: '',
+    turnaround: '',
+  });
+  const [policiesContentIds, setPoliciesContentIds] = useState<Record<string, string>>({});
+  const [activePolicySection, setActivePolicySection] = useState<string>('payment_terms');
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -269,6 +299,46 @@ const UV_ADMIN_Settings: React.FC = () => {
     }
   }, [legalDocData, legalSubTab]);
 
+  // Fetch policies page content (marketing_content)
+  const { data: policiesData, isLoading: isLoadingPolicies } = useQuery({
+    queryKey: ['admin_policies_content'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/marketing-content`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        params: { page_key: 'policies' },
+      });
+      return response.data as PolicyContentItem[];
+    },
+    enabled: !!authToken && activeTab === 'legal' && legalSubTab === 'policies',
+    staleTime: 30000,
+    retry: 1,
+  });
+
+  // Update policies state when data is fetched
+  useEffect(() => {
+    if (policiesData) {
+      const content: PoliciesContent = {
+        payment_terms: '',
+        tax_vat: '',
+        file_requirements: '',
+        refunds_cancellations: '',
+        revisions: '',
+        turnaround: '',
+      };
+      const ids: Record<string, string> = {};
+      
+      policiesData.forEach((item) => {
+        if (item.section_key in content) {
+          content[item.section_key as keyof PoliciesContent] = item.content;
+          ids[item.section_key] = item.id;
+        }
+      });
+      
+      setPoliciesContent(content);
+      setPoliciesContentIds(ids);
+    }
+  }, [policiesData]);
+
   // ===========================
   // MUTATIONS
   // ===========================
@@ -322,6 +392,49 @@ const UV_ADMIN_Settings: React.FC = () => {
       showToast({
         type: 'error',
         message: error.response?.data?.message || 'Failed to update legal document',
+        duration: 5000,
+      });
+    },
+  });
+
+  // Update policies content mutation (marketing_content)
+  const updatePoliciesMutation = useMutation({
+    mutationFn: async ({ sectionKey, content }: { sectionKey: string; content: string }) => {
+      const contentId = policiesContentIds[sectionKey];
+      if (contentId) {
+        // Update existing
+        const response = await axios.patch(
+          `${API_BASE_URL}/api/admin/marketing-content/${contentId}`,
+          { content },
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        return response.data;
+      } else {
+        // Create new
+        const response = await axios.post(
+          `${API_BASE_URL}/api/admin/marketing-content`,
+          { 
+            page_key: 'policies',
+            section_key: sectionKey,
+            content 
+          },
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+        return response.data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin_policies_content'] });
+      showToast({
+        type: 'success',
+        message: 'Policy content updated successfully',
+        duration: 3000,
+      });
+    },
+    onError: (error: any) => {
+      showToast({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to update policy content',
         duration: 5000,
       });
     },
@@ -612,6 +725,33 @@ const UV_ADMIN_Settings: React.FC = () => {
       content,
     });
   };
+
+  // Save policies content
+  const handleSavePolicyContent = async (sectionKey: string) => {
+    const content = policiesContent[sectionKey as keyof PoliciesContent];
+    await updatePoliciesMutation.mutateAsync({
+      sectionKey,
+      content,
+    });
+  };
+
+  // Update individual policy section content
+  const handlePolicyContentChange = (sectionKey: string, content: string) => {
+    setPoliciesContent(prev => ({
+      ...prev,
+      [sectionKey]: content,
+    }));
+  };
+
+  // Policy section labels
+  const policySections = [
+    { key: 'payment_terms', label: 'Payment Terms' },
+    { key: 'tax_vat', label: 'Tax/VAT Information' },
+    { key: 'file_requirements', label: 'File Requirements' },
+    { key: 'refunds_cancellations', label: 'Refunds & Cancellations' },
+    { key: 'revisions', label: 'Revision Policy' },
+    { key: 'turnaround', label: 'Turnaround Times' },
+  ];
 
   // ===========================
   // RENDER
@@ -1363,8 +1503,9 @@ const UV_ADMIN_Settings: React.FC = () => {
                 <div className="space-y-6">
                   {/* Sub-tabs Navigation */}
                   <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
-                    <div className="flex space-x-4">
+                    <div className="flex space-x-4 overflow-x-auto">
                       {[
+                        { id: 'policies', label: 'Policies Page' },
                         { id: 'terms', label: 'Terms of Service' },
                         { id: 'privacy', label: 'Privacy Policy' },
                         { id: 'refund', label: 'Refund Policy' },
@@ -1372,7 +1513,7 @@ const UV_ADMIN_Settings: React.FC = () => {
                         <button
                           key={subTab.id}
                           onClick={() => handleLegalSubTabChange(subTab.id)}
-                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
                             legalSubTab === subTab.id
                               ? 'bg-yellow-400 text-gray-900'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1384,52 +1525,127 @@ const UV_ADMIN_Settings: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Editor/Preview Toggle & Save */}
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <button
-                          onClick={() => setShowPreview(false)}
-                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                            !showPreview
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setShowPreview(true)}
-                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                            showPreview
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          Preview
-                        </button>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        {legalDocData && (
-                          <span className="text-sm text-gray-500">
-                            Last updated: {new Date(legalDocData.updated_at).toLocaleString()} 
-                            {legalDocData.updated_by_name && ` by ${legalDocData.updated_by_name}`}
-                            {legalDocData.version && ` (v${legalDocData.version})`}
-                          </span>
-                        )}
-                        <button
-                          onClick={handleSaveLegalDocument}
-                          disabled={updateLegalMutation.isPending}
-                          className="px-6 py-2 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                        >
-                          {updateLegalMutation.isPending ? 'Saving...' : 'Save Changes'}
-                        </button>
+                  {/* Editor/Preview Toggle & Save - Only for legal documents (not policies) */}
+                  {legalSubTab !== 'policies' && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <button
+                            onClick={() => setShowPreview(false)}
+                            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                              !showPreview
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setShowPreview(true)}
+                            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                              showPreview
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            Preview
+                          </button>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          {legalDocData && (
+                            <span className="text-sm text-gray-500">
+                              Last updated: {new Date(legalDocData.updated_at).toLocaleString()} 
+                              {legalDocData.updated_by_name && ` by ${legalDocData.updated_by_name}`}
+                              {legalDocData.version && ` (v${legalDocData.version})`}
+                            </span>
+                          )}
+                          <button
+                            onClick={handleSaveLegalDocument}
+                            disabled={updateLegalMutation.isPending}
+                            className="px-6 py-2 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                          >
+                            {updateLegalMutation.isPending ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Loading State */}
-                  {isLoadingLegal && (
+                  {/* Policies Page Editor */}
+                  {legalSubTab === 'policies' && (
+                    <div className="space-y-6">
+                      {isLoadingPolicies ? (
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Policy Section Tabs */}
+                          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                            <p className="text-sm text-gray-600 mb-4">
+                              Edit the content shown on the public <a href="/policies" target="_blank" className="text-blue-600 hover:underline">/policies</a> page. Content supports HTML formatting.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {policySections.map(section => (
+                                <button
+                                  key={section.key}
+                                  onClick={() => setActivePolicySection(section.key)}
+                                  className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${
+                                    activePolicySection === section.key
+                                      ? 'bg-blue-600 text-white'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  }`}
+                                >
+                                  {section.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Active Policy Section Editor */}
+                          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                            <div className="flex items-center justify-between mb-6">
+                              <h2 className="text-2xl font-bold text-gray-900">
+                                {policySections.find(s => s.key === activePolicySection)?.label}
+                              </h2>
+                              <button
+                                onClick={() => handleSavePolicyContent(activePolicySection)}
+                                disabled={updatePoliciesMutation.isPending}
+                                className="px-6 py-2 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                              >
+                                {updatePoliciesMutation.isPending ? 'Saving...' : 'Save This Section'}
+                              </button>
+                            </div>
+                            <p className="text-gray-600 mb-4">
+                              Enter HTML content for this policy section. This will be displayed on the public policies page.
+                            </p>
+                            <textarea
+                              value={policiesContent[activePolicySection as keyof PoliciesContent]}
+                              onChange={(e) => handlePolicyContentChange(activePolicySection, e.target.value)}
+                              rows={15}
+                              className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all font-mono text-sm"
+                              placeholder="<p>Enter your policy content here...</p>&#10;&#10;<p>You can use HTML formatting including:</p>&#10;<ul>&#10;  <li>Lists</li>&#10;  <li>Paragraphs</li>&#10;  <li>Bold and italic text</li>&#10;</ul>"
+                            />
+
+                            {/* Preview */}
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                              <h3 className="text-lg font-semibold text-gray-900 mb-4">Preview</h3>
+                              <div className="bg-gray-50 rounded-lg p-6 prose prose-sm max-w-none">
+                                <div
+                                  dangerouslySetInnerHTML={{ 
+                                    __html: policiesContent[activePolicySection as keyof PoliciesContent] || '<em>No content yet</em>' 
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Loading State for Legal Documents (not policies) */}
+                  {legalSubTab !== 'policies' && isLoadingLegal && (
                     <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 flex items-center justify-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
