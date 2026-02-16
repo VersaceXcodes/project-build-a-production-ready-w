@@ -1,4 +1,4 @@
-make this page " https://123project-build-a-production-ready-w.launchpulse.ai/pricing " editable from admin under System Settings make a new tab next to Legal called it " Pricing "
+when i edit a service i want to be also able to edit also the " Service Category " right now its not letting me edit Service Category and i want to also be able  to delete a service
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -9,5 +9,11 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "make this page " https://123project-build-a-production-ready-w.launchpulse.ai/pricing " editable from admin under System Settings make a new tab next to Legal called it " Pricing ""
+- Focus solely on implementing the user's request: "when i edit a service i want to be also able to edit also the " Service Category " right now its not letting me edit Service Category and i want to also be able  to delete a service"
 - Only address errors if they block the specific functionality requested by the user.
+
+Additional context:
+User uploaded the following images. Place them exactly where requested; if no explicit location is provided, position them where they best fit within the layout without breaking responsiveness.
+- Asset 1: https://tgvswctfhlubctiodmvo.supabase.co/storage/v1/object/public/project_uploads/bb9ffa25-56c4-45fe-9b7b-c4592a0f419a/project-build-a-production-ready-w/1771263517454_0_Screenshot_2026-02-16_at_17.36.57.png (image/png)
+Use the given URLs directly or copy into the project under an appropriate assets/images folder and update imports/links.
+Staged copies are available at /app/__attachments (see attachments.json).
