@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const VIDEO_URL = 'https://pub-3b7303b412294731aa17afb2c3dff192.r2.dev/8833a50a-5293-4e99-9814-e2c654d742a5/project-build-a-production-ready-w/intro-reveal.mp4';
+const VIDEO_URL = 'https://pub-3b7303b412294731aa17afb2c3dff192.r2.dev/8833a50a-5293-4e99-9814-e2c654d742a5/project-build-a-production-ready-w/Animation__1_.mp4';
 
 const GV_IntroOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
