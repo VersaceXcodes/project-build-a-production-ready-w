@@ -173,6 +173,21 @@ interface AuditFiltersState {
   page: number;
 }
 
+interface PortfolioItem {
+  id: string;
+  title: string;
+  image_url: string;
+  thumbnail_url: string | null;
+  description: string | null;
+  alt_text: string | null;
+  categories: string | null;
+  media_type: 'image' | 'video';
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const UV_ADMIN_Settings: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -258,6 +273,26 @@ const UV_ADMIN_Settings: React.FC = () => {
   const [newItem, setNewItem] = useState({ text: '', icon_type: 'check' as 'dot' | 'check' });
   const [newComparison, setNewComparison] = useState({ feature_name: '', basic_value: '', standard_value: '', gold_value: '', enterprise_value: '' });
   const [pricingSaving, setPricingSaving] = useState(false);
+
+  // Portfolio state
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [showPortfolioUploadModal, setShowPortfolioUploadModal] = useState(false);
+  const [showPortfolioEditModal, setShowPortfolioEditModal] = useState(false);
+  const [showPortfolioDeleteConfirm, setShowPortfolioDeleteConfirm] = useState<PortfolioItem | null>(null);
+  const [selectedPortfolioItem, setSelectedPortfolioItem] = useState<PortfolioItem | null>(null);
+  const [portfolioUploadForm, setPortfolioUploadForm] = useState({
+    title: '',
+    description: '',
+    media_type: 'image' as 'image' | 'video',
+  });
+  const [portfolioEditForm, setPortfolioEditForm] = useState({
+    title: '',
+    description: '',
+    is_active: true,
+  });
+  const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
+  const [portfolioFilePreview, setPortfolioFilePreview] = useState<string | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -430,6 +465,27 @@ const UV_ADMIN_Settings: React.FC = () => {
       setPricingSettings(pricingData.settings);
     }
   }, [pricingData?.settings]);
+
+  // Fetch portfolio items (gallery images)
+  const { data: portfolioData, isLoading: isLoadingPortfolio, refetch: refetchPortfolio } = useQuery({
+    queryKey: ['admin_portfolio'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/gallery-images`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return response.data as PortfolioItem[];
+    },
+    enabled: !!authToken && activeTab === 'portfolio',
+    staleTime: 30000,
+    retry: 1,
+  });
+
+  // Update portfolio state when data is fetched
+  useEffect(() => {
+    if (portfolioData) {
+      setPortfolioItems(portfolioData);
+    }
+  }, [portfolioData]);
 
   // ===========================
   // MUTATIONS
@@ -618,6 +674,117 @@ const UV_ADMIN_Settings: React.FC = () => {
     await axios.delete(`${API_BASE_URL}/api/admin/pricing/comparison-rows/${rowId}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
+  };
+
+  // Portfolio API functions
+  const handlePortfolioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPortfolioFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setPortfolioFilePreview(previewUrl);
+      
+      // Auto-detect media type
+      if (file.type.startsWith('video/')) {
+        setPortfolioUploadForm(prev => ({ ...prev, media_type: 'video' }));
+      } else {
+        setPortfolioUploadForm(prev => ({ ...prev, media_type: 'image' }));
+      }
+    }
+  };
+
+  const handlePortfolioUpload = async () => {
+    if (!portfolioFile || !portfolioUploadForm.title) {
+      showToast({ type: 'error', message: 'Please provide a title and select a file', duration: 5000 });
+      return;
+    }
+
+    setUploadingPortfolio(true);
+    try {
+      // First upload the file
+      const formData = new FormData();
+      formData.append('file', portfolioFile);
+      
+      const uploadResponse = await axios.post(`${API_BASE_URL}/api/uploads`, formData, {
+        headers: { 
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      const fileUrl = uploadResponse.data.file_url;
+      
+      // Then create the gallery image entry
+      await axios.post(`${API_BASE_URL}/api/admin/gallery-images`, {
+        title: portfolioUploadForm.title,
+        image_url: fileUrl,
+        thumbnail_url: null,
+        description: portfolioUploadForm.description || null,
+        alt_text: portfolioUploadForm.title,
+        categories: null,
+      }, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      showToast({ type: 'success', message: 'Portfolio item uploaded successfully', duration: 3000 });
+      setShowPortfolioUploadModal(false);
+      setPortfolioUploadForm({ title: '', description: '', media_type: 'image' });
+      setPortfolioFile(null);
+      setPortfolioFilePreview(null);
+      refetchPortfolio();
+    } catch (error: any) {
+      showToast({ type: 'error', message: error.response?.data?.message || 'Failed to upload portfolio item', duration: 5000 });
+    } finally {
+      setUploadingPortfolio(false);
+    }
+  };
+
+  const handleOpenPortfolioEdit = (item: PortfolioItem) => {
+    setSelectedPortfolioItem(item);
+    setPortfolioEditForm({
+      title: item.title,
+      description: item.description || '',
+      is_active: item.is_active,
+    });
+    setShowPortfolioEditModal(true);
+  };
+
+  const handleSavePortfolioEdit = async () => {
+    if (!selectedPortfolioItem) return;
+    
+    try {
+      await axios.patch(`${API_BASE_URL}/api/admin/gallery-images/${selectedPortfolioItem.id}`, {
+        title: portfolioEditForm.title,
+        description: portfolioEditForm.description || null,
+        is_active: portfolioEditForm.is_active,
+      }, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      showToast({ type: 'success', message: 'Portfolio item updated successfully', duration: 3000 });
+      setShowPortfolioEditModal(false);
+      setSelectedPortfolioItem(null);
+      refetchPortfolio();
+    } catch (error: any) {
+      showToast({ type: 'error', message: error.response?.data?.message || 'Failed to update portfolio item', duration: 5000 });
+    }
+  };
+
+  const handleDeletePortfolioItem = async () => {
+    if (!showPortfolioDeleteConfirm) return;
+    
+    try {
+      await axios.delete(`${API_BASE_URL}/api/admin/gallery-images/${showPortfolioDeleteConfirm.id}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      showToast({ type: 'success', message: 'Portfolio item deleted successfully', duration: 3000 });
+      setShowPortfolioDeleteConfirm(null);
+      refetchPortfolio();
+    } catch (error: any) {
+      showToast({ type: 'error', message: error.response?.data?.message || 'Failed to delete portfolio item', duration: 5000 });
+    }
   };
 
   // ===========================
@@ -1192,6 +1359,7 @@ const UV_ADMIN_Settings: React.FC = () => {
                 { id: 'audit', label: 'Audit Logs' },
                 { id: 'legal', label: 'Legal' },
                 { id: 'pricing', label: 'Pricing' },
+                { id: 'portfolio', label: 'Portfolio' },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -2558,6 +2726,165 @@ const UV_ADMIN_Settings: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* Portfolio Tab */}
+              {activeTab === 'portfolio' && (
+                <div className="space-y-6">
+                  {/* Portfolio Header */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Portfolio Management</h2>
+                        <p className="text-gray-600 mt-1">Upload and manage your portfolio images and videos</p>
+                      </div>
+                      <button
+                        onClick={() => setShowPortfolioUploadModal(true)}
+                        className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-medium hover:bg-yellow-500 flex items-center gap-2 shadow-lg"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Upload Media
+                      </button>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold text-blue-900">Portfolio Tips</h3>
+                          <ul className="mt-2 text-sm text-blue-800 space-y-1 list-disc list-inside">
+                            <li>Upload high-quality images (recommended: 1920x1080 or higher)</li>
+                            <li>Supported formats: JPG, PNG, GIF, WEBP, MP4, MOV</li>
+                            <li>Add descriptions to help with SEO and accessibility</li>
+                            <li>Portfolio items appear on your public gallery page</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Portfolio Grid */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                    {isLoadingPortfolio ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : portfolioItems.length === 0 ? (
+                      <div className="text-center py-16">
+                        <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <h3 className="mt-4 text-lg font-semibold text-gray-900">No portfolio items yet</h3>
+                        <p className="mt-2 text-gray-600">Get started by uploading your first image or video</p>
+                        <button
+                          onClick={() => setShowPortfolioUploadModal(true)}
+                          className="mt-6 bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-medium hover:bg-yellow-500"
+                        >
+                          Upload Your First Media
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {portfolioItems.length} Portfolio Item{portfolioItems.length !== 1 ? 's' : ''}
+                          </h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {portfolioItems.map((item) => (
+                            <div 
+                              key={item.id} 
+                              className={`group relative rounded-xl overflow-hidden shadow-md border-2 transition-all duration-200 hover:shadow-xl ${
+                                item.is_active ? 'border-gray-200' : 'border-red-200 opacity-60'
+                              }`}
+                            >
+                              {/* Media Preview */}
+                              <div className="aspect-square bg-gray-100 relative overflow-hidden">
+                                {item.image_url?.includes('.mp4') || item.image_url?.includes('.mov') || item.image_url?.includes('.webm') ? (
+                                  <video
+                                    src={item.image_url}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                  />
+                                ) : (
+                                  <img
+                                    src={item.image_url}
+                                    alt={item.alt_text || item.title}
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                )}
+                                
+                                {/* Status Badge */}
+                                {!item.is_active && (
+                                  <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                                    Inactive
+                                  </div>
+                                )}
+
+                                {/* Video Indicator */}
+                                {(item.image_url?.includes('.mp4') || item.image_url?.includes('.mov') || item.image_url?.includes('.webm')) && (
+                                  <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                    Video
+                                  </div>
+                                )}
+
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() => handleOpenPortfolioEdit(item)}
+                                      className="p-3 bg-white text-gray-900 rounded-full hover:bg-yellow-400 transition-colors shadow-lg"
+                                      title="Edit"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => setShowPortfolioDeleteConfirm(item)}
+                                      className="p-3 bg-white text-red-600 rounded-full hover:bg-red-50 transition-colors shadow-lg"
+                                      title="Delete"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Info Section */}
+                              <div className="p-4">
+                                <h4 className="font-semibold text-gray-900 truncate" title={item.title}>
+                                  {item.title}
+                                </h4>
+                                {item.description && (
+                                  <p className="text-sm text-gray-600 mt-1 line-clamp-2" title={item.description}>
+                                    {item.description}
+                                  </p>
+                                )}
+                                <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                                  <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                                  <span className={`px-2 py-1 rounded-full ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {item.is_active ? 'Active' : 'Inactive'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2694,6 +3021,299 @@ const UV_ADMIN_Settings: React.FC = () => {
                 className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
               >
                 {pricingSaving ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio Upload Modal */}
+      {showPortfolioUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Upload Portfolio Media</h3>
+              <button
+                onClick={() => {
+                  setShowPortfolioUploadModal(false);
+                  setPortfolioUploadForm({ title: '', description: '', media_type: 'image' });
+                  setPortfolioFile(null);
+                  setPortfolioFilePreview(null);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* File Upload Area */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload File <span className="text-red-500">*</span>
+                </label>
+                {!portfolioFilePreview ? (
+                  <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg className="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF, WEBP, MP4, MOV (MAX. 50MB)
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*,video/*"
+                      onChange={handlePortfolioFileChange}
+                    />
+                  </label>
+                ) : (
+                  <div className="relative">
+                    <div className="w-full h-48 bg-gray-100 rounded-xl overflow-hidden">
+                      {portfolioUploadForm.media_type === 'video' ? (
+                        <video
+                          src={portfolioFilePreview}
+                          className="w-full h-full object-cover"
+                          controls
+                        />
+                      ) : (
+                        <img
+                          src={portfolioFilePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setPortfolioFile(null);
+                        setPortfolioFilePreview(null);
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {portfolioFile?.name} ({(portfolioFile?.size || 0 / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={portfolioUploadForm.title}
+                  onChange={(e) => setPortfolioUploadForm({ ...portfolioUploadForm, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-400 focus:ring-4 focus:ring-yellow-100 transition-all"
+                  placeholder="e.g., Corporate Brochure Design"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={portfolioUploadForm.description}
+                  onChange={(e) => setPortfolioUploadForm({ ...portfolioUploadForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-400 focus:ring-4 focus:ring-yellow-100 transition-all resize-none"
+                  placeholder="Add a description for this portfolio item..."
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowPortfolioUploadModal(false);
+                  setPortfolioUploadForm({ title: '', description: '', media_type: 'image' });
+                  setPortfolioFile(null);
+                  setPortfolioFilePreview(null);
+                }}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePortfolioUpload}
+                disabled={!portfolioFile || !portfolioUploadForm.title || uploadingPortfolio}
+                className="px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {uploadingPortfolio ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Upload
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio Edit Modal */}
+      {showPortfolioEditModal && selectedPortfolioItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Edit Portfolio Item</h3>
+              <button
+                onClick={() => {
+                  setShowPortfolioEditModal(false);
+                  setSelectedPortfolioItem(null);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Preview */}
+            <div className="w-full h-48 bg-gray-100 rounded-xl overflow-hidden mb-6">
+              {selectedPortfolioItem.image_url?.includes('.mp4') || selectedPortfolioItem.image_url?.includes('.mov') ? (
+                <video
+                  src={selectedPortfolioItem.image_url}
+                  className="w-full h-full object-cover"
+                  controls
+                />
+              ) : (
+                <img
+                  src={selectedPortfolioItem.image_url}
+                  alt={selectedPortfolioItem.title}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+            
+            <div className="space-y-6">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={portfolioEditForm.title}
+                  onChange={(e) => setPortfolioEditForm({ ...portfolioEditForm, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-400 focus:ring-4 focus:ring-yellow-100 transition-all"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={portfolioEditForm.description}
+                  onChange={(e) => setPortfolioEditForm({ ...portfolioEditForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-400 focus:ring-4 focus:ring-yellow-100 transition-all resize-none"
+                  placeholder="Add a description for this portfolio item..."
+                />
+              </div>
+
+              {/* Active Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <label className="text-sm font-medium text-gray-900">Active Status</label>
+                  <p className="text-sm text-gray-500">Item visible on public gallery</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPortfolioEditForm({ ...portfolioEditForm, is_active: !portfolioEditForm.is_active })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    portfolioEditForm.is_active ? 'bg-yellow-400' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      portfolioEditForm.is_active ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowPortfolioEditModal(false);
+                  setSelectedPortfolioItem(null);
+                }}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePortfolioEdit}
+                disabled={!portfolioEditForm.title}
+                className="px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio Delete Confirmation Modal */}
+      {showPortfolioDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Delete Portfolio Item</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{showPortfolioDeleteConfirm.title}"? This item will be deactivated and removed from the public gallery.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPortfolioDeleteConfirm(null)}
+                className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePortfolioItem}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700"
+              >
+                Delete
               </button>
             </div>
           </div>
