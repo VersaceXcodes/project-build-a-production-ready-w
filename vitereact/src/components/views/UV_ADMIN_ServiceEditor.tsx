@@ -326,6 +326,33 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
     },
   });
 
+  // Delete service mutation
+  const delete_service_mutation = useMutation({
+    mutationFn: async () => {
+      await axios.delete(
+        `${API_BASE_URL}/api/admin/services/${service_id}`,
+        { headers: { Authorization: `Bearer ${auth_token}` } }
+      );
+    },
+    onSuccess: () => {
+      show_toast({
+        type: 'success',
+        message: 'Service deleted successfully',
+        duration: 3000,
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-services'] });
+      close_modal();
+      navigate('/admin/services');
+    },
+    onError: (error: any) => {
+      show_toast({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to delete service',
+        duration: 5000,
+      });
+    },
+  });
+
   // ===========================
   // HELPER FUNCTIONS
   // ===========================
@@ -453,6 +480,7 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
         description: service_form.description,
         is_top_seller: service_form.is_top_seller,
         is_active: service_form.is_active,
+        category_id: service_form.category_id,
       });
     }
   };
@@ -517,6 +545,20 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
     }));
   };
 
+  const handle_delete_service = () => {
+    if (!service_data?.service) return;
+    
+    show_modal('confirmation', {
+      title: 'Delete Service',
+      message: `Are you sure you want to delete "${service_data.service.name}"? This will deactivate the service and it will no longer be visible to customers.`,
+      confirm_text: 'Delete',
+      cancel_text: 'Cancel',
+      on_confirm: async () => {
+        await delete_service_mutation.mutateAsync();
+      },
+    });
+  };
+
   // ===========================
   // LOADING STATE
   // ===========================
@@ -548,6 +590,25 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
                 </h1>
               </div>
               <div className="flex items-center space-x-3">
+                {!is_new_service && (
+                  <button
+                    onClick={handle_delete_service}
+                    disabled={delete_service_mutation.isPending}
+                    className="px-6 py-3 border-2 border-red-500 text-red-600 rounded-lg font-medium hover:bg-red-500 hover:text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {delete_service_mutation.isPending ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Deleting...
+                      </span>
+                    ) : (
+                      'Delete Service'
+                    )}
+                  </button>
+                )}
                 <Link
                   to="/admin/services"
                   className="px-6 py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-black hover:text-white transition-all duration-200"
@@ -605,12 +666,11 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
                       id="category_id"
                       value={service_form.category_id}
                       onChange={(e) => handle_service_form_change('category_id', e.target.value)}
-                      disabled={!is_new_service}
                       className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-4 focus:ring-yellow-100 ${
                         validation_errors.service.category_id
                           ? 'border-red-500'
                           : 'border-gray-200 focus:border-yellow-400'
-                      } ${!is_new_service ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                      }`}
                     >
                       <option value="">Select a category</option>
                       {service_categories.map((cat) => (
@@ -621,9 +681,6 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
                     </select>
                     {validation_errors.service.category_id && (
                       <p className="mt-2 text-sm text-red-600">{validation_errors.service.category_id}</p>
-                    )}
-                    {!is_new_service && (
-                      <p className="mt-2 text-sm text-gray-500">Category cannot be changed after creation</p>
                     )}
                   </div>
 

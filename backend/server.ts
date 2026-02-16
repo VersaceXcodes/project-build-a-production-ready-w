@@ -1908,7 +1908,7 @@ app.post('/api/admin/services', authenticateToken, requireRole(['ADMIN']), async
 app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
     const { service_id } = req.params;
-    const { name, description, is_top_seller, is_active } = req.body;
+    const { name, description, is_top_seller, is_active, category_id } = req.body;
     const updates = [];
     const params = [];
     if (name) {
@@ -1926,6 +1926,10 @@ app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['AD
     if (is_active !== undefined) {
       params.push(is_active);
       updates.push(`is_active = $${params.length}`);
+    }
+    if (category_id) {
+      params.push(category_id);
+      updates.push(`category_id = $${params.length}`);
     }
     if (updates.length > 0) {
       params.push(new Date().toISOString());
