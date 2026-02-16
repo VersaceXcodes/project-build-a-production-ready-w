@@ -84,8 +84,6 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
   const auth_token = useAppStore((state) => state.authentication_state.auth_token);
   const current_user = useAppStore((state) => state.authentication_state.current_user);
   const show_toast = useAppStore((state) => state.show_toast);
-  const show_modal = useAppStore((state) => state.show_modal);
-  const close_modal = useAppStore((state) => state.close_modal);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -118,6 +116,8 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
   const [option_choices_input, set_option_choices_input] = useState('');
   const [show_option_form, set_show_option_form] = useState(false);
   const [edit_option_id, set_edit_option_id] = useState<string | null>(null);
+  const [show_delete_service_modal, set_show_delete_service_modal] = useState(false);
+  const [show_delete_option_modal, set_show_delete_option_modal] = useState<{ id: string; label: string } | null>(null);
   const [validation_errors, set_validation_errors] = useState<{
     service: Record<string, string>;
     option: Record<string, string>;
@@ -315,7 +315,7 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
         duration: 3000,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-service', service_id] });
-      close_modal();
+      set_show_delete_option_modal(null);
     },
     onError: (error: any) => {
       show_toast({
@@ -341,7 +341,7 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
         duration: 3000,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-services'] });
-      close_modal();
+      set_show_delete_service_modal(false);
       navigate('/admin/services');
     },
     onError: (error: any) => {
@@ -516,15 +516,13 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
   };
 
   const handle_delete_option = (option_id: string, option_label: string) => {
-    show_modal('confirmation', {
-      title: 'Delete Option',
-      message: `Are you sure you want to delete "${option_label}"? This cannot be undone.`,
-      confirm_text: 'Delete',
-      cancel_text: 'Cancel',
-      on_confirm: async () => {
-        await delete_option_mutation.mutateAsync(option_id);
-      },
-    });
+    set_show_delete_option_modal({ id: option_id, label: option_label });
+  };
+
+  const confirm_delete_option = async () => {
+    if (show_delete_option_modal) {
+      await delete_option_mutation.mutateAsync(show_delete_option_modal.id);
+    }
   };
 
   const handle_toggle_option_required = async (option: ServiceOption) => {
@@ -547,16 +545,11 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
 
   const handle_delete_service = () => {
     if (!service_data?.service) return;
-    
-    show_modal('confirmation', {
-      title: 'Delete Service',
-      message: `Are you sure you want to delete "${service_data.service.name}"? This will deactivate the service and it will no longer be visible to customers.`,
-      confirm_text: 'Delete',
-      cancel_text: 'Cancel',
-      on_confirm: async () => {
-        await delete_service_mutation.mutateAsync();
-      },
-    });
+    set_show_delete_service_modal(true);
+  };
+
+  const confirm_delete_service = async () => {
+    await delete_service_mutation.mutateAsync();
   };
 
   // ===========================
@@ -1141,6 +1134,122 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Service Confirmation Modal */}
+      {show_delete_service_modal && service_data?.service && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="delete-service-modal" role="dialog" aria-modal="true">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div 
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+              aria-hidden="true"
+              onClick={() => set_show_delete_service_modal(false)}
+            ></div>
+            <div className="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-bold text-gray-900">Delete Service</h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete <span className="font-semibold text-gray-700">"{service_data.service.name}"</span>? 
+                        This will deactivate the service and it will no longer be visible to customers.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => set_show_delete_service_modal(false)}
+                  className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors border border-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirm_delete_service}
+                  disabled={delete_service_mutation.isPending}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {delete_service_mutation.isPending ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </span>
+                  ) : 'Delete Service'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Option Confirmation Modal */}
+      {show_delete_option_modal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="delete-option-modal" role="dialog" aria-modal="true">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div 
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+              aria-hidden="true"
+              onClick={() => set_show_delete_option_modal(null)}
+            ></div>
+            <div className="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-6 pt-6 pb-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-bold text-gray-900">Delete Option</h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete <span className="font-semibold text-gray-700">"{show_delete_option_modal.label}"</span>? 
+                        This cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => set_show_delete_option_modal(null)}
+                  className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors border border-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirm_delete_option}
+                  disabled={delete_option_mutation.isPending}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {delete_option_mutation.isPending ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </span>
+                  ) : 'Delete Option'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
