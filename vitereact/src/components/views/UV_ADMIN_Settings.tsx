@@ -3,6 +3,8 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAppStore } from '@/store/main';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ===========================
 // TYPE DEFINITIONS
@@ -44,6 +46,27 @@ interface FeatureFlagsState {
   feature_inventory_enabled: boolean;
   feature_analytics_enabled: boolean;
   productsPublicEnabled: boolean;
+}
+
+// Legal document types
+interface TermsSection {
+  id: string;
+  title: string;
+  contentMarkdown: string;
+  order: number;
+}
+
+interface LegalDocument {
+  id: string;
+  document_type: string;
+  content: string | TermsSection[];
+  version: number;
+  is_current: boolean;
+  updated_at: string;
+  updated_by_user_id: string | null;
+  updated_by_name: string;
+  updated_by_email: string;
+  created_at: string;
 }
 
 interface StripeSettingsState {
@@ -127,6 +150,13 @@ const UV_ADMIN_Settings: React.FC = () => {
   });
   const [stripeTestStatus, setStripeTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [expandedAuditLog, setExpandedAuditLog] = useState<string | null>(null);
+  
+  // Legal document states
+  const [legalSubTab, setLegalSubTab] = useState<string>(searchParams.get('legal') || 'terms');
+  const [termsSections, setTermsSections] = useState<TermsSection[]>([]);
+  const [privacyContent, setPrivacyContent] = useState<string>('');
+  const [refundContent, setRefundContent] = useState<string>('');
+  const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -212,6 +242,33 @@ const UV_ADMIN_Settings: React.FC = () => {
     retry: 1,
   });
 
+  // Fetch legal document based on active legal sub-tab
+  const { data: legalDocData, isLoading: isLoadingLegal } = useQuery({
+    queryKey: ['legal_document', legalSubTab],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/legal/${legalSubTab}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return response.data as LegalDocument;
+    },
+    enabled: !!authToken && activeTab === 'legal',
+    staleTime: 30000,
+    retry: 1,
+  });
+
+  // Update legal content state when data is fetched
+  useEffect(() => {
+    if (legalDocData) {
+      if (legalSubTab === 'terms' && Array.isArray(legalDocData.content)) {
+        setTermsSections(legalDocData.content as TermsSection[]);
+      } else if (legalSubTab === 'privacy') {
+        setPrivacyContent(legalDocData.content as string);
+      } else if (legalSubTab === 'refund') {
+        setRefundContent(legalDocData.content as string);
+      }
+    }
+  }, [legalDocData, legalSubTab]);
+
   // ===========================
   // MUTATIONS
   // ===========================
@@ -238,6 +295,33 @@ const UV_ADMIN_Settings: React.FC = () => {
       showToast({
         type: 'error',
         message: error.response?.data?.message || 'Failed to update setting',
+        duration: 5000,
+      });
+    },
+  });
+
+  // Update legal document mutation
+  const updateLegalMutation = useMutation({
+    mutationFn: async ({ documentType, content }: { documentType: string; content: string | TermsSection[] }) => {
+      const response = await axios.put(
+        `${API_BASE_URL}/api/admin/legal/${documentType}`,
+        { content: typeof content === 'string' ? content : JSON.stringify(content) },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legal_document'] });
+      showToast({
+        type: 'success',
+        message: 'Legal document updated successfully',
+        duration: 3000,
+      });
+    },
+    onError: (error: any) => {
+      showToast({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to update legal document',
         duration: 5000,
       });
     },
@@ -459,6 +543,76 @@ const UV_ADMIN_Settings: React.FC = () => {
     link.click();
   };
 
+  // Legal tab change
+  const handleLegalSubTabChange = (newSubTab: string) => {
+    setLegalSubTab(newSubTab);
+    setShowPreview(false);
+    setSearchParams({ tab: 'legal', legal: newSubTab });
+  };
+
+  // Terms section handlers
+  const handleTermsSectionChange = (sectionId: string, field: 'title' | 'contentMarkdown', value: string) => {
+    setTermsSections(prev =>
+      prev.map(section =>
+        section.id === sectionId
+          ? { ...section, [field]: value }
+          : section
+      )
+    );
+  };
+
+  const handleAddTermsSection = () => {
+    const newSection: TermsSection = {
+      id: `section_${Date.now()}`,
+      title: 'New Section',
+      contentMarkdown: '',
+      order: termsSections.length + 1,
+    };
+    setTermsSections(prev => [...prev, newSection]);
+  };
+
+  const handleRemoveTermsSection = (sectionId: string) => {
+    setTermsSections(prev => {
+      const filtered = prev.filter(s => s.id !== sectionId);
+      // Reorder remaining sections
+      return filtered.map((s, idx) => ({ ...s, order: idx + 1 }));
+    });
+  };
+
+  const handleMoveTermsSection = (sectionId: string, direction: 'up' | 'down') => {
+    setTermsSections(prev => {
+      const idx = prev.findIndex(s => s.id === sectionId);
+      if (idx === -1) return prev;
+      if (direction === 'up' && idx === 0) return prev;
+      if (direction === 'down' && idx === prev.length - 1) return prev;
+
+      const newSections = [...prev];
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      [newSections[idx], newSections[swapIdx]] = [newSections[swapIdx], newSections[idx]];
+      
+      // Update order values
+      return newSections.map((s, i) => ({ ...s, order: i + 1 }));
+    });
+  };
+
+  // Save legal document
+  const handleSaveLegalDocument = async () => {
+    let content: string | TermsSection[];
+    
+    if (legalSubTab === 'terms') {
+      content = termsSections;
+    } else if (legalSubTab === 'privacy') {
+      content = privacyContent;
+    } else {
+      content = refundContent;
+    }
+
+    await updateLegalMutation.mutateAsync({
+      documentType: legalSubTab,
+      content,
+    });
+  };
+
   // ===========================
   // RENDER
   // ===========================
@@ -496,6 +650,7 @@ const UV_ADMIN_Settings: React.FC = () => {
                 { id: 'tax', label: 'Tax Settings' },
                 { id: 'calendar', label: 'Calendar Settings' },
                 { id: 'audit', label: 'Audit Logs' },
+                { id: 'legal', label: 'Legal' },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1200,6 +1355,253 @@ const UV_ADMIN_Settings: React.FC = () => {
                       </>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Legal Tab */}
+              {activeTab === 'legal' && (
+                <div className="space-y-6">
+                  {/* Sub-tabs Navigation */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                    <div className="flex space-x-4">
+                      {[
+                        { id: 'terms', label: 'Terms of Service' },
+                        { id: 'privacy', label: 'Privacy Policy' },
+                        { id: 'refund', label: 'Refund Policy' },
+                      ].map(subTab => (
+                        <button
+                          key={subTab.id}
+                          onClick={() => handleLegalSubTabChange(subTab.id)}
+                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                            legalSubTab === subTab.id
+                              ? 'bg-yellow-400 text-gray-900'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {subTab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Editor/Preview Toggle & Save */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <button
+                          onClick={() => setShowPreview(false)}
+                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                            !showPreview
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setShowPreview(true)}
+                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                            showPreview
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          Preview
+                        </button>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        {legalDocData && (
+                          <span className="text-sm text-gray-500">
+                            Last updated: {new Date(legalDocData.updated_at).toLocaleString()} 
+                            {legalDocData.updated_by_name && ` by ${legalDocData.updated_by_name}`}
+                            {legalDocData.version && ` (v${legalDocData.version})`}
+                          </span>
+                        )}
+                        <button
+                          onClick={handleSaveLegalDocument}
+                          disabled={updateLegalMutation.isPending}
+                          className="px-6 py-2 bg-yellow-400 text-gray-900 rounded-lg font-medium hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                        >
+                          {updateLegalMutation.isPending ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Loading State */}
+                  {isLoadingLegal && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+
+                  {/* Terms of Service Editor */}
+                  {!isLoadingLegal && legalSubTab === 'terms' && !showPreview && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">Terms of Service Sections</h2>
+                        <button
+                          onClick={handleAddTermsSection}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all"
+                        >
+                          + Add Section
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        {termsSections.length === 0 ? (
+                          <div className="text-center py-12 text-gray-500">
+                            No sections yet. Click "Add Section" to create one.
+                          </div>
+                        ) : (
+                          termsSections.map((section, idx) => (
+                            <div key={section.id} className="border-2 border-gray-200 rounded-lg p-6 space-y-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 mr-4">
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Section {idx + 1} Title
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={section.title}
+                                    onChange={(e) => handleTermsSectionChange(section.id, 'title', e.target.value)}
+                                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                                    placeholder="e.g., Definitions"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => handleMoveTermsSection(section.id, 'up')}
+                                    disabled={idx === 0}
+                                    className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Move up"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveTermsSection(section.id, 'down')}
+                                    disabled={idx === termsSections.length - 1}
+                                    className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Move down"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoveTermsSection(section.id)}
+                                    className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                                    title="Remove section"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Content (Markdown)
+                                </label>
+                                <textarea
+                                  value={section.contentMarkdown}
+                                  onChange={(e) => handleTermsSectionChange(section.id, 'contentMarkdown', e.target.value)}
+                                  rows={8}
+                                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all font-mono text-sm"
+                                  placeholder="Enter markdown content..."
+                                />
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Terms of Service Preview */}
+                  {!isLoadingLegal && legalSubTab === 'terms' && showPreview && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Terms of Service Preview</h2>
+                      <div className="prose prose-lg max-w-none">
+                        {termsSections.length === 0 ? (
+                          <p className="text-gray-500">No sections to preview.</p>
+                        ) : (
+                          termsSections.map((section, idx) => (
+                            <div key={section.id} className="mb-8">
+                              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                                {idx + 1}. {section.title}
+                              </h3>
+                              <div className="prose prose-gray">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {section.contentMarkdown || '*No content*'}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Privacy Policy Editor */}
+                  {!isLoadingLegal && legalSubTab === 'privacy' && !showPreview && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Privacy Policy</h2>
+                      <p className="text-gray-600 mb-4">
+                        Edit your privacy policy using Markdown formatting.
+                      </p>
+                      <textarea
+                        value={privacyContent}
+                        onChange={(e) => setPrivacyContent(e.target.value)}
+                        rows={20}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all font-mono text-sm"
+                        placeholder="# Privacy Policy&#10;&#10;Enter your privacy policy here using Markdown..."
+                      />
+                    </div>
+                  )}
+
+                  {/* Privacy Policy Preview */}
+                  {!isLoadingLegal && legalSubTab === 'privacy' && showPreview && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Privacy Policy Preview</h2>
+                      <div className="prose prose-lg max-w-none prose-gray">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {privacyContent || '*No content*'}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Refund Policy Editor */}
+                  {!isLoadingLegal && legalSubTab === 'refund' && !showPreview && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Refund Policy</h2>
+                      <p className="text-gray-600 mb-4">
+                        Edit your refund policy using Markdown formatting.
+                      </p>
+                      <textarea
+                        value={refundContent}
+                        onChange={(e) => setRefundContent(e.target.value)}
+                        rows={20}
+                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all font-mono text-sm"
+                        placeholder="# Refund Policy&#10;&#10;Enter your refund policy here using Markdown..."
+                      />
+                    </div>
+                  )}
+
+                  {/* Refund Policy Preview */}
+                  {!isLoadingLegal && legalSubTab === 'refund' && showPreview && (
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-6">Refund Policy Preview</h2>
+                      <div className="prose prose-lg max-w-none prose-gray">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {refundContent || '*No content*'}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
