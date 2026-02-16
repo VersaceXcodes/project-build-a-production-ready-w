@@ -1948,7 +1948,14 @@ app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['AD
 app.delete('/api/admin/services/:service_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
     const { service_id } = req.params;
-    await pool.query('UPDATE services SET is_active = false, updated_at = $1 WHERE id = $2', [new Date().toISOString(), service_id]);
+    
+    // First delete all service options associated with this service
+    await pool.query('DELETE FROM service_options WHERE service_id = $1', [service_id]);
+    
+    // Then delete the service itself
+    await pool.query('DELETE FROM services WHERE id = $1', [service_id]);
+    
+    await createAuditLog(req.user.id, 'DELETE', 'SERVICE', service_id, null, req.ip);
     res.status(204).send();
   } catch (error) {
     console.error('Delete service error:', error);
@@ -2510,7 +2517,9 @@ app.delete('/api/admin/gallery-images/:image_id', authenticateToken, requireRole
     const { image_id } = req.params;
     const existing = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [image_id]);
     if (existing.rows.length === 0) return res.status(404).json({ message: 'Gallery image not found' });
-    await pool.query('UPDATE gallery_images SET is_active = false, updated_at = $1 WHERE id = $2', [new Date().toISOString(), image_id]);
+    
+    // Hard delete the gallery image from database
+    await pool.query('DELETE FROM gallery_images WHERE id = $1', [image_id]);
     await createAuditLog(req.user.id, 'DELETE', 'GALLERY_IMAGE', image_id, null, req.ip);
     res.status(204).send();
   } catch (error) {
