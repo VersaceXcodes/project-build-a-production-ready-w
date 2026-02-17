@@ -1,4 +1,6 @@
-i want to change the animation when someone first opens the website from "intro-reveal.mp4" to " Animation (1)" you can find it in the storage
+when i click on delete services it dose not work i also checked console it gives me "index-DT4ZIHYd.js:72 WebSocket connection error: Dz: websocket error
+    at Hz.onError (index-DT4ZIHYd.js:72:12051)
+    at ws.onerror (index-DT4ZIHYd.js:72:18247)" for example when i come to delete Banners it wont delete please fix this
 
 When the user mentions generic pages, map them to concrete files/components by scanning for headings and routes. Examples you MUST follow:
 - If the user says "login" or "sign in", search for components containing the literal heading "Sign in to your account" and edit that file.
@@ -9,5 +11,7 @@ When the user mentions generic pages, map them to concrete files/components by s
 - The user's request above is the PRIMARY task. Complete it first.
 - Ignore any existing errors, warnings, or issues you detect in the project unless they directly prevent you from completing the user's requested task.
 - Do NOT automatically fix unrelated errors or refactor code unless explicitly requested.
-- Focus solely on implementing the user's request: "i want to change the animation when someone first opens the website from "intro-reveal.mp4" to " Animation (1)" you can find it in the storage"
+- Focus solely on implementing the user's request: "when i click on delete services it dose not work i also checked console it gives me "index-DT4ZIHYd.js:72 WebSocket connection error: Dz: websocket error
+    at Hz.onError (index-DT4ZIHYd.js:72:12051)
+    at ws.onerror (index-DT4ZIHYd.js:72:18247)" for example when i come to delete Banners it wont delete please fix this"
 - Only address errors if they block the specific functionality requested by the user.

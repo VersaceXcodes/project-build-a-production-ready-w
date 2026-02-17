@@ -1949,6 +1949,17 @@ app.delete('/api/admin/services/:service_id', authenticateToken, requireRole(['A
   try {
     const { service_id } = req.params;
     
+    // Check if there are any quotes or orders referencing this service
+    const quotesCheck = await pool.query('SELECT COUNT(*) FROM quotes WHERE service_id = $1', [service_id]);
+    const quotesCount = parseInt(quotesCheck.rows[0].count);
+    
+    if (quotesCount > 0) {
+      // If there are quotes, we cannot hard delete - return an error
+      return res.status(400).json({ 
+        message: `Cannot delete this service. There are ${quotesCount} quote(s) associated with it. Consider deactivating it instead.` 
+      });
+    }
+    
     // First delete all service options associated with this service
     await pool.query('DELETE FROM service_options WHERE service_id = $1', [service_id]);
     
@@ -1957,8 +1968,14 @@ app.delete('/api/admin/services/:service_id', authenticateToken, requireRole(['A
     
     await createAuditLog(req.user.id, 'DELETE', 'SERVICE', service_id, null, req.ip);
     res.status(204).send();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete service error:', error);
+    // Check if it's a foreign key constraint error
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        message: 'Cannot delete this service. It is referenced by other records (quotes, orders, etc.). Consider deactivating it instead.' 
+      });
+    }
     res.status(500).json({ message: 'Internal server error' });
   }
 });

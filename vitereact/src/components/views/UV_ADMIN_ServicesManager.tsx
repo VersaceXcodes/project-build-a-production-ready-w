@@ -363,12 +363,16 @@ const UV_ADMIN_ServicesManager: React.FC = () => {
   // Delete service mutation
   const delete_service_mutation = useMutation({
     mutationFn: async (service_id: string) => {
-      await axios.delete(
+      console.log('Deleting service:', service_id);
+      const response = await axios.delete(
         `${API_BASE_URL}/api/admin/services/${service_id}`,
         { headers: { Authorization: `Bearer ${auth_token}` } }
       );
+      console.log('Delete response:', response);
+      return response;
     },
     onSuccess: () => {
+      console.log('Delete successful');
       queryClient.invalidateQueries({ queryKey: ['admin-services'] });
       set_delete_confirm_service(null);
       show_toast({
@@ -378,7 +382,9 @@ const UV_ADMIN_ServicesManager: React.FC = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Delete error:', error);
       const error_message = error.response?.data?.message || 'Failed to delete service';
+      set_delete_confirm_service(null);
       show_toast({
         type: 'error',
         message: error_message,
