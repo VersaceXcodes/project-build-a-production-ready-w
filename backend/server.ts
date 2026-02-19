@@ -1892,12 +1892,12 @@ app.get('/api/admin/services', authenticateToken, requireRole(['ADMIN']), async 
 
 app.post('/api/admin/services', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { category_id, name, slug, description, requires_booking, requires_proof, is_top_seller, slot_duration_hours } = req.body;
+    const { category_id, name, slug, description, requires_booking, requires_proof, is_top_seller, slot_duration_hours, mockup_image_url } = req.body;
     if (!category_id || !name || !slug) return res.status(400).json({ message: 'category_id, name, and slug required' });
     const id = uuidv4();
     await pool.query(
-      'INSERT INTO services (id, category_id, name, slug, description, requires_booking, requires_proof, is_top_seller, is_active, slot_duration_hours, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
-      [id, category_id, name, slug, description || null, !!requires_booking, !!requires_proof, !!is_top_seller, true, slot_duration_hours || 2, new Date().toISOString(), new Date().toISOString()]
+      'INSERT INTO services (id, category_id, name, slug, description, mockup_image_url, requires_booking, requires_proof, is_top_seller, is_active, slot_duration_hours, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+      [id, category_id, name, slug, description || null, mockup_image_url || null, !!requires_booking, !!requires_proof, !!is_top_seller, true, slot_duration_hours || 2, new Date().toISOString(), new Date().toISOString()]
     );
     res.status(201).json({ message: 'Service created successfully' });
   } catch (error) {
@@ -1909,7 +1909,7 @@ app.post('/api/admin/services', authenticateToken, requireRole(['ADMIN']), async
 app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
     const { service_id } = req.params;
-    const { name, description, is_top_seller, is_active, category_id } = req.body;
+    const { name, description, is_top_seller, is_active, category_id, mockup_image_url } = req.body;
     const updates = [];
     const params = [];
     if (name) {
@@ -1932,6 +1932,10 @@ app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['AD
       params.push(category_id);
       updates.push(`category_id = $${params.length}`);
     }
+    if (mockup_image_url !== undefined) {
+      params.push(mockup_image_url);
+      updates.push(`mockup_image_url = $${params.length}`);
+    }
     if (updates.length > 0) {
       params.push(new Date().toISOString());
       updates.push(`updated_at = $${params.length}`);
@@ -1942,6 +1946,51 @@ app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['AD
   } catch (error) {
     console.error('Update service error:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Service mockup image upload
+app.post('/api/admin/services/:service_id/mockup-upload', authenticateToken, requireRole(['ADMIN']), upload.single('file'), async (req, res) => {
+  try {
+    const { service_id } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'File required' });
+    }
+    
+    // Validate file type (images only)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ message: 'File must be an image (JPG, PNG, GIF, WEBP)' });
+    }
+    
+    // Check if service exists
+    const serviceCheck = await pool.query('SELECT id FROM services WHERE id = $1', [service_id]);
+    if (serviceCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+    
+    console.log('Uploading mockup image for service:', service_id);
+    
+    // Upload to cloud storage
+    const { url, key } = await storageProxy.upload(req.file);
+    
+    console.log('Mockup upload successful, URL:', url);
+    
+    // Update the service with the new mockup image URL
+    await pool.query(
+      'UPDATE services SET mockup_image_url = $1, updated_at = $2 WHERE id = $3',
+      [url, new Date().toISOString(), service_id]
+    );
+    
+    res.status(201).json({ 
+      file_url: url,
+      file_key: key,
+      message: 'Mockup image uploaded successfully'
+    });
+  } catch (error: any) {
+    console.error('Mockup upload error:', error);
+    res.status(500).json({ message: error.message || 'Failed to upload mockup image' });
   }
 });
 
@@ -2445,7 +2494,7 @@ app.get('/api/admin/gallery-images', authenticateToken, requireRole(['ADMIN']), 
   }
 });
 
-// Portfolio file upload - saves to local storage
+// Portfolio file upload - saves to project cloud storage
 app.post('/api/admin/portfolio-upload', authenticateToken, requireRole(['ADMIN']), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -2458,39 +2507,38 @@ app.post('/api/admin/portfolio-upload', authenticateToken, requireRole(['ADMIN']
       return res.status(400).json({ message: 'File must be an image (JPG, PNG, GIF, WEBP) or video (MP4, MOV, WEBM)' });
     }
     
-    // Generate unique filename
-    const ext = req.file.originalname.split('.').pop() || 'jpg';
-    const filename = `${uuidv4()}-${Date.now()}.${ext}`;
-    const filepath = path.join(storageDir, filename);
+    console.log('Uploading portfolio file to cloud storage:', req.file.originalname);
     
-    // Write file to storage directory
-    fs.writeFileSync(filepath, req.file.buffer);
+    // Upload to cloud storage using storage proxy
+    const { url, key } = await storageProxy.upload(req.file);
     
-    // Construct the public URL
-    const fileUrl = `/storage/${filename}`;
+    console.log('Upload successful, URL:', url);
     
     res.status(201).json({ 
-      file_url: fileUrl,
-      filename: filename,
+      file_url: url,
+      file_key: key,
       original_name: req.file.originalname,
       mimetype: req.file.mimetype,
       size: req.file.size
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Portfolio upload error:', error);
-    res.status(500).json({ message: 'Failed to upload file' });
+    res.status(500).json({ message: error.message || 'Failed to upload file to storage' });
   }
 });
 
 app.post('/api/admin/gallery-images', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { title, image_url, thumbnail_url, description, alt_text, categories } = req.body;
+    const { title, image_url, thumbnail_url, description, alt_text, categories, file_key } = req.body;
     if (!title || !image_url) return res.status(400).json({ message: 'title and image_url required' });
     const id = uuidv4();
     const now = new Date().toISOString();
+    // Store file_key in alt_text field temporarily (or we could add a new column)
+    // For now, we'll store it as JSON in the categories field if file_key is provided
+    const metaData = file_key ? JSON.stringify({ file_key }) : null;
     await pool.query(
       'INSERT INTO gallery_images (id, title, image_url, thumbnail_url, description, alt_text, categories, is_active, sort_order, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-      [id, title, image_url, thumbnail_url || null, description || null, alt_text || null, categories || null, true, 0, now, now]
+      [id, title, image_url, thumbnail_url || null, description || null, alt_text || title, metaData || categories || null, true, 0, now, now]
     );
     const result = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [id]);
     await createAuditLog(req.user.id, 'CREATE', 'GALLERY_IMAGE', id, { title }, req.ip);
@@ -2534,6 +2582,31 @@ app.delete('/api/admin/gallery-images/:image_id', authenticateToken, requireRole
     const { image_id } = req.params;
     const existing = await pool.query('SELECT * FROM gallery_images WHERE id = $1', [image_id]);
     if (existing.rows.length === 0) return res.status(404).json({ message: 'Gallery image not found' });
+    
+    const image = existing.rows[0];
+    
+    // Try to extract file_key from categories field (where we stored metadata)
+    let fileKey = null;
+    if (image.categories) {
+      try {
+        const meta = JSON.parse(image.categories);
+        fileKey = meta.file_key;
+      } catch (e) {
+        // Categories might not be JSON, ignore
+      }
+    }
+    
+    // Try to delete from cloud storage if we have a file_key
+    if (fileKey) {
+      try {
+        console.log('Deleting file from cloud storage:', fileKey);
+        await storageProxy.delete(fileKey);
+        console.log('File deleted from cloud storage');
+      } catch (storageError) {
+        console.error('Failed to delete from cloud storage (continuing with database delete):', storageError);
+        // Continue with database deletion even if storage deletion fails
+      }
+    }
     
     // Hard delete the gallery image from database
     await pool.query('DELETE FROM gallery_images WHERE id = $1', [image_id]);

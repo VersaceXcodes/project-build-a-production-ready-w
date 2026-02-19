@@ -699,7 +699,7 @@ const UV_ADMIN_Settings: React.FC = () => {
       const formData = new FormData();
       formData.append('file', portfolioFile);
       
-      console.log('Uploading portfolio file...', portfolioFile.name);
+      console.log('Uploading portfolio file to cloud storage...', portfolioFile.name);
       const uploadResponse = await axios.post(`${API_BASE_URL}/api/admin/portfolio-upload`, formData, {
         headers: { 
           Authorization: `Bearer ${authToken}`,
@@ -709,12 +709,13 @@ const UV_ADMIN_Settings: React.FC = () => {
       
       console.log('Upload response:', uploadResponse.data);
       const fileUrl = uploadResponse.data.file_url;
+      const fileKey = uploadResponse.data.file_key;
       
       if (!fileUrl) {
         throw new Error('No file URL returned from upload');
       }
       
-      // Then create the gallery image entry
+      // Then create the gallery image entry with the file_key for future deletion
       console.log('Creating gallery image entry...');
       await axios.post(`${API_BASE_URL}/api/admin/gallery-images`, {
         title: portfolioUploadForm.title,
@@ -722,7 +723,7 @@ const UV_ADMIN_Settings: React.FC = () => {
         thumbnail_url: null,
         description: portfolioUploadForm.description || null,
         alt_text: portfolioUploadForm.title,
-        categories: null,
+        file_key: fileKey,
       }, {
         headers: { Authorization: `Bearer ${authToken}` },
       });

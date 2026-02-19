@@ -14,6 +14,7 @@ interface Service {
   name: string;
   slug: string;
   description: string | null;
+  mockup_image_url: string | null;
   requires_booking: boolean;
   requires_proof: boolean;
   is_top_seller: boolean;
@@ -54,6 +55,7 @@ interface ServiceFormData {
   name: string;
   slug: string;
   description: string | null;
+  mockup_image_url: string | null;
   requires_booking: boolean;
   requires_proof: boolean;
   is_top_seller: boolean;
@@ -96,6 +98,7 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
     name: '',
     slug: '',
     description: null,
+    mockup_image_url: null,
     requires_booking: false,
     requires_proof: false,
     is_top_seller: false,
@@ -118,6 +121,9 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
   const [edit_option_id, set_edit_option_id] = useState<string | null>(null);
   const [show_delete_service_modal, set_show_delete_service_modal] = useState(false);
   const [show_delete_option_modal, set_show_delete_option_modal] = useState<{ id: string; label: string } | null>(null);
+  const [mockup_file, set_mockup_file] = useState<File | null>(null);
+  const [mockup_preview, set_mockup_preview] = useState<string | null>(null);
+  const [uploading_mockup, set_uploading_mockup] = useState(false);
   const [validation_errors, set_validation_errors] = useState<{
     service: Record<string, string>;
     option: Record<string, string>;
@@ -177,6 +183,7 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
         name: service_data.service.name,
         slug: service_data.service.slug,
         description: service_data.service.description,
+        mockup_image_url: service_data.service.mockup_image_url,
         requires_booking: service_data.service.requires_booking,
         requires_proof: service_data.service.requires_proof,
         is_top_seller: service_data.service.is_top_seller,
@@ -362,6 +369,108 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
   // ===========================
   // HELPER FUNCTIONS
   // ===========================
+
+  // Handle mockup file selection
+  const handle_mockup_file_change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        show_toast({
+          type: 'error',
+          message: 'Please select an image file (JPG, PNG, GIF, WEBP)',
+          duration: 5000,
+        });
+        return;
+      }
+      set_mockup_file(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      set_mockup_preview(previewUrl);
+    }
+  };
+
+  // Upload mockup image
+  const handle_upload_mockup = async () => {
+    if (!mockup_file || is_new_service) return;
+
+    set_uploading_mockup(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', mockup_file);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/admin/services/${service_id}/mockup-upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${auth_token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      show_toast({
+        type: 'success',
+        message: 'Mockup image uploaded successfully',
+        duration: 3000,
+      });
+
+      // Update the form with the new URL
+      set_service_form((prev) => ({ ...prev, mockup_image_url: response.data.file_url }));
+      set_mockup_file(null);
+      set_mockup_preview(null);
+      
+      // Refresh service data
+      queryClient.invalidateQueries({ queryKey: ['admin-service', service_id] });
+    } catch (error: any) {
+      console.error('Mockup upload error:', error);
+      show_toast({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to upload mockup image',
+        duration: 5000,
+      });
+    } finally {
+      set_uploading_mockup(false);
+    }
+  };
+
+  // Remove mockup image
+  const handle_remove_mockup = async () => {
+    if (is_new_service) {
+      set_service_form((prev) => ({ ...prev, mockup_image_url: null }));
+      set_mockup_file(null);
+      set_mockup_preview(null);
+      return;
+    }
+
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/services/${service_id}`,
+        { mockup_image_url: null },
+        { headers: { Authorization: `Bearer ${auth_token}` } }
+      );
+
+      show_toast({
+        type: 'success',
+        message: 'Mockup image removed',
+        duration: 3000,
+      });
+
+      set_service_form((prev) => ({ ...prev, mockup_image_url: null }));
+      set_mockup_file(null);
+      set_mockup_preview(null);
+      
+      queryClient.invalidateQueries({ queryKey: ['admin-service', service_id] });
+    } catch (error: any) {
+      show_toast({
+        type: 'error',
+        message: 'Failed to remove mockup image',
+        duration: 5000,
+      });
+    }
+  };
 
   const generate_slug_from_name = (name: string): string => {
     return name
@@ -745,6 +854,105 @@ const UV_ADMIN_ServiceEditor: React.FC = () => {
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-4 focus:ring-yellow-100 focus:border-yellow-400 resize-vertical"
                       placeholder="Detailed service description for customers"
                     />
+                  </div>
+
+                  {/* Mockup Image Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Mockup Image
+                    </label>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Upload a mockup image to showcase this service. This image will be displayed to customers.
+                    </p>
+                    
+                    {/* Current/Preview Image */}
+                    {(service_form.mockup_image_url || mockup_preview) && (
+                      <div className="mb-4 relative inline-block">
+                        <img
+                          src={mockup_preview || service_form.mockup_image_url || ''}
+                          alt="Service mockup"
+                          className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={handle_remove_mockup}
+                          className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md"
+                          title="Remove image"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Upload Area */}
+                    {!service_form.mockup_image_url && !mockup_preview ? (
+                      <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <svg className="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">Click to upload</span> mockup image
+                          </p>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF, WEBP (MAX. 10MB)</p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handle_mockup_file_change}
+                        />
+                      </label>
+                    ) : mockup_file && (
+                      <div className="flex items-center gap-4">
+                        <p className="text-sm text-gray-600">
+                          Selected: <span className="font-medium">{mockup_file.name}</span>
+                        </p>
+                        {!is_new_service && (
+                          <button
+                            type="button"
+                            onClick={handle_upload_mockup}
+                            disabled={uploading_mockup}
+                            className="px-4 py-2 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {uploading_mockup ? (
+                              <>
+                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Upload Image
+                              </>
+                            )}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            set_mockup_file(null);
+                            set_mockup_preview(null);
+                          }}
+                          className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                    
+                    {is_new_service && mockup_file && (
+                      <p className="mt-2 text-sm text-amber-600">
+                        Note: You can upload the mockup image after creating the service.
+                      </p>
+                    )}
                   </div>
 
                   {/* Settings Row */}

@@ -96,6 +96,7 @@ CREATE TABLE services (
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     description TEXT,
+    mockup_image_url TEXT,
     requires_booking BOOLEAN NOT NULL DEFAULT false,
     requires_proof BOOLEAN NOT NULL DEFAULT false,
     is_top_seller BOOLEAN NOT NULL DEFAULT false,
