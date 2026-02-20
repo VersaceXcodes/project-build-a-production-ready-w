@@ -1949,7 +1949,7 @@ app.patch('/api/admin/services/:service_id', authenticateToken, requireRole(['AD
   }
 });
 
-// Service mockup image upload
+// Service mockup image upload - saves to local storage
 app.post('/api/admin/services/:service_id/mockup-upload', authenticateToken, requireRole(['ADMIN']), upload.single('file'), async (req, res) => {
   try {
     const { service_id } = req.params;
@@ -1972,20 +1972,28 @@ app.post('/api/admin/services/:service_id/mockup-upload', authenticateToken, req
     
     console.log('Uploading mockup image for service:', service_id);
     
-    // Upload to cloud storage
-    const { url, key } = await storageProxy.upload(req.file);
+    // Generate unique filename and save to local storage
+    const ext = req.file.originalname.split('.').pop() || 'jpg';
+    const filename = `mockup-${service_id}-${Date.now()}.${ext}`;
+    const filepath = path.join(storageDir, filename);
     
-    console.log('Mockup upload successful, URL:', url);
+    // Write file to storage directory
+    fs.writeFileSync(filepath, req.file.buffer);
+    
+    // Construct the public URL
+    const fileUrl = `/storage/${filename}`;
+    
+    console.log('Mockup saved to:', fileUrl);
     
     // Update the service with the new mockup image URL
     await pool.query(
       'UPDATE services SET mockup_image_url = $1, updated_at = $2 WHERE id = $3',
-      [url, new Date().toISOString(), service_id]
+      [fileUrl, new Date().toISOString(), service_id]
     );
     
     res.status(201).json({ 
-      file_url: url,
-      file_key: key,
+      file_url: fileUrl,
+      filename: filename,
       message: 'Mockup image uploaded successfully'
     });
   } catch (error: any) {
@@ -2494,7 +2502,7 @@ app.get('/api/admin/gallery-images', authenticateToken, requireRole(['ADMIN']), 
   }
 });
 
-// Portfolio file upload - saves to project cloud storage
+// Portfolio file upload - saves to local storage
 app.post('/api/admin/portfolio-upload', authenticateToken, requireRole(['ADMIN']), upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -2507,23 +2515,31 @@ app.post('/api/admin/portfolio-upload', authenticateToken, requireRole(['ADMIN']
       return res.status(400).json({ message: 'File must be an image (JPG, PNG, GIF, WEBP) or video (MP4, MOV, WEBM)' });
     }
     
-    console.log('Uploading portfolio file to cloud storage:', req.file.originalname);
+    console.log('Uploading portfolio file:', req.file.originalname);
     
-    // Upload to cloud storage using storage proxy
-    const { url, key } = await storageProxy.upload(req.file);
+    // Generate unique filename and save to local storage
+    const ext = req.file.originalname.split('.').pop() || 'jpg';
+    const filename = `portfolio-${uuidv4()}-${Date.now()}.${ext}`;
+    const filepath = path.join(storageDir, filename);
     
-    console.log('Upload successful, URL:', url);
+    // Write file to storage directory
+    fs.writeFileSync(filepath, req.file.buffer);
+    
+    // Construct the public URL
+    const fileUrl = `/storage/${filename}`;
+    
+    console.log('Portfolio file saved to:', fileUrl);
     
     res.status(201).json({ 
-      file_url: url,
-      file_key: key,
+      file_url: fileUrl,
+      filename: filename,
       original_name: req.file.originalname,
       mimetype: req.file.mimetype,
       size: req.file.size
     });
   } catch (error: any) {
     console.error('Portfolio upload error:', error);
-    res.status(500).json({ message: error.message || 'Failed to upload file to storage' });
+    res.status(500).json({ message: error.message || 'Failed to upload file' });
   }
 });
 
